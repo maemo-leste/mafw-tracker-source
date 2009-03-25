@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@plugindir@
+includedir=@includedir@
+
+Name: mafw-tracker-source
+Description: MAFW tracker source
+Version: @VERSION@
+Libs: -L${libdir} -lmafw-tracker-source
+Cflags: -I${includedir}

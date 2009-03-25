@@ -1,0 +1,11 @@
+prefix=
+exec_prefix=
+libdir=${pcfiledir}/libmafw-tracker-source
+includedir=${pcfiledir}/
+
+Name: mafw-tracker-source
+Description: MAFW tracker source
+Version: @VERSION@
+Libs: ${libdir}/mafw-tracker-source.la
+Cflags: -I${includedir}
+Requires: gobject-2.0 mafw

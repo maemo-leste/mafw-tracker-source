@@ -1,0 +1,362 @@
+mafw-tracker-source (0.1.2009.13-5) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.13-5
+
+ -- Juha Kellokoski <ext-juha.kellokoski@nokia.com>  Wed, 25 Mar 2009 09:16:45 +0200
+
+mafw-tracker-source (0.1.2009.13-4) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.13-4
+  * Fixes: NB#105133 - Mafw-tracker-source does not emit container-changed signal.
+  * Set Visa as integrator.
+  * Upgrade copyright year.
+  * Add headers for Makefile.am and configure.ac files.
+  * Set Visa Smolander as the contact person in headers.
+
+ -- Juha Kellokoski <ext-juha.kellokoski@nokia.com>  Wed, 25 Mar 2009 09:16:45 +0200
+
+mafw-tracker-source (0.1.2009.13-3) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.13-3
+
+ -- Juha Kellokoski <ext-juha.kellokoski@nokia.com>  Tue, 24 Mar 2009 09:23:03 +0200
+
+mafw-tracker-source (0.1.2009.12-3) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.12-3
+  * Update tracker dependency.
+  * Fixes CID 9884
+  * Fixes CID 1188
+  * Fixed CIDs 1190 and 1189
+  * Manage video thumbnails.
+  * Fixes CID 8115
+  * Fixes CID 8116
+
+ -- Juha Kellokoski <ext-juha.kellokoski@nokia.com>  Wed, 18 Mar 2009 09:17:01 +0200
+
+mafw-tracker-source (0.1.2009.12-1) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.12-1
+  * Fix test_browse_music_genres_unknown UT case.
+  * Fix test_browse_music_genres_genre2 UT case.
+  * Fix test_browse_music_albums.
+  * Add mockup function for
+    tracker_metadata_get_unique_values_with_concat_count_and_sum_async, and fix
+    test for browse artists.
+  * Fix UT when changed from MAXUINT to MAXINT.
+
+ -- Juha Kellokoski <ext-juha.kellokoski@nokia.com>  Mon, 16 Mar 2009 09:10:01 +0200
+
+mafw-tracker-source (0.1.2009.11-4) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.11-4
+  * Fixes: NB#104650 - Unable to save pause position metadata to tracker-source
+  * Fixes: NB#103044 - Tracker source cannot list more than 1024 items in MTG
+  * Obtain albums from an artist when obtaining the metadata.
+  * Album art must be obtained from album titles.
+  * Return VARIOUS VALUES instead of concatenated values.
+  * Manage several artists/albums within cache.
+  * Remove artist value from the object id in the case of "music/albums".
+  * Do not call the set_metadata callback if this has not been provided.
+
+ -- Juha Kellokoski <ext-juha.kellokoski@nokia.com>  Wed, 11 Mar 2009 09:10:01 +0200
+
+mafw-tracker-source (0.1.2009.11-3) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.11-3
+  * Using " " as artist name when obtaining album art.
+
+ -- Juha Kellokoski <ext-juha.kellokoski@nokia.com>  Tue, 10 Mar 2009 09:12:41 +0200
+
+mafw-tracker-source (0.1.2009.11-1) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.11-1
+  * Fix updating metadata problem introduced in commit r19499.
+  * Fixed support for MAFW_METADATA_KEY_PAUSE_POSITION.
+  * Fixed a leak.
+
+ -- Juha Kellokoski <ext-juha.kellokoski@nokia.com>  Thu, 05 Mar 2009 14:43:54 +0200
+
+mafw-tracker-source (0.1.2009.10-1) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.10-1
+  * Fixes: NB#102987   Play-count is not incremented after 1
+  * Fixes: NB#103102   Space shows as %20 in clip the name of the playlist file
+  * Using an idle to add the missing playlist durations.
+  * Removed an unused type definition.
+  * Calculate the playlist duration using the browse function. 
+
+ -- Juha Kellokoski <ext-juha.kellokoski@nokia.com>  Thu, 26 Feb 2009 14:06:24 +0200
+
+mafw-tracker-source (0.1.2009.9-1) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.09-1
+  * Fixes: NB#101404
+  * Fixes: NB#101704
+  * Fixes: NB#95144
+  * Fixes: NB#100442
+  * Fixes: NB#100497
+  * Disabled mime-type extraction for untracker items in
+    playlists because of performance issues.
+  * Modified the destroy_object function to use the uri metadata.
+  * Fixed an error in the childcount.
+  * Modified the function to extract info from the object_id using the clip 
+    field to store the playlist uri.
+  * Fail object constructor when plugin has not been initialized.
+  * Adapt unit tests to properly initialize the plugin.
+  * Fixed a comment.
+  * Made plugin init/deinit functions public, so they can be used from 
+    test programs in order to initialize the plugin properly.
+  * Added backup of the playlist duration.
+  * Handle tracker connection initialization properly
+  * Updated changelog version numbers.
+  * Allow to browse through top-level categories even when there are no files.
+  * Refactor the way both MAFW and Tracker interact.
+
+ -- Juha Kellokoski <ext-juha.kellokoski@nokia.com>  Thu, 19 Feb 2009 18:24:16 +0200
+
+mafw-tracker-source (0.1.2009.07-1) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.07-1
+  * Take in account the genre when getting metadata from an object id.
+  * Now MAFW does not request album art thumbnail generation. Instead, it checks
+    if they have already been generated, and if so, returns the URI. Generation
+    of thumbnails are now responsibility of the caller and/or Tracker.
+  * Do not strip/lowercase artist or album names when using 
+    hildon-thumbnail URI
+  * Fixes: NB#93471
+
+ -- Mika Tapojärvi <ext-mika.tapojarvi@nokia.com>  Fri, 06 Feb 2009 08:38:53 +0200
+
+mafw-tracker-source (0.1.2009.06-1) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.06-1
+  * Fixes: NB#98949
+  * Adapted tracker source to the changes in browse API
+  * Adapted tracker source tests to the new browse API.
+  * Removed wrong thumbnails request.
+  * Added mafw-tracker-source and mafw-iradio-source extended descriptions.
+  * Added GTK_DISABLE_DEPRECATED parameters for mafw-tracker-source 
+    configure.ac. Added extended descriptions for 
+    mafw-gst-renderer.
+  * Fixes a bug when browsing an empty playlist, the browse callback
+    was not being called.
+
+ -- Mika Tapojärvi <ext-mika.tapojarvi@nokia.com>  Fri, 30 Jan 2009 14:46:24 +0200
+
+mafw-tracker-source (0.1.2009.05-1) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.05-1
+  * Fixes: NB#98753
+  * Changing the base class of the extension objects to GInitiallyUnowned
+  * Fixed a bug when album or artist are exactly one character long, which
+    makes hildon-thumbnail crash. The fix handles this situation
+    as if no metadata was known (strlen(artist) == 1 => artist = "").
+
+ -- Mika Tapojärvi <ext-mika.tapojarvi@nokia.com>  Thu, 22 Jan 2009 14:47:51 +0200
+
+mafw-tracker-source (0.1.2009.04-1) unstable; urgency=low
+
+  * MAFW, pre-release 0.2009.04-1
+  * Fixes: NB#96901
+  * Fixes: NB#93484
+  * Fixes: NB#93495
+  * Fixes: NB#95300
+  * Fixed a bug when album or artist are exactly one character long, which
+    makes hildon-thumbnail crash. The fix handles this situation
+    as if no metadata was known (strlen(artist) == 1 => artist = "").
+  * Fix an overflow.
+  * constness fix
+  * Reducing lintian warnings.
+  * Refactor browse function.
+  * Merge some similar functions to reduce the number of them.
+  * Refactor get_metadata to reuse function util_extract_category_info.
+  * Refactor set_metadata to reuse function util_extract_category_info.
+  * Some parameters can be set as NULL if they should be ignored in function
+  * util_extract_category_info.
+  * Make _extract_category_info function public.
+  * Minor fixes to code style
+  * File splitting: Moved code used to process tracker results to 
+    tracker-result.[ch]
+  * File splitting: Moved mafw<->tracker key mapping related code
+    to ket-mapping.[ch].
+  * File splitting
+  * File splitting: created media-art.[ch] and other minor changes
+  * Remove commented code.
+  * File splitting, moving some stuff to util and doing some minor renamings
+
+ -- Mika Tapojärvi <ext-mika.tapojarvi@nokia.com>  Fri, 16 Jan 2009 15:13:23 +0200
+
+mafw-tracker-source (0.1.2009.03-1) unstable; urgency=low
+
+  * MAFW, pre-release 0.1.2009.03-1
+  * Changed a type cast from (const gchar **) to (gchar **) to fix a build error.
+  * Casting to 'const' some tracker invokations.
+  * Reuse get_metadata function when browsing in music category. Thus, we remove
+  * synchronous calls in that category.
+  * Reuse get_metadata function when browsing in root category. Thus, we remove
+  * synchronous calls in that category.
+
+ -- Mika Tapojärvi <ext-mika.tapojarvi@nokia.com>  Fri, 09 Jan 2009 15:51:06 +0200
+
+mafw-tracker-source (0.1.2008.52-1) unstable; urgency=low
+
+  * Renamed midas to mafw
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Mon, 22 Dec 2008 12:55:59 +0200
+
+midas-tracker-source (0.1.2008.52) unstable; urgency=low
+
+  * Changed to fullfil the new naming scheme for media-art
+  * Implemented media-art for artists category
+  * Removing libtotem-pl-parser
+  * Fixes: NB#95300     Title is blank in metadata window for Albums container
+  * Fixes: NB#92761     Instantiated midas template package doesn't install
+  * Fixes: NB#93471     Get metadata with key MIDAS_METADATA_KEY_ALBUM_ART_LARGE_URI does not work
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Fri, 19 Dec 2008 15:28:58 +0200
+
+midas-tracker-source (0.1.2008.51-2) unstable; urgency=low
+
+  * Fixes: NB#95563     'midas-dbus-wrapper' crashing while checking
+    containers metada from Genres container
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Tue, 16 Dec 2008 10:45:59 +0200
+
+midas-tracker-source (0.1.2008.51-1) unstable; urgency=low
+
+  * Added support for thumbnails other than album-art
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Mon, 15 Dec 2008 12:55:59 +0200
+
+midas-tracker-source (0.1.2008.51) unstable; urgency=low
+
+  * use hildon-thumbnail API to get the URI of the album art thumbnails
+  and queue thumbnail generation on demand (just in case the thumbnail
+  is not there for some reason).
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Fri, 12 Dec 2008 14:57:37 +0200
+
+midas-tracker-source (0.1.2008.50) unstable; urgency=low
+
+  * Memory leak fixes & test cases added to improve code coverage
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Fri, 05 Dec 2008 13:29:06 +0200
+
+midas-tracker-source (0.1.2008.49) unstable; urgency=low
+
+  * Refactoring get_metadata to become full async
+  * Album-art support for album containers implemented
+  * Using predefined titles for fixed categories when getting metadata
+  * Fixes: NB#93836     midas-tracker-source : postinstallation script returns error: i386-dev & arm-dev fail to build
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Fri, 28 Nov 2008 14:35:35 +0200
+
+midas-tracker-source (0.1.2008.48) unstable; urgency=low
+
+  * Implementation of album art thumbnails so that it follows 
+  file naming conventions used in freedesktop
+  * Album art thumbnails are stored as png for large and normal sizes and png
+  for the cropped version.
+  * Added mechanism to start/stop wrappers on package install/removal
+   (ignoring scratchbox support for now).  Uses DSME.
+   Added an Xsession.post script.
+   Updated affected components
+  * Fixes: NB#89579	Browse operation is not reliable
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Fri, 21 Nov 2008 16:59:53 +0200
+
+midas-tracker-source (0.1.2008.47) unstable; urgency=low
+
+  * Set default sort criteria for browse operations
+  * Fixes crash when attempting to remove the root category.
+  * Fixes: NB#88910	Tracker source doesn't return NULL object id for an empty result set
+  * Fixes: NB#91296	logical strings displayed for playlist items with space character
+  * Fixes: NB#91571	junk characters displayed in title field for few clips
+  * Fixes: NB#91621	genre metadata tag  fails to show up
+  * Fixes: NB#92100	Midas-tracker-source crashes while trying to Destroy object
+  * Fixes: NB#89872	Midas tracker source crashes in browse cancel
+  * Fixes: NB#88749	Tracker source returns song durations as strings
+  * Fixes: NB#90480	MTG crashing while trying to play the item from imported Playlists in tracker source
+  * Fixes: NB#90643	Tracker source crashes when meta data is fetched
+  * Fixes: NB#88945	Playlist formats other than .m3u & .pls are not listed in tracker source
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Fri, 14 Nov 2008 12:30:41 +0200
+
+midas-tracker-source (0.1.2008.46) unstable; urgency=low
+
+  * Finished implementation of album-art thumbnails (4 sizes):
+    - original (embedded)
+    - cropped (small)
+    - normal (medium)
+    - large
+  * Added support for resolution keys
+  * Added unit tests for destroy_object  & midas_source_set_metadata function
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Fri, 07 Nov 2008 11:58:32 +0200
+
+midas-tracker-source (0.1.2008.45) unstable; urgency=low
+
+  * Added support for album-art-small-uri, album-art-medium-uri and
+    album-art-large-uri.
+  * Implemented asynchronous get_metadata
+  * Added key MIDAS_METADATA_KEY_VIDEO_SOURCE.
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Fri, 31 Oct 2008 14:14:16 +0200
+
+midas-tracker-source (0.1.2008.44) unstable; urgency=low
+
+  * Checking MIDAS_METADATA_KEY_LAST_PLAYED fulfils ISO-8601 specifications
+  * Implemented midas_source_destroy_object function in midas_tracker_source
+  * Managing paused-thumbnail and paused-position keys
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Fri, 24 Oct 2008 10:11:52 +0300
+
+midas-tracker-source (0.1.2008.43) unstable; urgency=low
+
+  * Implementation of album-art support
+  * Implemented a preliminary version of set_metadata in tracker source 
+    now playlists are obtained through the PLAYLISTS service type in Tracker
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Fri, 17 Oct 2008 15:03:14 +0300
+
+midas-tracker-source (0.1.2008.42) unstable; urgency=low
+
+  * Browsing individual playlists made  more efficient .
+  * Proper handling of playlist , whose entry points to contents that are
+    not in Tracker (untracked local files or external URIs) by returning
+    objectids for the built-in uri-source
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Fri, 10 Oct 2008 15:29:27 +0300
+
+midas-tracker-source (0.1.2008.40) unstable; urgency=low
+
+  * In development.
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Mon, 29 Sep 2008 07:02:28 +0000
+
+midas-tracker-source (0.1.2008.39) unstable; urgency=low
+
+  * Development in progress.
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Sun, 21 Sep 2008 18:35:06 +0300
+
+midas-tracker-source (0.1.2008.38) unstable; urgency=low
+
+  * Some of the automatic playlists implemented.
+  * Change notifications from tracker are propagated to users.
+  * "Unknown artist/genre/album/title" handled.
+  * Test cases updated.
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Mon, 15 Sep 2008 08:11:12 +0300
+
+midas-tracker-source (0.1) unstable; urgency=low
+
+  * The library provides an object that inherits from MidasSource. This
+    object provides a tag-based browse of clips stored in the local
+    device, in the same way current Mediaplayer is able to do.
+  * This library is built on top of tracker.
+  * Provides browsing and metadata retrieval functionality, as specified in the API.
+
+ -- Zeeshan Ali <zeeshan.ali@nokia.com>  Mon, 08 Sep 2008 17:13:15 +0100
+

@@ -1,0 +1,159 @@
+{
+   <1>
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:g_source_new
+   fun:gssdp_socket_source_new
+   fun:gssdp_client_init
+   fun:g_type_create_instance
+   obj:*
+   obj:*
+   fun:g_object_newv (in /targets/x86_fre/usr/lib/libgobject-2.0.so.0.1800.1)
+   fun:g_object_new_valist (in /targets/x86_fre/usr/lib/libgobject-2.0.so.0.1800.1)
+   fun:g_object_new (in /targets/x86_fre/usr/lib/libgobject-2.0.so.0.1800.1)
+   fun:gupnp_context_new (in /targets/x86_fre/usr/lib/libgupnp-1.0.so.2.0.0)
+}
+
+{
+   <2>
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   obj:*
+   obj:*
+   fun:g_type_init_with_debug_flags
+   fun:g_type_init
+}
+{
+   <3>
+   Memcheck:Cond
+   fun:strlen
+   fun:_dl_init_paths
+   fun:dl_main
+   fun:_dl_sysdep_start
+   fun:_dl_start
+}
+{
+   <4>
+   Memcheck:Cond
+   fun:_dl_relocate_object
+   fun:dl_main
+   fun:_dl_sysdep_start
+   fun:_dl_start
+}
+{
+   <5>
+   Memcheck:Leak
+   fun:calloc
+   fun:dbus_malloc0
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   fun:dbus_parse_address
+   obj:*
+   fun:dbus_connection_open
+   obj:*
+   fun:dbus_bus_get
+   fun:dbus_g_bus_get
+}
+{
+   <6>
+   Memcheck:Leak
+   fun:realloc
+   fun:dbus_realloc
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
+{
+   <7>
+   Memcheck:Leak
+   fun:realloc
+   fun:g_realloc0
+   fun:g_quark_from_static_string
+   fun:g_type_init_with_debug_flags
+   fun:g_type_init
+   fun:checkmore_run
+   fun:main
+}
+{
+   <8>
+   Memcheck:Leak
+   fun:realloc
+   fun:g_realloc0
+   obj:*
+   obj:*
+   fun:g_type_register_static
+   fun:g_param_type_register_static
+   obj:*
+   fun:g_type_init_with_debug_flags
+   fun:g_type_init
+   fun:checkmore_run
+   fun:main
+}
+{
+   <9>
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_slice_alloc
+   fun:g_hash_table_new_full
+   fun:g_hash_table_new
+   fun:g_quark_from_static_string
+   fun:g_type_init_with_debug_flags
+   fun:g_type_init
+   fun:checkmore_run
+   fun:main
+}
+{
+   <10>
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   obj:*
+   fun:g_slice_alloc
+   fun:g_hash_table_new_full
+   fun:g_hash_table_new
+   fun:g_quark_from_static_string
+   fun:g_type_init_with_debug_flags
+   fun:g_type_init
+   fun:checkmore_run
+   fun:main
+}
+{
+   <11>
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
+   fun:g_quark_from_static_string
+   fun:g_type_init_with_debug_flags
+   fun:g_type_init
+   fun:checkmore_run
+   fun:main
+}
+{
+   <12>
+   Memcheck:Leak
+   fun:realloc
+   fun:g_realloc
+   obj:*
+   obj:*
+   fun:g_type_register_static
+   fun:g_param_type_register_static
+   obj:*
+   fun:g_type_init_with_debug_flags
+   fun:g_type_init
+   fun:checkmore_run
+   fun:main
+}
+

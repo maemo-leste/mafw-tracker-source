@@ -1,0 +1,23 @@
+Source: mafw-tracker-source
+Section: misc
+Priority: optional
+Maintainer: Mika Tapojärvi <ext-mika.tapojarvi@nokia.com>
+Build-Depends: debhelper (>= 4.0.0), libglib2.0-dev, libmafw0-dev (>= 0.1),
+               checkmore, libtrackerclient-dev (>= 0.6.90), dbus, 
+               libhildon-thumbnail-dev (>=3.0.17), libtotem-plparser-dev
+Standards-Version: 3.7.2
+
+Package: mafw-tracker-source
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: MAFW source based on tracker
+ Tracker MAFW source.
+
+Package: mafw-tracker-source-dbg
+Section: devel
+Architecture: any
+Priority: extra
+Depends: mafw-tracker-source (= ${binary:Version})
+Description: debug symbols for mafw-tracker-source
+ Mafw-tracker-source debug symbols.
