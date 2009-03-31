@@ -90,7 +90,7 @@ static void _stats_changed_handler(DBusGProxy *proxy,
 
 	for (i = 0; i < change_set->len; i++) {
 		p = g_ptr_array_index(change_set, i);
-		service_type = p[1];
+		service_type = p[0];
 
                 if (!service_type) {
                         continue;
