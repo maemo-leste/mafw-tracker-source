@@ -1,3 +1,20 @@
+mafw-tracker-source (0.1.2009.14-5) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.14-5
+
+ -- Juha Kellokoski <veitikka6@gmail.com>  Wed, 01 Apr 2009 09:34:16 +0300
+
+mafw-tracker-source (0.1.2009.14-4) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.14-4
+  * Fixes: NB#105133 - Mafw-tracker-source does not emit container-changed signal.
+  * Tracker changed the order of the items in 
+    the change_set parameter of the ServiceStatisticsUpdated 
+    signal, now the category is the first item, and the count 
+    is the second.
+
+ -- Juha Kellokoski <veitikka6@gmail.com>  Wed, 01 Apr 2009 09:34:16 +0300
+
 mafw-tracker-source (0.1.2009.13-6) unstable; urgency=low
 
   * MAFW tracker source, pre-release 0.2009.13-6

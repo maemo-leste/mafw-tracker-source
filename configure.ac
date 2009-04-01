@@ -6,7 +6,7 @@
 # Copyright (C) 2007, 2008, 2009 Nokia. All rights reserved.
 
 AC_PREREQ([2.53])
-AC_INIT([mafw-tracker-source], [0.1.2009.13-6])
+AC_INIT([mafw-tracker-source], [0.1.2009.14-5])
 
 AC_CONFIG_SRCDIR([libmafw-tracker-source/mafw-tracker-source.h])
 AC_CONFIG_HEADERS([config.h])
