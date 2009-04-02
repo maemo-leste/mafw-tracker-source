@@ -170,34 +170,6 @@ inline gchar *get_data(const GList * list)
 	return (gchar *) list->data;
 }
 
-void util_decode_album_artist(const gchar *album_artist,
-			      gchar **album,
-			      gchar **artist)
-{
-	gchar *pos = strstr(album_artist, " - ");
-	if (pos == NULL) {
-		/* This is a fallback case, should never happen because
-		   we are always encoding with "album - artist" */
-		if (artist) {
-                        *artist = NULL;
-                }
-
-                if (album) {
-                        *album = g_strdup(album_artist);
-                }
-	} else {
-		gchar *album_tmp = g_new0(gchar, pos - album_artist + 1);
-		strncpy(album_tmp, album_artist, pos - album_artist);
-                if (album) {
-                        *album = util_str_replace(album_tmp, "--", "-");
-                }
-		g_free(album_tmp);
-                if (artist) {
-                        *artist = util_str_replace(pos + 3, "--", "-");
-                }
-	}
-}
-
 #ifndef G_DEBUG_DISABLE
 void perf_elapsed_time_checkpoint(gchar *event)
 {
@@ -752,8 +724,9 @@ CategoryType util_extract_category_info(const gchar *object_id,
                         }
 			/* No break */
 		case 3:
-			util_decode_album_artist(get_data(g_list_nth(path, 2)),
-						 album, artist);
+			if (album) {
+				*album = g_strdup(get_data(g_list_nth(path, 2)));
+			}
 			break;
 		case 2:
 			/* No info to extract */

@@ -47,9 +47,6 @@ gchar *util_str_replace(gchar *str, gchar *old, gchar *new);
 GList *util_itemid_to_path(const gchar *item_id);
 gchar *util_unescape_string(const gchar* original);
 inline gchar *get_data(const GList * list);
-void util_decode_album_artist(const gchar *album_artist,
-			      gchar **album,
-			      gchar **artist);
 
 #ifndef G_DEBUG_DISABLE
 void perf_elapsed_time_checkpoint(gchar *event);
