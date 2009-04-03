@@ -1,8 +1,19 @@
-mafw-tracker-source (0.1.2009.14-5) unstable; urgency=low
+mafw-tracker-source (0.1.2009.15-2) unstable; urgency=low
 
-  * MAFW tracker source, pre-release 0.2009.14-5
+  * MAFW tracker source, pre-release 0.2009.15-2
 
- -- Juha Kellokoski <veitikka6@gmail.com>  Wed, 01 Apr 2009 09:34:16 +0300
+ -- Juha Kellokoski <veitikka6@gmail.com>  Fri, 03 Apr 2009 09:17:14 +0300
+
+mafw-tracker-source (0.1.2009.15-1) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.15-1
+  * Fixes: NB#109391 - Weird behaviour for album art clip in mafw tracker source
+  * Resolve artist metadata for album categories using Tracker's 
+    concat API.
+  * Now object identifiers for albums category
+    do not encode the artist information.
+
+ -- Juha Kellokoski <veitikka6@gmail.com>  Fri, 03 Apr 2009 09:17:14 +0300
 
 mafw-tracker-source (0.1.2009.14-4) unstable; urgency=low
 
