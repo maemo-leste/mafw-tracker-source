@@ -62,7 +62,6 @@ gboolean util_mafw_filter_to_rdf(GHashTable *keys_map,
 gchar *util_get_tracker_value_for_filter(const gchar *tracker_key,
 					 const gchar *value);
 gboolean util_tracker_value_is_unknown(const gchar *value);
-gboolean util_is_playlist_mime(gchar *mime);
 gchar **util_create_sort_keys_array(gint n, gchar *key1, ...);
 gchar *util_create_filter_from_category(const gchar *genre,
 					const gchar *artist,

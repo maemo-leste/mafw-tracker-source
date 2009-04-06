@@ -30,14 +30,6 @@
 #include <libmafw/mafw.h>
 #include "key-mapping.h"
 
-static gchar *playlist_mimes[] =  {
-	"audio/x-scpls", "audio/scpls", "audio/x-mpegurl", "audio/mpeg-url",
-	"application/x-winamp-playlist", "audio/playlist",
-	"application/x-smil", "application/smil", "application/vnd.ms-wpl",
-	"audio/x-ms-wax", "text/uri-list", "application/ram", "audio/x-ms-asx",
-	"application/x-ms-asx", "audio/x-pn-realaudio", "application/ram",
-	"audio/x-pn-realaudio-plugin", NULL };
-
 /* ------------------------- Private API ------------------------- */
 
 static void _insert_chars(gchar *str, gchar *chars, gint index)
@@ -408,25 +400,6 @@ gboolean util_mafw_filter_to_rdf(GHashTable *keys_map,
 gboolean util_tracker_value_is_unknown(const gchar *value)
 {
 	return (value == NULL) || (*value == '\0');
-}
-
-gboolean util_is_playlist_mime(gchar *mime)
-{
-	gboolean is_pls = FALSE;
-	gint i = 0;
-
-	if (!mime || *mime == '\0') {
-		return FALSE;
-	}
-
-	while (playlist_mimes[i] && !is_pls) {
-		if (strcmp(mime, playlist_mimes[i]) == 0) {
-			is_pls = TRUE;
-		}
-		i++;
-	}
-
-	return is_pls;
 }
 
 gchar **util_create_sort_keys_array(gint n, gchar *key1, ...)
