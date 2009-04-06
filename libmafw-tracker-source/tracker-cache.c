@@ -103,7 +103,7 @@ static GValue *_get_title(TrackerCache *cache, gint index)
         /* If it is empty, then use the URI */
         if ((g_value_get_string(value_title) == NULL ||
              strcmp(g_value_get_string(value_title), "") == 0) &&
-            cache->result_type != TRACKER_CACHE_RESULT_TYPE_UNIQUE_COUNT_SUM) {
+            cache->result_type != TRACKER_CACHE_RESULT_TYPE_UNIQUE) {
                 value_uri = tracker_cache_value_get(cache,
                                                 MAFW_METADATA_KEY_URI,
                                                 index);
@@ -193,6 +193,18 @@ static void _insert_key_tracker(TrackerCache *cache,
         cached_value->user_key = user_key;
         cached_value->key_type = TRACKER_CACHE_KEY_TYPE_TRACKER;
         cached_value->tracker_index = pos;
+        g_hash_table_insert(cache->cache, g_strdup(key), cached_value);
+}
+
+static void _insert_key_void(TrackerCache *cache,
+                             const gchar *key,
+                             gboolean user_key)
+{
+        TrackerCacheValue *cached_value;
+
+        cached_value = g_new0(TrackerCacheValue, 1);
+        cached_value->user_key = user_key;
+        cached_value->key_type = TRACKER_CACHE_KEY_TYPE_VOID;
         g_hash_table_insert(cache->cache, g_strdup(key), cached_value);
 }
 
@@ -332,12 +344,27 @@ static void _tracker_cache_value_free(gpointer data)
 {
         TrackerCacheValue *value = (TrackerCacheValue *) data;
 
-        if (value->key_type == TRACKER_CACHE_KEY_TYPE_COMPUTED) {
-                g_value_unset(&value->value);
-        } else if (value->key_type == TRACKER_CACHE_KEY_TYPE_DERIVED) {
-                g_free(value->key_derived_from);
+        if (value) {
+                if (value->key_type == TRACKER_CACHE_KEY_TYPE_COMPUTED) {
+                        g_value_unset(&value->value);
+                } else if (value->key_type == TRACKER_CACHE_KEY_TYPE_DERIVED) {
+                        g_free(value->key_derived_from);
+                }
+                g_free(value);
         }
-        g_free(value);
+}
+
+static void _increase_key_index(TrackerCache *cache, const gchar *key)
+{
+        TrackerCacheValue *cached_value;
+
+        /* Look for the key */
+        cached_value = g_hash_table_lookup(cache->cache, key);
+
+        if (cached_value &&
+            cached_value->key_type == TRACKER_CACHE_KEY_TYPE_TRACKER) {
+                cached_value->tracker_index++;
+        }
 }
 
 /* ------------------------- Public API ------------------------- */
@@ -538,14 +565,14 @@ tracker_cache_key_add(TrackerCache *cache,
                 return;
         }
 
-        /* With unique_count, only duration, childcount and mime keys
+        /* With unique, only duration, childcount and mime keys
          * makes sense */
-        if ((cache->result_type == TRACKER_CACHE_RESULT_TYPE_UNIQUE_COUNT_SUM ||
-             cache->result_type == TRACKER_CACHE_RESULT_TYPE_UNIQUE_CONCAT_COUNT_SUM) &&
+        if ((cache->result_type == TRACKER_CACHE_RESULT_TYPE_UNIQUE) &&
             strcmp(key, MAFW_METADATA_KEY_CHILDCOUNT) != 0 &&
             strcmp(key, MAFW_METADATA_KEY_DURATION) != 0 &&
             strcmp(key, MAFW_METADATA_KEY_MIME) != 0 &&
             !albumart_key_is_album_art(key)) {
+                _insert_key_void(cache, key, user_key);
                 return;
         }
 
@@ -569,47 +596,43 @@ tracker_cache_key_add(TrackerCache *cache,
                 return;
         }
 
-        /* If unique_count is used, childcount is the first value
-         * after the unique values */
-        if (cache->result_type == TRACKER_CACHE_RESULT_TYPE_UNIQUE_COUNT_SUM &&
+        /* If unique is used, childcount is the first value after
+         * the concat key (if it was inserted) */
+        if (cache->result_type == TRACKER_CACHE_RESULT_TYPE_UNIQUE &&
             strcmp(key, MAFW_METADATA_KEY_CHILDCOUNT) == 0) {
+                if (cache->concat_added) {
+                        offset = 1;
+                } else {
+                        offset = 0;
+                }
                 _insert_key_tracker(cache,
                                     key,
                                     user_key,
-                                    cache->last_tracker_index);
-                return;
-        }
-
-        /* If unique_concat is used, childcount is the first value after
-         * the concat key */
-        if (cache->result_type ==
-            TRACKER_CACHE_RESULT_TYPE_UNIQUE_CONCAT_COUNT_SUM &&
-            strcmp(key, MAFW_METADATA_KEY_CHILDCOUNT) == 0) {
-                _insert_key_tracker(cache,
-                                    key,
-                                    user_key,
-                                    cache->last_tracker_index + 1);
+                                    cache->last_tracker_index + offset);
+                /* Increase index for the 'sum' key */
+                if (cache->sum_added) {
+                        _increase_key_index(cache, MAFW_METADATA_KEY_DURATION);
+                }
+                cache->count_added = TRUE;
                 return;
         }
 
         /* If unique_count is used, duration is the second value
-         * after the unique values */
-        if (cache->result_type == TRACKER_CACHE_RESULT_TYPE_UNIQUE_COUNT_SUM &&
+         * after the unique values and count */
+        if (cache->result_type == TRACKER_CACHE_RESULT_TYPE_UNIQUE &&
             strcmp(key, MAFW_METADATA_KEY_DURATION) == 0) {
+                if (cache->concat_added && cache->count_added) {
+                        offset = 2;
+                } else if (cache->concat_added || cache->count_added) {
+                        offset = 1;
+                } else {
+                        offset = 0;
+                }
                 _insert_key_tracker(cache,
                                     key,
                                     user_key,
-                                    cache->last_tracker_index + 1);
-                return;
-        }
-
-        if (cache->result_type ==
-            TRACKER_CACHE_RESULT_TYPE_UNIQUE_CONCAT_COUNT_SUM &&
-            strcmp(key, MAFW_METADATA_KEY_DURATION) == 0) {
-                _insert_key_tracker(cache,
-                                    key,
-                                    user_key,
-                                    cache->last_tracker_index + 2);
+                                    cache->last_tracker_index + offset);
+                cache->sum_added = TRUE;
                 return;
         }
 
@@ -623,8 +646,7 @@ tracker_cache_key_add(TrackerCache *cache,
         /* MIME for playlists and non-leaf nodes are always 'container' */
         if (strcmp(key, MAFW_METADATA_KEY_MIME) == 0 &&
             (cache->service == SERVICE_PLAYLISTS ||
-             cache->result_type == TRACKER_CACHE_RESULT_TYPE_UNIQUE_COUNT_SUM ||
-             cache->result_type == TRACKER_CACHE_RESULT_TYPE_UNIQUE_CONCAT_COUNT_SUM)) {
+             cache->result_type == TRACKER_CACHE_RESULT_TYPE_UNIQUE)) {
                 tracker_cache_key_add_precomputed_string(
                         cache,
                         key,
@@ -636,8 +658,7 @@ tracker_cache_key_add(TrackerCache *cache,
         /* In case of title and non-unique, ask also for URI, as it
          * could be used as title just if there it doesn't have one */
         if (strcmp(key, MAFW_METADATA_KEY_TITLE) == 0 &&
-            cache->result_type != TRACKER_CACHE_RESULT_TYPE_UNIQUE_COUNT_SUM &&
-            cache->result_type != TRACKER_CACHE_RESULT_TYPE_UNIQUE_CONCAT_COUNT_SUM) {
+            cache->result_type != TRACKER_CACHE_RESULT_TYPE_UNIQUE) {
                 tracker_cache_key_add(cache, MAFW_METADATA_KEY_URI, FALSE);
         }
 
@@ -685,7 +706,7 @@ tracker_cache_key_add_several(TrackerCache *cache,
  * Add a list of keys that will be used to query tracker with 'unique'
  * functions. If some of the keys already exists, they are
  * skipped. Warning! This function only works if the case was created
- * with TRACKER_CACHE_RESULT_TYPE_UNIQUE_COUNT_SUM.
+ * with TRACKER_CACHE_RESULT_TYPE_UNIQUE.
  */
 void
 tracker_cache_key_add_unique(TrackerCache *cache,
@@ -696,10 +717,7 @@ tracker_cache_key_add_unique(TrackerCache *cache,
         /* Check if cache was created to store data from
          * unique_count_sum functions */
         g_return_if_fail(
-                cache->result_type ==
-                TRACKER_CACHE_RESULT_TYPE_UNIQUE_COUNT_SUM ||
-                cache->result_type ==
-                TRACKER_CACHE_RESULT_TYPE_UNIQUE_CONCAT_COUNT_SUM);
+                cache->result_type == TRACKER_CACHE_RESULT_TYPE_UNIQUE);
 
         i = 0;
         while (unique_keys[i]) {
@@ -745,19 +763,44 @@ tracker_cache_key_add_unique(TrackerCache *cache,
  *
  * Add the key to be concatenated with 'unique_concat'
  * function. Warning! This function only works if the cache was
- * created with TRACKER_CACHE_RESULT_TYPE_UNIQUE_CONCAT_COUNT_SUM.
- **/
+ * created with TRACKER_CACHE_RESULT_TYPE_UNIQUE.
+ */
 void
 tracker_cache_key_add_concat(TrackerCache *cache,
                              const gchar *concat_key)
 {
-        g_return_if_fail(cache->result_type ==
-                         TRACKER_CACHE_RESULT_TYPE_UNIQUE_CONCAT_COUNT_SUM);
+        gboolean user_req;
+        TrackerCacheValue *value;
 
+        g_return_if_fail(cache->result_type == TRACKER_CACHE_RESULT_TYPE_UNIQUE);
+
+        /* Check if the key already exists, and if so maintains the user request value */
+        value = g_hash_table_lookup(cache->cache, concat_key);
+
+        if (value) {
+                user_req = value->user_key;
+        } else {
+                user_req = FALSE;
+
+        }
+
+        /* 'concat' key comes in the first position after the unique keys */
         _insert_key_tracker(cache,
                             concat_key,
-                            FALSE,
+                            user_req,
                             cache->last_tracker_index);
+
+        /* Now, increase index for childcount and duration, if they were
+         * inserted */
+        if (cache->count_added) {
+                _increase_key_index(cache, MAFW_METADATA_KEY_CHILDCOUNT);
+        }
+
+        if (cache->sum_added) {
+                _increase_key_index(cache, MAFW_METADATA_KEY_DURATION);
+        }
+
+        cache->concat_added = TRUE;
 }
 
 /*
@@ -1111,4 +1154,19 @@ tracker_cache_build_metadata_aggregated(TrackerCache *cache,
         g_strfreev(user_keys);
 
         return metadata;
+}
+
+/*
+ * tracker_cache_key_exists:
+ * @cache: tracker cache
+ * @key: key too look
+ *
+ * Check if the cache contains the key
+ *
+ * Returns: @TRUE if the key is in the cache
+ */
+gboolean
+tracker_cache_key_exists(TrackerCache *cache,
+                         const gchar *key){
+        return g_hash_table_lookup_extended(cache->cache, key, NULL, NULL);
 }

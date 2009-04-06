@@ -39,6 +39,8 @@ enum TrackerCacheKeyType {
         TRACKER_CACHE_KEY_TYPE_THUMBNAILER,
         /* The value is obtained from other key */
         TRACKER_CACHE_KEY_TYPE_DERIVED,
+        /* The value cannot be obtained */
+        TRACKER_CACHE_KEY_TYPE_VOID
 };
 
 /* How results from tracker where obtained */
@@ -46,11 +48,8 @@ enum TrackerCacheResultType {
         /* Results were obtained with tracker_search_query_async */
         TRACKER_CACHE_RESULT_TYPE_QUERY,
         /* Results were obtained with
-         * tracker_metadata_get_unique_values_with_count_and_sum_async */
-        TRACKER_CACHE_RESULT_TYPE_UNIQUE_COUNT_SUM,
-        /* Results were obtained with
-         * tracker_metadata_get_unique_values_with_concat_count_and_sum_async */
-        TRACKER_CACHE_RESULT_TYPE_UNIQUE_CONCAT_COUNT_SUM,
+         * tracker_metadata_get_unique_values_with_* */
+        TRACKER_CACHE_RESULT_TYPE_UNIQUE,
         /* Results were obtained with tracker_get_metadata */
         TRACKER_CACHE_RESULT_TYPE_GET_METADATA,
 };
@@ -83,6 +82,12 @@ typedef struct TrackerCache {
         GPtrArray *tracker_results;
         /* The list of keys */
         GHashTable *cache;
+        /* 'concat' key has been added */
+        gboolean concat_added;
+        /* 'count' key has been added */
+        gboolean count_added;
+        /* 'sum' key has been added */
+        gboolean sum_added;
 } TrackerCache;
 
 
@@ -145,5 +150,8 @@ GList *tracker_cache_build_metadata(TrackerCache *cache);
 
 GHashTable *tracker_cache_build_metadata_aggregated(TrackerCache *cache,
                                                     gboolean count_childcount);
+
+gboolean tracker_cache_key_exists(TrackerCache *cache,
+                                  const gchar *key);
 
 #endif /* __MAFW_TRACKER_CACHE_H__ */
