@@ -631,29 +631,7 @@ static GHashTable *_new_metadata_from_untracked_resource(gchar *uri,
 			}
 			mafw_metadata_add_str(metadata, keys[i], fixed_uri);
 			g_free(fixed_uri);
-		} /* else if (!strcmp(keys[i], MAFW_METADATA_KEY_MIME)) {
-			GFileInfo *info;
-			GFile *file;
-
-			file = g_file_new_for_uri(uri);
-			info = g_file_query_info(file,
-					G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
-					G_FILE_QUERY_INFO_NONE,
-					NULL,
-					NULL);
-			g_object_unref(file);
-
-			if (info != NULL) {
-				const gchar* mime_type =
-					g_file_info_get_content_type(info);
-				if (mime_type != NULL) {
-					mafw_metadata_add_str(metadata,
-							       keys[i],
-							       mime_type);
-				}
-				g_object_unref(info);
-			}
-		} */
+		}
 	}
 
 	return metadata;
