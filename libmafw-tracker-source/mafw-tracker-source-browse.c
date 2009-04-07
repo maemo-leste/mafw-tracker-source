@@ -887,34 +887,24 @@ static void _browse_songs_branch(const gchar *genre,
                      bc);
 }
 
-static void _browse_albums_branch(const gchar *artist,
-                                  const gchar *album,
+static void _browse_albums_branch(const gchar *album,
                                   struct _browse_closure *bc)
 {
-        gchar *album_artist;
         gchar *escaped_album;
-        gchar *escaped_artist;
 
         if (bc->recursive) {
-                _browse_songs_branch(NULL, artist, album, bc);
+                _browse_songs_branch(NULL, NULL, album, bc);
         } else {
                 if (album) {
                         /* Browsing /music/albums/<album from artist> */
                         escaped_album =
                                 mafw_tracker_source_escape_string(album);
-                        escaped_artist =
-                                mafw_tracker_source_escape_string(artist);
-                        album_artist = g_strdup_printf("%s - %s",
-                                                       escaped_album,
-                                                       escaped_artist);
                         bc->object_id_prefix =
                                 _build_object_id(TRACKER_SOURCE_MUSIC,
                                                  TRACKER_SOURCE_ALBUMS,
-                                                 album_artist, NULL);
+                                                 escaped_album, NULL);
                         g_free(escaped_album);
-                        g_free(escaped_artist);
-                        g_free(album_artist);
-                        ti_get_songs(NULL, artist, album,
+                        ti_get_songs(NULL, NULL, album,
                                      bc->metadata_keys,
                                      bc->filter_criteria,
                                      bc->sort_fields,
@@ -1360,7 +1350,7 @@ mafw_tracker_source_browse(MafwSource *self,
                 break;
 
         case CATEGORY_MUSIC_ALBUMS:
-                _browse_albums_branch(artist, album, bc);
+                _browse_albums_branch(album, bc);
                 break;
 
         case CATEGORY_MUSIC_ARTISTS:
