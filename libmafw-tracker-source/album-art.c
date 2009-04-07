@@ -83,7 +83,6 @@ gchar *albumart_get_album_art_uri(const gchar *album)
 
 	if (*album_key == '\0') {
 		g_free(album_key);
-                g_warning("Cannot compute path to album art");
 		return NULL;
 	}
 
