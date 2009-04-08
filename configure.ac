@@ -86,12 +86,12 @@ AS_IF([test "x$enable_debug" = xyes],
 
 dnl Tests.
 ENABLED_BY_DEFAULT([tests], [disable unit tests])
-if test "x$enable_tests" = xyes; then
-	PKG_CHECK_MODULES(CHECKMORE, [checkmore, check >= 0.9.4])
-	if test -z "$CHECKMORE_LIBS"; then
-		AC_MSG_WARN([checkmore is needed for unit tests!])
-	fi
-fi
+#if test "x$enable_tests" = xyes; then
+#	PKG_CHECK_MODULES(CHECKMORE, [checkmore, check >= 0.9.4])
+#	if test -z "$CHECKMORE_LIBS"; then
+#		AC_MSG_WARN([checkmore is needed for unit tests!])
+#	fi
+#fi
 AM_CONDITIONAL(ENABLE_TESTS,
                [test "x$enable_tests" = xyes && test -n "$CHECKMORE_LIBS"])
 dnl Tracing.
