@@ -1,8 +1,6 @@
 mafw-tracker-source (0.1.2009.16-1) unstable; urgency=low
 
   * MAFW tracker source, pre-release 0.2009.16-1
-  * Fixes: NB#109391
-    * Now object identifiers for albums category
   * Unit tests disabled by default.
   * Removed useless g_warning.
   * Now object identifiers for music/albums/album do not contain
@@ -12,7 +10,7 @@ mafw-tracker-source (0.1.2009.16-1) unstable; urgency=low
   * Removed commented out code for mime-type detection of media 
     not indexed by tracker, it is too slow to enable this.
 
- -- Mika Tapojärvi <ext-mika.tapojarvi@nokia.com>  Wed, 08 Apr 2009 12:18:45 +0300
+ -- Mika Tapojärvi <mika.tapojarvi@sse.fi>  Wed, 08 Apr 2009 12:41:14 +0300
 
 mafw-tracker-source (0.1.2009.15-2) unstable; urgency=low
 
