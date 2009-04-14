@@ -1017,6 +1017,11 @@ tracker_cache_value_get(TrackerCache *cache,
                         g_value_set_int(
                                 return_value,
                                 atoi(queried_result[cached_value->tracker_index]));
+		} else if (strcmp(key, MAFW_METADATA_KEY_ADDED) == 0) {
+			g_value_init(return_value, G_TYPE_LONG);
+			g_value_set_long(
+				return_value,
+				atol(queried_result[cached_value->tracker_index]));
                 } else {
                         g_value_init(return_value, G_TYPE_STRING);
                         /* Special case: convert pathname to URI */
@@ -1027,8 +1032,8 @@ tracker_cache_value_get(TrackerCache *cache,
                                         NULL);
                                 g_value_set_string(return_value, uri);
                                 g_free(uri);
-                        } else {
-                                g_value_set_string(
+			} else {
+				g_value_set_string(
                                         return_value,
                                         queried_result[cached_value->tracker_index]);
                         }
