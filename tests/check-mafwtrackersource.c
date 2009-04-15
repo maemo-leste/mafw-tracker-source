@@ -143,19 +143,6 @@ tracker_metadata_get_unique_values_with_concat_count_and_sum_async(TrackerClient
                                                                    int max_hits,
                                                                    TrackerGPtrArrayReply callback,
                                                                    gpointer user_data);
-
-void
-tracker_metadata_get_unique_values_with_count_and_sum_async(TrackerClient *client,
-                                                            ServiceType service,
-                                                            char **meta_types,
-                                                            const char *query,
-                                                            char *count,
-                                                            char *sum,
-                                                            gboolean descending,
-                                                            int offset,
-                                                            int max_hits,
-                                                            TrackerGPtrArrayReply callback,
-                                                            gpointer user_data);
 void
 tracker_metadata_set(TrackerClient *client,
 		     ServiceType service,
@@ -3714,15 +3701,6 @@ _send_concat_count_and_sum_expected_result(TrackerGPtrArrayReply callback,
 }
 
 static void
-_send_count_and_sum_expected_result(TrackerGPtrArrayReply callback,
-                                    char **keys,
-				    ServiceType service,
-                                    gpointer user_data)
-{
-        callback(NULL, NULL, user_data);
-}
-
-static void
 _send_query_expected_result(TrackerGPtrArrayReply callback,
                             int offset,
                             int max_hits,
@@ -3890,26 +3868,6 @@ tracker_metadata_get_unique_values_with_concat_count_and_sum_async(TrackerClient
             _check_count_case(count) &&
             _check_sum_case(sum, service)) {
                 _send_concat_count_and_sum_expected_result(callback, meta_types, service, user_data);
-        }
-}
-
-void
-tracker_metadata_get_unique_values_with_count_and_sum_async(TrackerClient *client,
-                                                            ServiceType service,
-                                                            char **meta_types,
-                                                            const char *query,
-                                                            char *count,
-                                                            char *sum,
-                                                            gboolean descending,
-                                                            int offset,
-                                                            int max_hits,
-                                                            TrackerGPtrArrayReply callback,
-                                                            gpointer user_data)
-{
-        if (_check_query_case(query) &&
-            _check_count_case(count) &&
-            _check_sum_case(sum, service)) {
-                _send_count_and_sum_expected_result(callback, meta_types, service, user_data);
         }
 }
 
