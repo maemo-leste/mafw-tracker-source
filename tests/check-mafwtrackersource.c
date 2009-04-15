@@ -3252,7 +3252,7 @@ _check_query_case(const gchar *actual_query)
                 return actual_query == NULL;
         } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums_album4") == 0) {
                 return g_ascii_strcasecmp(actual_query,
-					  "<rdfq:Condition>  <rdfq:and>  <rdfq:equals>    <rdfq:Property name=\"Audio:Artist\"/>    <rdf:String>Artist 4</rdf:String>  </rdfq:equals>  <rdfq:equals>    <rdfq:Property name=\"Audio:Album\"/>    <rdf:String>Album 4</rdf:String>  </rdfq:equals>  </rdfq:and></rdfq:Condition>") == 0;
+					  "<rdfq:Condition>  <rdfq:equals>    <rdfq:Property name=\"Audio:Album\"/>    <rdf:String>Album 4 - Artist 4</rdf:String>  </rdfq:equals></rdfq:Condition>") == 0;
        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres") == 0) {
                 return actual_query == NULL;
         } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2") == 0) {
@@ -3307,13 +3307,18 @@ _check_concat_case(gchar *actual_concat)
             (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2") == 0) ||
             (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_unknown") == 0)) {
                 return g_ascii_strcasecmp(actual_concat, "Audio:Album") == 0;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums") == 0) {
+        } else if ((g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums") == 0) ||
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres") == 0)) {
                 return g_ascii_strcasecmp(actual_concat, "Audio:Artist") == 0;
 	} else if ((g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_music") == 0) ||
 		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_albums") == 0) ||
 		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_videos") == 0) ||
 		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_root") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0)) {
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0) ||
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0) ||
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1") == 0) ||
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown") == 0) ||
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2") == 0)) {
 		return (actual_concat == NULL);
 	} else {
                 return FALSE;
@@ -3323,29 +3328,24 @@ _check_concat_case(gchar *actual_concat)
 static gboolean
 _check_count_case(gchar *actual_count)
 {
-        if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists") == 0 ||
-            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2") == 0 ||
-            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_unknown") == 0 ||
-            g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_albums") == 0) {
-                return g_ascii_strcasecmp(actual_count, "Audio:Album") == 0;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_music") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_videos") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_root") == 0) {
+	if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_albums") == 0) {
+		return g_ascii_strcasecmp(actual_count, "Audio:Album") == 0;
+	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_music") == 0 ||
+		   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_videos") == 0 ||
+		   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_root") == 0) {
                 return g_ascii_strcasecmp(actual_count, "*") == 0;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres") == 0) {
-                return g_ascii_strcasecmp(actual_count, "Audio:Artist") == 0;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0) {
-                return (g_ascii_strcasecmp(actual_count, "Audio:Album") == 0 ||
-                        g_ascii_strcasecmp(actual_count, "Audio:Artist") == 0 ||
-                        g_ascii_strcasecmp(actual_count, "Audio:Genre") == 0 ||
-                        g_ascii_strcasecmp(actual_count, "*") == 0);
 	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_music") == 0) {
 		return (g_ascii_strcasecmp(actual_count, "*") == 0);
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0) {
+	} else if ((g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0) ||
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0) ||
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists") == 0) ||
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1") == 0) ||
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown") == 0) ||
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums") == 0) ||
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres") == 0) ||
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2") == 0) ||
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_unknown") == 0) ||
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2") == 0)) {
 		return (actual_count == NULL);
         } else {
                 return FALSE;
@@ -3355,7 +3355,16 @@ _check_count_case(gchar *actual_count)
 static gboolean
 _check_sum_case(gchar *actual_sum, ServiceType service)
 {
-	if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0) {
+	if ((g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0) ||
+	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0) ||
+	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists") == 0) ||
+	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1") == 0) ||
+	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown") == 0) ||
+	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums") == 0) ||
+	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres") == 0) ||
+	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2") == 0) ||
+	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_unknown") == 0) ||
+	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2") == 0))	{
 		return (actual_sum == NULL);
 	}
 
@@ -3472,41 +3481,6 @@ _add_concat_count_and_sum_to_result(GPtrArray *result,
 
         g_ptr_array_add(result, tuple);
 
-}
-
-static void
-_add_count_and_sum_to_result(GPtrArray *result,
-                            gint index,
-                            gchar **keys,
-                            const gchar *count,
-                            const gchar *sum)
-{
-        gchar **tuple;
-        gint i = 0;
-
-        tuple = g_new0(gchar *, g_strv_length(keys) + 3);
-
-        i = 0;
-        while (keys[i]) {
-                if (g_ascii_strcasecmp(keys[i], "File:NameDelimited") == 0)
-                        tuple[i] = g_strdup(DB[index][DB_FILENAME]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Title") == 0)
-                        tuple[i] = g_strdup(DB[index][DB_TITLE]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Artist") == 0)
-                        tuple[i] = g_strdup(DB[index][DB_ARTIST]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Album") == 0)
-                        tuple[i] = g_strdup(DB[index][DB_ALBUM]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Genre") == 0)
-                        tuple[i] = g_strdup(DB[index][DB_GENRE]);
-                else if (g_ascii_strcasecmp(keys[i], "File:Mime") == 0)
-                        tuple[i] = g_strdup(DB[index][DB_MIME]);
-                i++;
-        }
-
-        tuple[i++] = g_strdup(count);
-        tuple[i++] = g_strdup(sum);
-
-        g_ptr_array_add(result, tuple);
 }
 
 static void
@@ -3674,6 +3648,64 @@ _send_concat_count_and_sum_expected_result(TrackerGPtrArrayReply callback,
 		} else {
 			return;
 		}
+	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0) {
+                if (g_ascii_strcasecmp(keys[0], "Audio:Album") == 0) {
+                        result = g_ptr_array_sized_new(9);
+                        _add_concat_count_and_sum_to_result(result, 0, keys, NULL, "1", "36");
+                        _add_concat_count_and_sum_to_result(result, 1, keys, NULL, "1", "23");
+                        _add_concat_count_and_sum_to_result(result, 2, keys, NULL, "1", "17");
+                        _add_concat_count_and_sum_to_result(result, 3, keys, NULL, "4", "229");
+                        _add_concat_count_and_sum_to_result(result, 7, keys, NULL, "2", "119");
+                        _add_concat_count_and_sum_to_result(result, 8, keys, NULL, "1", "64");
+                        _add_concat_count_and_sum_to_result(result, 9, keys, NULL, "1", "8");
+                        _add_concat_count_and_sum_to_result(result, 10, keys, NULL,"1", "47");
+                        _add_concat_count_and_sum_to_result(result, 12, keys, NULL, "2", "69");
+                } else if (g_ascii_strcasecmp(keys[0], "Audio:Artist") == 0) {
+                        result = g_ptr_array_sized_new(6);
+                        _add_concat_count_and_sum_to_result(result, 0, keys, NULL, "1", "36");
+                        _add_concat_count_and_sum_to_result(result, 1, keys, NULL, "5", "252");
+                        _add_concat_count_and_sum_to_result(result, 2, keys, NULL, "1", "17");
+                        _add_concat_count_and_sum_to_result(result, 7, keys, NULL, "3", "166");
+                        _add_concat_count_and_sum_to_result(result, 8, keys, NULL, "1", "64");
+                        _add_concat_count_and_sum_to_result(result, 9, keys, NULL, "3", "77");
+                } else if (g_ascii_strcasecmp(keys[0], "Audio:Genre") == 0) {
+                        result = g_ptr_array_sized_new(4);
+                        _add_concat_count_and_sum_to_result(result, 0, keys, NULL, "1", "36");
+                        _add_concat_count_and_sum_to_result(result, 1, keys, NULL, "3", "155");
+                        _add_concat_count_and_sum_to_result(result, 2, keys, NULL, "6", "226");
+                        _add_concat_count_and_sum_to_result(result, 7, keys, NULL, "4", "195");
+                } else if (g_ascii_strcasecmp(keys[0], "File:Mime") == 0) {
+                        if (service == SERVICE_MUSIC) {
+                                result = g_ptr_array_sized_new(2);
+                                _add_concat_count_and_sum_to_result(result, 0, keys, NULL, "12", "501");
+                                _add_concat_count_and_sum_to_result(result, 5, keys, NULL, "2", "111");
+                        } else if (service == SERVICE_PLAYLISTS) {
+                                result = g_ptr_array_sized_new(2);
+                                _add_concat_count_and_sum_to_result(result, 14, keys, NULL, "1", "0");
+                                _add_concat_count_and_sum_to_result(result, 15, keys, NULL, "1", "0");
+                        } else {
+				return;
+			}
+                } else {
+			return;
+		}
+	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1") == 0) {
+                result = g_ptr_array_sized_new(2);
+                _add_concat_count_and_sum_to_result(result, 1, keys, NULL, "1", "23");
+                _add_concat_count_and_sum_to_result(result, 3, keys, NULL, "4", "229");
+        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown") == 0) {
+                result = g_ptr_array_sized_new(2);
+                _add_concat_count_and_sum_to_result(result, 7, keys, NULL, "2", "119");
+                _add_concat_count_and_sum_to_result(result, 11, keys, NULL, "1", "47");
+	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres") == 0) {
+                result = g_ptr_array_sized_new(4);
+                _add_concat_count_and_sum_to_result(result, 0, keys, NULL, "1", "36");
+                _add_concat_count_and_sum_to_result(result, 1, keys, NULL, "1", "155");
+                _add_concat_count_and_sum_to_result(result, 2, keys, NULL, "4", "226");
+                _add_concat_count_and_sum_to_result(result, 7, keys, NULL, "3", "195");
+	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2") == 0) {
+                result = g_ptr_array_sized_new(1);
+                _add_concat_count_and_sum_to_result(result, 2, keys, NULL, "1", "17");
         } else {
                 return;
         }
@@ -3687,71 +3719,7 @@ _send_count_and_sum_expected_result(TrackerGPtrArrayReply callback,
 				    ServiceType service,
                                     gpointer user_data)
 {
-        GPtrArray *result = NULL;
-
-        if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1") == 0) {
-                result = g_ptr_array_sized_new(2);
-                _add_count_and_sum_to_result(result, 1, keys, "1", "23");
-                _add_count_and_sum_to_result(result, 3, keys, "4", "229");
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown") == 0) {
-                result = g_ptr_array_sized_new(2);
-                _add_count_and_sum_to_result(result, 7, keys, "2", "119");
-                _add_count_and_sum_to_result(result, 11, keys, "1", "47");
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres") == 0) {
-                result = g_ptr_array_sized_new(4);
-                _add_count_and_sum_to_result(result, 0, keys, "1", "36");
-                _add_count_and_sum_to_result(result, 1, keys, "1", "155");
-                _add_count_and_sum_to_result(result, 2, keys, "4", "226");
-                _add_count_and_sum_to_result(result, 7, keys, "3", "195");
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2") == 0) {
-                result = g_ptr_array_sized_new(1);
-                _add_count_and_sum_to_result(result, 2, keys, "1", "17");
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0) {
-                if (g_ascii_strcasecmp(keys[0], "Audio:Album") == 0) {
-                        result = g_ptr_array_sized_new(9);
-                        _add_count_and_sum_to_result(result, 0, keys, "1", "36");
-                        _add_count_and_sum_to_result(result, 1, keys, "1", "23");
-                        _add_count_and_sum_to_result(result, 2, keys, "1", "17");
-                        _add_count_and_sum_to_result(result, 3, keys, "4", "229");
-                        _add_count_and_sum_to_result(result, 7, keys, "2", "119");
-                        _add_count_and_sum_to_result(result, 8, keys, "1", "64");
-                        _add_count_and_sum_to_result(result, 9, keys, "1", "8");
-                        _add_count_and_sum_to_result(result, 10, keys, "1", "47");
-                        _add_count_and_sum_to_result(result, 12, keys, "2", "69");
-                } else if (g_ascii_strcasecmp(keys[0], "Audio:Artist") == 0) {
-                        result = g_ptr_array_sized_new(6);
-                        _add_count_and_sum_to_result(result, 0, keys, "1", "36");
-                        _add_count_and_sum_to_result(result, 1, keys, "5", "252");
-                        _add_count_and_sum_to_result(result, 2, keys, "1", "17");
-                        _add_count_and_sum_to_result(result, 7, keys, "3", "166");
-                        _add_count_and_sum_to_result(result, 8, keys, "1", "64");
-                        _add_count_and_sum_to_result(result, 9, keys, "3", "77");
-                } else if (g_ascii_strcasecmp(keys[0], "Audio:Genre") == 0) {
-                        result = g_ptr_array_sized_new(4);
-                        _add_count_and_sum_to_result(result, 0, keys, "1", "36");
-                        _add_count_and_sum_to_result(result, 1, keys, "3", "155");
-                        _add_count_and_sum_to_result(result, 2, keys, "6", "226");
-                        _add_count_and_sum_to_result(result, 7, keys, "4", "195");
-                } else if (g_ascii_strcasecmp(keys[0], "File:Mime") == 0) {
-                        if (service == SERVICE_MUSIC) {
-                                result = g_ptr_array_sized_new(2);
-                                _add_count_and_sum_to_result(result, 0, keys, "12", "501");
-                                _add_count_and_sum_to_result(result, 5, keys, "2", "111");
-                        } else if (service == SERVICE_PLAYLISTS) {
-                                result = g_ptr_array_sized_new(2);
-                                _add_count_and_sum_to_result(result, 14, keys, "1", "0");
-                                _add_count_and_sum_to_result(result, 15, keys, "1", "0");
-                        } else {
-				return;
-			}
-                } else {
-			return;
-		}
-        } else {
-                return;
-        }
-
-        callback(result, NULL, user_data);
+        callback(NULL, NULL, user_data);
 }
 
 static void
