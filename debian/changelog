@@ -1,8 +1,17 @@
-mafw-tracker-source (0.1.2009.16-2) unstable; urgency=low
+mafw-tracker-source (0.1.2009.17-2) unstable; urgency=low
 
   * Version increased.
 
- -- Mika Tapojärvi <ext-mika.tapojarvi@nokia.com>  Tue, 14 Apr 2009 10:09:52 +0300
+ -- Mika Tapojärvi <ext-mika.tapojarvi@nokia.com>  Thu, 16 Apr 2009 11:06:32 +0300
+
+mafw-tracker-source (0.1.2009.17-1) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.17-1
+  * Fixes: NB#110568 - Tracker source returns addition date as a gchararray instead of glong
+  * Fixes: NB#110469 - ‘There is no media to play’ info note showing for existing playlist items 
+  * Fixes: NB#110477 - DBus connectivity lost while Pause/Play default video clip 
+
+ -- Mika Tapojärvi <mika.tapojarvi@sse.fi>  Wed, 15 Apr 2009 16:05:40 +0300
 
 mafw-tracker-source (0.1.2009.16-1) unstable; urgency=low
 
