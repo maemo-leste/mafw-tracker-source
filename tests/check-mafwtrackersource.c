@@ -3469,6 +3469,7 @@ _check_concat_case(gchar *actual_concat)
 		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_albums") == 0) ||
 		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_videos") == 0) ||
 		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_root") == 0) ||
+                   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadatas_several") == 0) ||
 		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0) ||
 		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0) ||
 		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1") == 0) ||
@@ -3483,7 +3484,8 @@ _check_concat_case(gchar *actual_concat)
 static gboolean
 _check_count_case(gchar *actual_count)
 {
-	if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_albums") == 0) {
+	if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_albums") == 0 ||
+            g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadatas_several") ==0) {
 		return g_ascii_strcasecmp(actual_count, "Audio:Album") == 0;
 	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_music") == 0 ||
 		   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_videos") == 0 ||
@@ -3696,6 +3698,8 @@ _get_metadata(gint index,
                         result[i] = g_strdup(DB[index][DB_GENRE]);
                 else if (g_ascii_strcasecmp(keys[i], "File:Mime") == 0)
                         result[i] = g_strdup(DB[index][DB_MIME]);
+                else if (g_ascii_strcasecmp(keys[i], "Audio:Duration") == 0)
+                        result[i] = g_strdup(DB[index][DB_LENGTH]);
                 else if (g_ascii_strcasecmp(keys[i], "Video:Title") == 0)
                         result[i] = g_strdup(DB[index][DB_TITLE]);
 		else if ((g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_playlist") == 0) &&
@@ -3781,7 +3785,8 @@ _send_concat_count_and_sum_expected_result(TrackerGPtrArrayReply callback,
                 _add_concat_count_and_sum_to_result(result, 7, keys, "|Album 4", "2", "166");
                 _add_concat_count_and_sum_to_result(result, 8, keys, "Album V2", "1", "64");
                 _add_concat_count_and_sum_to_result(result, 9, keys, "|Album 4", "2", "77");
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums") == 0) {
+        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums") == 0 ||
+                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadatas_several") == 0) {
                 result = g_ptr_array_sized_new(7);
                 _add_concat_count_and_sum_to_result(result, 0, keys, "Some Artist", "1", "36");
                 _add_concat_count_and_sum_to_result(result, 1, keys, "Artist 1", "1", "23");
