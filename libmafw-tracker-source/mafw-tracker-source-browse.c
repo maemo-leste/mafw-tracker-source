@@ -302,8 +302,9 @@ static void _add_object_id_prefix_to_list(gchar *object_id_prefix,
 	while (iter != NULL) {
 		/* Do not add the prefix if this element has already
 		   been handled as an URI element */
-		if (!g_str_has_prefix ((gchar *) iter->data,
-			    MAFW_URI_SOURCE_UUID "::")) {
+		if (iter->data && 
+		    !g_str_has_prefix ((gchar *) iter->data,
+				       MAFW_URI_SOURCE_UUID "::")) {
 			if (escape) {
 				data = mafw_tracker_source_escape_string(
 								iter->data);
@@ -764,6 +765,10 @@ _pls_entry_parsed (TotemPlParser *parser,
 	gchar *unescaped_uri;
         gchar *escaped_uri;
         gchar *filename;
+
+	if (uri == NULL) {
+		return;
+	}
 
 	if (bc->index >= bc->offset && bc->index < bc->offset + bc->count) {
                 /* Make sure it is an uri and also escaped */
