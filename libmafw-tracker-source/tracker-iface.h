@@ -45,6 +45,11 @@ typedef void (*MafwTrackerSongsResultCB)(MafwResult *result,
 typedef void (*MafwTrackerMetadataResultCB)(GHashTable *result,
 					    GError *error,
 					    gpointer user_data);
+
+typedef void (*MafwTrackerMetadatasResultCB)(GList *results,
+                                             GError *error,
+                                             gpointer user_data);
+
 gboolean ti_init(void);
 void ti_init_watch(GObject *source);
 void ti_deinit(void);
@@ -108,19 +113,19 @@ void ti_get_playlists(gchar **keys,
 		      MafwTrackerSongsResultCB callback,
 		      gpointer user_data);
 
-void ti_get_metadata_from_videoclip(const gchar *uri,
+void ti_get_metadata_from_videoclip(gchar **uris,
                                     gchar **keys,
-                                    MafwTrackerMetadataResultCB callback,
+                                    MafwTrackerMetadatasResultCB callback,
                                     gpointer user_data);
 
-void ti_get_metadata_from_audioclip(const gchar *uri,
+void ti_get_metadata_from_audioclip(gchar **uris,
                                     gchar **keys,
-                                    MafwTrackerMetadataResultCB callback,
+                                    MafwTrackerMetadatasResultCB callback,
                                     gpointer user_data);
 
-void ti_get_metadata_from_playlist(const gchar *uri,
+void ti_get_metadata_from_playlist(gchar **uris,
 				   gchar **keys,
-				   MafwTrackerMetadataResultCB callback,
+				   MafwTrackerMetadatasResultCB callback,
 				   gpointer user_data);
 
 void ti_get_metadata_from_category(const gchar *genre,

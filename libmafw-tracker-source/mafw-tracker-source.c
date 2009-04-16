@@ -253,6 +253,7 @@ static void mafw_tracker_source_class_init(MafwTrackerSourceClass * klass)
 	source_class->browse = mafw_tracker_source_browse;
         source_class->cancel_browse = mafw_tracker_source_cancel_browse;
 	source_class->get_metadata = mafw_tracker_source_get_metadata;
+	source_class->get_metadatas = mafw_tracker_source_get_metadatas;
 	source_class->destroy_object = mafw_tracker_source_destroy_object;
         source_class->set_metadata = mafw_tracker_source_set_metadata;
 

@@ -56,7 +56,10 @@ struct _mafw_query_closure {
 
 struct _mafw_metadata_closure {
         /* Mafw callback */
-        MafwTrackerMetadataResultCB callback;
+        union {
+                MafwTrackerMetadataResultCB callback;
+                MafwTrackerMetadatasResultCB mult_callback;
+        };
         /* Callback's user data */
         gpointer user_data;
         /* If the childcount key must be counted instead of aggregated
@@ -314,7 +317,7 @@ static void _do_tracker_get_unique_values(gchar **keys,
 	g_free(filter);
 }
 
-static void _tracker_metadata_cb(char **result,
+static void _tracker_metadata_cb(GPtrArray *results,
                                  GError *error,
                                  gpointer user_data)
 {
@@ -323,31 +326,44 @@ static void _tracker_metadata_cb(char **result,
                 (struct _mafw_metadata_closure *) user_data;
 
         if (!error) {
-                tracker_cache_values_add_result(mc->cache, result);
+                tracker_cache_values_add_results(mc->cache, results);
                 metadata_list = tracker_cache_build_metadata(mc->cache);
-                mc->callback(metadata_list->data, NULL, mc->user_data);
+                mc->mult_callback(metadata_list, NULL, mc->user_data);
                 g_list_free(metadata_list);
         } else {
                 g_warning("Error while getting metadata: %s\n",
                           error->message);
-                mc->callback(NULL, error, mc->user_data);
+                mc->mult_callback(NULL, error, mc->user_data);
         }
 
         tracker_cache_free(mc->cache);
 	g_free(mc);
 }
 
-static void _do_tracker_get_metadata(const gchar *uri,
+static gchar **_uris_to_filenames(gchar **uris)
+{
+        gchar **filenames;
+        gint i;
+
+        filenames = g_new0(gchar *, g_strv_length(uris) + 1);
+        for (i = 0; uris[i]; i++) {
+                filenames[i] = g_filename_from_uri(uris[i], NULL, NULL);
+        }
+
+        return filenames;
+}
+
+static void _do_tracker_get_metadata(gchar **uris,
 				     gchar **keys,
 				     enum TrackerObjectType tracker_obj_type,
-				     MafwTrackerMetadataResultCB callback,
+				     MafwTrackerMetadatasResultCB callback,
 				     gpointer user_data)
 {
 	gchar **tracker_keys;
 	gint service_type;
         struct _mafw_metadata_closure *mc = NULL;
         gchar **user_keys;
-        gchar *pathname;
+        gchar **pathnames;
 
 	/* Figure out tracker service type */
 	if (tracker_obj_type == TRACKER_TYPE_VIDEO) {
@@ -360,15 +376,10 @@ static void _do_tracker_get_metadata(const gchar *uri,
 
         /* Save required information */
         mc = g_new0(struct _mafw_metadata_closure, 1);
-        mc->callback = callback;
+        mc->mult_callback = callback;
         mc->user_data = user_data;
         mc->cache = tracker_cache_new(service_type,
                                       TRACKER_CACHE_RESULT_TYPE_GET_METADATA);
-
-        tracker_cache_key_add_precomputed_string(mc->cache,
-                                                 MAFW_METADATA_KEY_URI,
-                                                 FALSE,
-                                                 uri);
 
         tracker_cache_key_add_several(mc->cache, keys, TRUE);
 
@@ -378,14 +389,16 @@ static void _do_tracker_get_metadata(const gchar *uri,
 							service_type);
         g_strfreev(user_keys);
 
-
         if (g_strv_length(tracker_keys) > 0) {
-                pathname = g_filename_from_uri(uri, NULL, NULL);
-                tracker_metadata_get_async(tc, service_type,
-                                           pathname,
-                                           (const gchar **)tracker_keys,
-                                           _tracker_metadata_cb, mc);
-                g_free(pathname);
+                pathnames = _uris_to_filenames(uris);
+                tracker_metadata_get_multiple_async(
+                        tc,
+                        service_type,
+                        (const gchar **) pathnames,
+                        (const gchar **)tracker_keys,
+                        _tracker_metadata_cb,
+                        mc);
+                g_strfreev(pathnames);
         } else {
                 _tracker_metadata_cb(NULL, NULL, mc);
         }
@@ -1224,30 +1237,30 @@ void ti_get_metadata_from_category(const gchar *genre,
 }
 
 
-void ti_get_metadata_from_videoclip(const gchar *uri,
+void ti_get_metadata_from_videoclip(gchar **uris,
                                     gchar **keys,
-                                    MafwTrackerMetadataResultCB callback,
+                                    MafwTrackerMetadatasResultCB callback,
                                     gpointer user_data)
 {
-        _do_tracker_get_metadata(uri, keys, TRACKER_TYPE_VIDEO,
+        _do_tracker_get_metadata(uris, keys, TRACKER_TYPE_VIDEO,
 				 callback, user_data);
 }
 
-void ti_get_metadata_from_audioclip(const gchar *uri,
+void ti_get_metadata_from_audioclip(gchar **uris,
                                     gchar **keys,
-                                    MafwTrackerMetadataResultCB callback,
+                                    MafwTrackerMetadatasResultCB callback,
                                     gpointer user_data)
 {
-        _do_tracker_get_metadata(uri, keys, TRACKER_TYPE_MUSIC,
+        _do_tracker_get_metadata(uris, keys, TRACKER_TYPE_MUSIC,
 				 callback, user_data);
 }
 
-void ti_get_metadata_from_playlist(const gchar *uri,
+void ti_get_metadata_from_playlist(gchar **uris,
 				   gchar **keys,
-				   MafwTrackerMetadataResultCB callback,
+				   MafwTrackerMetadatasResultCB callback,
 				   gpointer user_data)
 {
-        _do_tracker_get_metadata(uri, keys, TRACKER_TYPE_PLAYLIST,
+        _do_tracker_get_metadata(uris, keys, TRACKER_TYPE_PLAYLIST,
 				 callback, user_data);
 }
 

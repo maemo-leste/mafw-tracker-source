@@ -52,6 +52,8 @@ static gboolean g_browse_error = FALSE;
 static gboolean g_metadata_called = FALSE;
 static gboolean g_metadata_error = FALSE;
 static gboolean g_destroy_called = FALSE;
+static gboolean g_metadatas_called = FALSE;
+static gboolean g_metadatas_error = FALSE;
 static gboolean g_destroy_error = FALSE;
 static gboolean g_set_metadata_called = FALSE;
 static gboolean g_set_metadata_error = FALSE;
@@ -99,6 +101,14 @@ tracker_metadata_get_async(TrackerClient *client,
                            char **keys,
                            TrackerArrayReply callback,
                            gpointer user_data);
+
+void
+tracker_metadata_get_multiple_async(TrackerClient *client,
+                                    ServiceType service,
+                                    const char **ids,
+                                    const char **keys,
+                                    TrackerGPtrArrayReply callback,
+                                    gpointer user_data);
 
 static char **
 _get_metadata(gint index,
@@ -199,6 +209,19 @@ static void clear_metadata_results(void)
 {
 	g_metadata_called = FALSE;
         g_metadata_error = FALSE;
+	if (g_metadata_results != NULL) {
+		g_list_foreach(g_metadata_results, (GFunc) remove_metadata_item,
+			       NULL);
+		g_list_free(g_metadata_results);
+		g_metadata_results = NULL;
+	}
+        RUNNING_CASE = "no_case";
+}
+
+static void clear_metadatas_results(void)
+{
+	g_metadatas_called = FALSE;
+        g_metadatas_error = FALSE;
 	if (g_metadata_results != NULL) {
 		g_list_foreach(g_metadata_results, (GFunc) remove_metadata_item,
 			       NULL);
@@ -2512,6 +2535,139 @@ START_TEST(test_get_metadata_root)
 END_TEST
 
 static void
+metadatas_result_cb(MafwSource * source,
+		   GHashTable * metadatas,
+		   gpointer user_data, const GError *error)
+{
+	MetadataResult *result = NULL;
+        GList *object_ids;
+        GList *current_obj;
+
+	g_metadatas_called = TRUE;
+
+        if (error) {
+                g_metadatas_error = TRUE;
+                return;
+        }
+
+        object_ids = g_hash_table_get_keys(metadatas);
+        current_obj = object_ids;
+        while (current_obj) {
+                result = (MetadataResult *) malloc(sizeof(MetadataResult));
+                result->objectid = g_strdup(current_obj->data);
+                result->metadata = g_hash_table_lookup(metadatas, current_obj->data);
+                if (result->metadata)
+                        g_hash_table_ref(result->metadata);
+                g_metadata_results = g_list_append(g_metadata_results, result);
+                current_obj = g_list_next(current_obj);
+        }
+
+        g_list_free(object_ids);
+}
+
+START_TEST(test_get_metadatas_none)
+{
+        GMainLoop *loop = NULL;
+        GMainContext *context = NULL;
+        const gchar *const *metadata_keys = NULL;
+        gchar **object_ids = NULL;
+
+        RUNNING_CASE = "test_get_metadatas_none";
+        loop = g_main_loop_new(NULL, FALSE);
+        context = g_main_loop_get_context(loop);
+
+	/* Metadata we are interested in */
+	metadata_keys = MAFW_SOURCE_LIST(
+		MAFW_METADATA_KEY_TITLE,
+		MAFW_METADATA_KEY_MIME,
+		MAFW_METADATA_KEY_DURATION,
+		MAFW_METADATA_KEY_CHILDCOUNT);
+
+        object_ids = g_new0(gchar *, 1);
+
+        /* Execute query */
+        mafw_source_get_metadatas(g_tracker_source,
+                                  (const gchar **) object_ids, metadata_keys,
+                                  metadatas_result_cb,
+                                  NULL);
+
+        /* Check results... */
+        while (g_main_context_pending(context))
+                g_main_context_iteration(context, TRUE);
+
+        fail_if(g_metadatas_called == FALSE,
+                "No metadatas_result signal received");
+
+        fail_if(g_metadatas_error == FALSE,
+                "No error was obtained");
+
+        fail_if(g_list_length(g_metadata_results) != 0,
+                "Getting metadata from none returns some result");
+
+        g_strfreev(object_ids);
+        clear_metadatas_results();
+
+        g_main_loop_unref(loop);
+}
+END_TEST
+
+START_TEST(test_get_metadatas_several)
+{
+        GMainLoop *loop = NULL;
+        GMainContext *context = NULL;
+        const gchar *const *metadata_keys = NULL;
+        gchar **object_ids = NULL;
+
+        RUNNING_CASE = "test_get_metadatas_several";
+        loop = g_main_loop_new(NULL, FALSE);
+        context = g_main_loop_get_context(loop);
+
+	/* Metadata we are interested in */
+	metadata_keys = MAFW_SOURCE_LIST(
+		MAFW_METADATA_KEY_TITLE,
+		MAFW_METADATA_KEY_MIME,
+		MAFW_METADATA_KEY_DURATION,
+		MAFW_METADATA_KEY_CHILDCOUNT);
+
+        object_ids = g_new(gchar *, 4);
+        object_ids[0] = g_strdup(MAFW_TRACKER_SOURCE_UUID
+                                 "::music/songs/"
+                                 "%2Fhome%2Fuser%2FMyDocs%2Fclip1.mp3");
+        object_ids[1] = g_strdup(MAFW_TRACKER_SOURCE_UUID
+                                 "::music/artists/Artist 1/Album 1/"
+                                 "%2Fhome%2Fuser%2FMyDocs%2Fclip1.mp3");
+        object_ids[2] = g_strdup(MAFW_TRACKER_SOURCE_UUID
+                                 "::music/albums");
+        object_ids[3] = NULL;
+
+        /* Execute query */
+        mafw_source_get_metadatas(g_tracker_source,
+                                  (const gchar **) object_ids, metadata_keys,
+                                  metadatas_result_cb,
+                                  NULL);
+
+        /* Check results... */
+        while (g_main_context_pending(context))
+                g_main_context_iteration(context, TRUE);
+
+        fail_if(g_metadatas_called == FALSE,
+                "No metadatas_result signal received");
+
+        fail_if(g_metadatas_error == TRUE,
+                "An error was obtained");
+
+        fail_if(g_list_length(g_metadata_results) != 3,
+                "Query metadatas of 3 elements returned %d results",
+                g_list_length(g_metadata_results));
+
+        g_strfreev(object_ids);
+        clear_metadatas_results();
+
+        g_main_loop_unref(loop);
+}
+END_TEST
+
+static void
 metadata_set_cb(MafwSource *self,
 		const gchar *object_id,
 		const gchar **failed_keys,
@@ -3064,6 +3220,7 @@ SRunner * configure_tests(void)
 	/* Create test cases */
 	TCase *tc_browse = tcase_create("Browse");
 	TCase *tc_get_metadata = tcase_create("GetMetadata");
+	TCase *tc_get_metadatas = tcase_create("GetMetadatas");
 	TCase *tc_set_metadata = tcase_create("SetMetadata");
 	TCase *tc_destroy = tcase_create("DestroyObject");
 
@@ -3117,6 +3274,15 @@ SRunner * configure_tests(void)
 
 	suite_add_tcase(s, tc_get_metadata);
 
+	/* Create unit tests for test case "GetMetadatas" */
+	tcase_add_checked_fixture(tc_get_metadatas, fx_setup_dummy_tracker_source,
+				  fx_teardown_dummy_tracker_source);
+
+	tcase_add_test(tc_get_metadatas, test_get_metadatas_none);
+	tcase_add_test(tc_get_metadatas, test_get_metadatas_several);
+
+	suite_add_tcase(s, tc_get_metadatas);
+
 	/* Create unit tests for test case "SetMetadata" */
 	tcase_add_checked_fixture(tc_set_metadata, fx_setup_dummy_tracker_source,
 				  fx_teardown_dummy_tracker_source);
@@ -3142,6 +3308,7 @@ SRunner * configure_tests(void)
 	/*Valgrind may require more time to run*/
 	tcase_set_timeout(tc_browse, 60);
 	tcase_set_timeout(tc_get_metadata, 60);
+	tcase_set_timeout(tc_get_metadatas, 60);
 	tcase_set_timeout(tc_set_metadata, 60);
 	tcase_set_timeout(tc_destroy, 60);
 
@@ -3278,9 +3445,10 @@ _check_query_case(const gchar *actual_query)
                 return g_ascii_strcasecmp(actual_query,
                                           "<rdfq:Condition><rdfq:and><rdfq:equals><rdfq:Property name=\"Audio:Album\"/><rdf:String>Album 3</rdf:String></rdfq:equals><rdfq:equals><rdfq:Property name=\"Audio:Title\"/><rdf:String>Title 3</rdf:String></rdfq:equals></rdfq:and></rdfq:Condition>") == 0;
 	} else if ((g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_albums") == 0) ||
- 		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_music") == 0) ||
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_music") == 0) ||
 		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_videos") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_root") == 0)) {
+		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_root") == 0) ||
+                   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadatas_several") ==0)) {
 		return actual_query == NULL;
         } else {
                 return FALSE;
@@ -3545,7 +3713,6 @@ _get_metadata(gint index,
         return result;
 }
 
-
 static void
 _send_metadata(gint index,
                char **keys,
@@ -3563,6 +3730,38 @@ _send_metadata(gint index,
         } else {
                 result = _get_metadata(index, keys);
                 cb(result, NULL, user_data);
+        }
+}
+
+static void
+_send_metadatas(gint *indexes,
+                gint num_indexes,
+                const char **keys,
+                TrackerGPtrArrayReply cb,
+                gpointer user_data)
+{
+        GPtrArray *results = NULL;
+        gint i = 0;
+        GError *error = NULL;
+
+        results = g_ptr_array_sized_new(num_indexes);
+
+        for (i=0; i < num_indexes; i++) {
+                if (indexes[i] < 0) {
+                        /* Domain and code are not relevant */
+                        if (!error) {
+                                error = g_error_new(1, 1, "error getting metadata");
+                        }
+                } else {
+                        g_ptr_array_add(results, _get_metadata(indexes[i], (char **) keys));
+                }
+        }
+
+        cb(results, error, user_data);
+
+        /* Free data */
+        if (error) {
+                g_error_free(error);
         }
 }
 
@@ -3911,6 +4110,40 @@ tracker_metadata_get_async(TrackerClient *client,
 	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_playlist") == 0 &&
 		   g_ascii_strcasecmp(id, "/tmp/playlist1.pls") == 0) {
 		_send_metadata(14, keys, callback, user_data);
+        }
+}
+
+void
+tracker_metadata_get_multiple_async(TrackerClient *client,
+                                    ServiceType service,
+                                    const char **ids,
+                                    const char **keys,
+                                    TrackerGPtrArrayReply callback,
+                                    gpointer user_data)
+{
+        gint indexes[2] = { 0 };
+
+        if ((g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_clip") == 0 ||
+             g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_artist_album_clip") == 0 ||
+             g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_genre_artist_album_clip") == 0 ||
+             g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_album_clip") == 0) &&
+            g_ascii_strcasecmp(ids[0], "/home/user/MyDocs/clip1.mp3") == 0) {
+                indexes[0] = 1;
+                _send_metadatas(indexes, 1, keys, callback, user_data);
+	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_video") == 0) {
+                indexes[0] = 16;
+		_send_metadatas(indexes, 1, keys, callback, user_data);
+	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_invalid") == 0) {
+                indexes[0] = -1;
+                _send_metadatas(indexes, 1, keys, callback, user_data);
+	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_playlist") == 0 &&
+		   g_ascii_strcasecmp(ids[0], "/tmp/playlist1.pls") == 0) {
+                indexes[0] = 14;
+		_send_metadatas(indexes, 1, keys, callback, user_data);
+        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadatas_several") == 0) {
+                indexes[0] = 1;
+                indexes[1] = 1;
+                _send_metadatas(indexes, 2, keys, callback, user_data);
         }
 }
 
