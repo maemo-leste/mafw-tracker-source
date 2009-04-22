@@ -48,6 +48,8 @@ typedef struct MetadataKey {
         gboolean allowed_empty;
         /* Type of the key */
         enum KeyType key_type;
+        /* A key needed to solve the current one (none by default) */
+        gchar *depends_on;
 } MetadataKey;
 
 typedef struct InfoKeyTable {
