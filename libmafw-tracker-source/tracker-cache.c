@@ -27,6 +27,7 @@
 #endif
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <libmafw/mafw.h>
 #include "key-mapping.h"
@@ -266,8 +267,8 @@ static GValue * _aggregate_key(TrackerCache *cache,
 
         results_length = cache->tracker_results? cache->tracker_results->len: 0;
 
-        if (strcmp(key, MAFW_METADATA_KEY_CHILDCOUNT) == 0 &&
-            count_childcount) {
+        if (count_childcount &&
+            strcmp(key, MAFW_METADATA_KEY_CHILDCOUNT) == 0) {
                 total = results_length;
         } else {
                 for (i=0; i < results_length; i++) {
@@ -906,6 +907,8 @@ tracker_cache_value_get(TrackerCache *cache,
         TrackerCacheValue *cached_value = NULL;
         gchar **queried_result = NULL;
         gchar *uri;
+        float float_val;
+        MetadataKey *metadata_key;
 
         cached_value = g_hash_table_lookup(cache->cache, key);
 
@@ -958,26 +961,49 @@ tracker_cache_value_get(TrackerCache *cache,
                         index);
 
                 return_value = g_new0(GValue, 1);
-                if (strcmp(key, MAFW_METADATA_KEY_PLAY_COUNT) == 0 ||
-		    strcmp(key, MAFW_METADATA_KEY_CHILDCOUNT) == 0 ||
-                    strcmp(key, MAFW_METADATA_KEY_DURATION) == 0 ||
-                    strcmp(key, MAFW_METADATA_KEY_PAUSED_POSITION) == 0 ||
-		    strcmp(key, TRACKER_PKEY_VALID_DURATION) == 0) {
+                metadata_key = keymap_get_metadata(key);
+                switch (metadata_key->value_type) {
+                case G_TYPE_INT:
                         g_value_init(return_value, G_TYPE_INT);
                         g_value_set_int(
                                 return_value,
-                                atoi(queried_result[cached_value->tracker_index]));
-		} else if (strcmp(key, MAFW_METADATA_KEY_ADDED) == 0) {
+                                atoi(queried_result[
+                                             cached_value->tracker_index]));
+                        break;
+
+                case G_TYPE_LONG:
 			g_value_init(return_value, G_TYPE_LONG);
 			g_value_set_long(
 				return_value,
-				atol(queried_result[cached_value->tracker_index]));
-                } else {
+				atol(queried_result[
+                                             cached_value->tracker_index]));
+                        break;
+
+                case G_TYPE_FLOAT:
+                        g_value_init(return_value, G_TYPE_FLOAT);
+                        sscanf(queried_result[cached_value->tracker_index],
+                               "%f",
+                               &float_val);
+                        g_value_set_float(return_value, float_val);
+                        break;
+
+                case G_TYPE_BOOLEAN:
+                        g_value_init(return_value, G_TYPE_BOOLEAN);
+                        if (queried_result[
+                                    cached_value->tracker_index][0] == '0') {
+                                g_value_set_boolean(return_value, FALSE);
+                        } else {
+                                g_value_set_boolean(return_value, TRUE);
+                        }
+                        break;
+
+                default:
                         g_value_init(return_value, G_TYPE_STRING);
                         /* Special case: convert pathname to URI */
                         if (strcmp(key, MAFW_METADATA_KEY_URI) == 0) {
                                 uri = g_filename_to_uri(
-                                        queried_result[cached_value->tracker_index],
+                                        queried_result[
+                                                cached_value->tracker_index],
                                         NULL,
                                         NULL);
                                 g_value_set_string(return_value, uri);
@@ -985,10 +1011,11 @@ tracker_cache_value_get(TrackerCache *cache,
 			} else {
 				g_value_set_string(
                                         return_value,
-                                        queried_result[cached_value->tracker_index]);
+                                        queried_result[
+                                                cached_value->tracker_index]);
                         }
+                        break;
                 }
-
                 return return_value;
         }
 
