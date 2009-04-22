@@ -290,28 +290,24 @@ InfoKeyTable *keymap_get_info_key_table(void)
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_FLOAT;
-                metadata_key->allowed_empty = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_VIDEO_FRAMERATE,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->allowed_empty = FALSE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_COPYRIGHT,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_INT;
-                metadata_key->allowed_empty = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_FILESIZE,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->allowed_empty = FALSE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_FILENAME,
                                     metadata_key);
@@ -326,7 +322,6 @@ InfoKeyTable *keymap_get_info_key_table(void)
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_INT;
-                metadata_key->allowed_empty = FALSE;
                 metadata_key->special = SPECIAL_KEY_DURATION;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_DURATION,
@@ -334,7 +329,6 @@ InfoKeyTable *keymap_get_info_key_table(void)
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->allowed_empty = FALSE;
                 metadata_key->special = SPECIAL_KEY_MIME;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_MIME,
@@ -342,49 +336,42 @@ InfoKeyTable *keymap_get_info_key_table(void)
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->allowed_empty = FALSE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_ARTIST,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->allowed_empty = FALSE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_ALBUM,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->allowed_empty = FALSE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_GENRE,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_INT;
-                metadata_key->allowed_empty = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_TRACK,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_INT;
-                metadata_key->allowed_empty = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_YEAR,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_INT;
-                metadata_key->allowed_empty = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_BITRATE,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->allowed_empty = FALSE;
                 metadata_key->special = SPECIAL_KEY_URI;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_URI,
@@ -392,8 +379,6 @@ InfoKeyTable *keymap_get_info_key_table(void)
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_LONG;
-                metadata_key->writable = TRUE;
-                metadata_key->allowed_empty = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_LAST_PLAYED,
                                     metadata_key);
@@ -408,7 +393,6 @@ InfoKeyTable *keymap_get_info_key_table(void)
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_LONG;
-                metadata_key->allowed_empty = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_ADDED,
                                     metadata_key);
@@ -416,7 +400,6 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
                 metadata_key->writable = TRUE;
-                metadata_key->allowed_empty = FALSE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_PAUSED_THUMBNAIL_URI,
                                     metadata_key);
@@ -424,43 +407,36 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_INT;
                 metadata_key->writable = TRUE;
-                metadata_key->allowed_empty = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_PAUSED_POSITION,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->allowed_empty = TRUE;
-                metadata_key->allowed_empty = FALSE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_VIDEO_SOURCE,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_INT;
-                metadata_key->allowed_empty = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_RES_X,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_INT;
-                metadata_key->allowed_empty = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_RES_Y,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_BOOLEAN;
-                metadata_key->allowed_empty = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     TRACKER_PKEY_VALID_DURATION,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->allowed_empty = FALSE;
                 metadata_key->key_type = ALBUM_ART_KEY;
                 metadata_key->depends_on = MAFW_METADATA_KEY_ALBUM_ART_URI;
                 g_hash_table_insert(table->metadata_keys,
@@ -469,7 +445,6 @@ InfoKeyTable *keymap_get_info_key_table(void)
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->allowed_empty = FALSE;
                 metadata_key->key_type = ALBUM_ART_KEY;
                 metadata_key->depends_on = MAFW_METADATA_KEY_ALBUM_ART_URI;
                 g_hash_table_insert(table->metadata_keys,
@@ -478,7 +453,6 @@ InfoKeyTable *keymap_get_info_key_table(void)
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->allowed_empty = FALSE;
                 metadata_key->key_type = ALBUM_ART_KEY;
                 metadata_key->depends_on = MAFW_METADATA_KEY_ALBUM_ART_URI;
                 g_hash_table_insert(table->metadata_keys,
@@ -487,7 +461,6 @@ InfoKeyTable *keymap_get_info_key_table(void)
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->allowed_empty = FALSE;
                 metadata_key->key_type = ALBUM_ART_KEY;
                 metadata_key->depends_on = MAFW_METADATA_KEY_ALBUM;
                 g_hash_table_insert(table->metadata_keys,
@@ -496,7 +469,6 @@ InfoKeyTable *keymap_get_info_key_table(void)
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->allowed_empty = FALSE;
                 metadata_key->key_type = THUMBNAIL_KEY;
                 metadata_key->depends_on = MAFW_METADATA_KEY_URI;
                 g_hash_table_insert(table->metadata_keys,
@@ -505,7 +477,6 @@ InfoKeyTable *keymap_get_info_key_table(void)
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->allowed_empty = FALSE;
                 metadata_key->key_type = THUMBNAIL_KEY;
                 metadata_key->depends_on = MAFW_METADATA_KEY_URI;
                 g_hash_table_insert(table->metadata_keys,
@@ -514,7 +485,6 @@ InfoKeyTable *keymap_get_info_key_table(void)
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->allowed_empty = FALSE;
                 metadata_key->key_type = THUMBNAIL_KEY;
                 metadata_key->depends_on = MAFW_METADATA_KEY_URI;
                 g_hash_table_insert(table->metadata_keys,
@@ -523,7 +493,6 @@ InfoKeyTable *keymap_get_info_key_table(void)
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->allowed_empty = FALSE;
                 metadata_key->key_type = THUMBNAIL_KEY;
                 metadata_key->depends_on = MAFW_METADATA_KEY_URI;
                 g_hash_table_insert(table->metadata_keys,

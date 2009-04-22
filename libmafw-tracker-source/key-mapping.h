@@ -55,7 +55,7 @@ typedef struct MetadataKey {
         GType value_type;
         /* Is the key writable? Default is FALSE */
         gboolean writable;
-        /* Allow the key's value empty (""/0) values? */
+        /* Allow the key's value empty (""/0) values? (not by default) */
         gboolean allowed_empty;
         /* Type of the key */
         enum KeyType key_type;
