@@ -138,14 +138,6 @@ static GValue *_get_title(TrackerCache *cache, gint index)
         }
 }
 
-static gboolean _key_is_supported(const gchar *key)
-{
-        return (keymap_mafw_key_supported_in_tracker(key) ||
-                albumart_key_is_album_art(key) ||
-                albumart_key_is_thumbnail(key) ||
-                strcmp(key, MAFW_METADATA_KEY_CHILDCOUNT) == 0);
-}
-
 static void _insert_key_album(TrackerCache *cache,
                               const gchar *key,
                               gboolean user_key)
@@ -554,7 +546,7 @@ tracker_cache_key_add(TrackerCache *cache,
         gint offset;
 
         /* Discard unsupported keys */
-        if (!_key_is_supported(key)) {
+        if (!keymap_is_key_supported(key)) {
                 return;
         }
 
@@ -725,7 +717,7 @@ tracker_cache_key_add_unique(TrackerCache *cache,
         i = 0;
         while (unique_keys[i]) {
                 /* Skip unsupported keys */
-                if (_key_is_supported(unique_keys[i])) {
+                if (keymap_is_key_supported(unique_keys[i])) {
                         /* Check the key doesn't exist */
                         if (g_hash_table_lookup(cache->cache,
                                                 unique_keys[i]) == NULL) {

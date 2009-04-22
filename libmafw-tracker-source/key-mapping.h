@@ -28,6 +28,15 @@
 #include <glib.h>
 #include <tracker.h>
 
+enum KeyType {
+        /* Key is obtained from tracker (default) */
+        TRACKER_KEY = 0,
+        /* Key is related with album arts */
+        ALBUM_ART_KEY,
+        /* Key is related with thumbnails */
+        THUMBNAIL_KEY
+};
+
 typedef struct MetadataKey {
         /* The type of the key. NOTE: G_TYPE_DATE will be handle as
          * G_TYPE_INT. But they are separated 'cause in we need to use
@@ -37,6 +46,8 @@ typedef struct MetadataKey {
         gboolean writable;
         /* Allow the key's value empty (""/0) values? */
         gboolean allowed_empty;
+        /* Type of the key */
+        enum KeyType key_type;
 } MetadataKey;
 
 typedef struct InfoKeyTable {
@@ -57,7 +68,8 @@ gchar *keymap_mafw_key_to_tracker_key(const gchar *mafw_key,
 				      ServiceType service);
 gchar **keymap_mafw_keys_to_tracker_keys(gchar **mafw_keys,
 					 ServiceType service);
-gboolean keymap_mafw_key_supported_in_tracker(const gchar *mafw_key);
+gboolean keymap_is_key_supported_in_tracker(const gchar *mafw_key);
+gboolean keymap_is_key_supported(const gchar *mafw_key);
 gboolean keymap_mafw_key_is_writable(gchar *mafw_key);
 InfoKeyTable *keymap_get_info_key_table(void);
 GHashTable *keymap_build_tracker_types_map(void);

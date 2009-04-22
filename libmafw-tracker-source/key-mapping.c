@@ -56,7 +56,7 @@ gchar *keymap_mafw_key_to_tracker_key(const gchar *mafw_key,
 	return g_strdup(tracker_key);
 }
 
-gboolean keymap_mafw_key_supported_in_tracker(const gchar *mafw_key)
+gboolean keymap_is_key_supported_in_tracker(const gchar *mafw_key)
 {
         InfoKeyTable *t = keymap_get_info_key_table();
 
@@ -66,6 +66,12 @@ gboolean keymap_mafw_key_supported_in_tracker(const gchar *mafw_key)
                 g_hash_table_lookup(t->common_keys, mafw_key) != NULL;
 }
 
+gboolean keymap_is_key_supported(const gchar *mafw_key)
+{
+        InfoKeyTable *t = keymap_get_info_key_table();
+
+        return g_hash_table_lookup(t->metadata_keys, mafw_key) != NULL;
+}
 
 gboolean keymap_mafw_key_is_writable(gchar *mafw_key)
 {
@@ -357,6 +363,70 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 metadata_key->allowed_empty = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     TRACKER_PKEY_VALID_DURATION,
+                                    metadata_key);
+
+                metadata_key = g_new0(MetadataKey, 1);
+                metadata_key->value_type = G_TYPE_STRING;
+                metadata_key->allowed_empty = FALSE;
+                metadata_key->key_type = ALBUM_ART_KEY;
+                g_hash_table_insert(table->metadata_keys,
+                                    MAFW_METADATA_KEY_ALBUM_ART_SMALL_URI,
+                                    metadata_key);
+
+                metadata_key = g_new0(MetadataKey, 1);
+                metadata_key->value_type = G_TYPE_STRING;
+                metadata_key->allowed_empty = FALSE;
+                metadata_key->key_type = ALBUM_ART_KEY;
+                g_hash_table_insert(table->metadata_keys,
+                                    MAFW_METADATA_KEY_ALBUM_ART_MEDIUM_URI,
+                                    metadata_key);
+
+                metadata_key = g_new0(MetadataKey, 1);
+                metadata_key->value_type = G_TYPE_STRING;
+                metadata_key->allowed_empty = FALSE;
+                metadata_key->key_type = ALBUM_ART_KEY;
+                g_hash_table_insert(table->metadata_keys,
+                                    MAFW_METADATA_KEY_ALBUM_ART_LARGE_URI,
+                                    metadata_key);
+
+                metadata_key = g_new0(MetadataKey, 1);
+                metadata_key->value_type = G_TYPE_STRING;
+                metadata_key->allowed_empty = FALSE;
+                metadata_key->key_type = ALBUM_ART_KEY;
+                g_hash_table_insert(table->metadata_keys,
+                                    MAFW_METADATA_KEY_ALBUM_ART_URI,
+                                    metadata_key);
+
+                metadata_key = g_new0(MetadataKey, 1);
+                metadata_key->value_type = G_TYPE_STRING;
+                metadata_key->allowed_empty = FALSE;
+                metadata_key->key_type = THUMBNAIL_KEY;
+                g_hash_table_insert(table->metadata_keys,
+                                    MAFW_METADATA_KEY_THUMBNAIL_SMALL_URI,
+                                    metadata_key);
+
+                metadata_key = g_new0(MetadataKey, 1);
+                metadata_key->value_type = G_TYPE_STRING;
+                metadata_key->allowed_empty = FALSE;
+                metadata_key->key_type = THUMBNAIL_KEY;
+                g_hash_table_insert(table->metadata_keys,
+                                    MAFW_METADATA_KEY_THUMBNAIL_MEDIUM_URI,
+                                    metadata_key);
+
+                metadata_key = g_new0(MetadataKey, 1);
+                metadata_key->value_type = G_TYPE_STRING;
+                metadata_key->allowed_empty = FALSE;
+                metadata_key->key_type = THUMBNAIL_KEY;
+                g_hash_table_insert(table->metadata_keys,
+                                    MAFW_METADATA_KEY_THUMBNAIL_LARGE_URI,
+                                    metadata_key);
+
+                metadata_key = g_new0(MetadataKey, 1);
+                metadata_key->value_type = G_TYPE_STRING;
+                metadata_key->allowed_empty = FALSE;
+                metadata_key->key_type = THUMBNAIL_KEY;
+                g_hash_table_insert(table->metadata_keys,
+                                    MAFW_METADATA_KEY_THUMBNAIL_URI,
                                     metadata_key);
         }
 
