@@ -57,10 +57,10 @@ void perf_elapsed_time_checkpoint(gchar *event);
 gchar *util_epoch_to_iso8601(glong epoch);
 glong util_iso8601_to_epoch(const gchar *iso_date);
 gchar *util_escape_rdf_text(const gchar *text);
-gboolean util_mafw_filter_to_rdf(GHashTable *types_map,
-				 const MafwFilter *filter,
+gboolean util_mafw_filter_to_rdf(const MafwFilter *filter,
 				 GString *p);
-gchar *util_get_tracker_value_for_filter(const gchar *tracker_key,
+gchar *util_get_tracker_value_for_filter(const gchar *mafw_key,
+                                         ServiceType service,
 					 const gchar *value);
 gboolean util_tracker_value_is_unknown(const gchar *value);
 gchar **util_create_sort_keys_array(gint n, gchar *key1, ...);

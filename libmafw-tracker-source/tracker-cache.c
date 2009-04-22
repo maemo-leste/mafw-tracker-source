@@ -60,6 +60,10 @@ static gboolean _value_is_allowed(GValue *value, const gchar *key)
         MetadataKey *metadata_key;
         const gchar *str_value;
 
+        if (!value) {
+                return FALSE;
+        }
+
         metadata_key = keymap_get_metadata(key);
 
         if (!metadata_key) {
@@ -498,13 +502,6 @@ tracker_cache_key_add(TrackerCache *cache,
         gint offset;
         MetadataKey *metadata_key;
 
-        metadata_key = keymap_get_metadata(key);
-
-        /* Discard unsupported keys */
-        if (!metadata_key) {
-                return;
-        }
-
         /* Look if the key already exists */
         if ((value = g_hash_table_lookup(cache->cache, key))) {
                 /* The key already exists. If now user asks for this
@@ -512,6 +509,13 @@ tracker_cache_key_add(TrackerCache *cache,
                 if (user_key) {
                         value->user_key = user_key;
                 }
+                return;
+        }
+
+        metadata_key = keymap_get_metadata(key);
+
+        /* Discard unsupported keys */
+        if (!metadata_key) {
                 return;
         }
 
@@ -907,7 +911,7 @@ tracker_cache_value_get(TrackerCache *cache,
         TrackerCacheValue *cached_value = NULL;
         gchar **queried_result = NULL;
         gchar *uri;
-        float float_val;
+        float float_val = 0;
         MetadataKey *metadata_key;
 
         cached_value = g_hash_table_lookup(cache->cache, key);
@@ -1000,7 +1004,7 @@ tracker_cache_value_get(TrackerCache *cache,
                 default:
                         g_value_init(return_value, G_TYPE_STRING);
                         /* Special case: convert pathname to URI */
-                        if (strcmp(key, MAFW_METADATA_KEY_URI) == 0) {
+                        if (metadata_key->special == SPECIAL_KEY_URI) {
                                 uri = g_filename_to_uri(
                                         queried_result[
                                                 cached_value->tracker_index],

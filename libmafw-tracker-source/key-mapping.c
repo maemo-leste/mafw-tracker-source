@@ -33,31 +33,15 @@
 gchar *keymap_mafw_key_to_tracker_key(const gchar *mafw_key,
 				      ServiceType service)
 {
-        static InfoKeyTable *t = NULL;
-        gchar *tracker_key;
+        TrackerKey *tracker_key;
 
-        if (!t) {
-                t = keymap_get_info_key_table();
+        tracker_key = keymap_get_tracker_info(mafw_key, service);
+
+        if (tracker_key) {
+                return g_strdup(tracker_key->tracker_key);
+        } else {
+                return NULL;
         }
-
-        switch (service) {
-        case SERVICE_MUSIC:
-                tracker_key = g_hash_table_lookup(t->music_keys, mafw_key);
-                break;
-        case SERVICE_VIDEOS:
-                tracker_key = g_hash_table_lookup(t->videos_keys, mafw_key);
-                break;
-        default:
-                tracker_key = g_hash_table_lookup(t->playlist_keys, mafw_key);
-                break;
-        }
-
-        /* If not found, look in common */
-        if (!tracker_key) {
-                tracker_key = g_hash_table_lookup(t->common_keys, mafw_key);
-        }
-
-	return g_strdup(tracker_key);
 }
 
 gboolean keymap_is_key_supported_in_tracker(const gchar *mafw_key)
@@ -89,6 +73,7 @@ InfoKeyTable *keymap_get_info_key_table(void)
 {
 	static InfoKeyTable *table = NULL;
         MetadataKey *metadata_key = NULL;
+        TrackerKey *tracker_key = NULL;
 
         if (!table) {
                 table = g_new0(InfoKeyTable, 1);
@@ -101,95 +86,198 @@ InfoKeyTable *keymap_get_info_key_table(void)
                                                         g_str_equal);
 
                 /* Insert mapping for music service */
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_AKEY_TITLE;
+                tracker_key->value_type = G_TYPE_STRING;
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_TITLE,
-                                    TRACKER_AKEY_TITLE);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_AKEY_DURATION;
+                tracker_key->value_type = G_TYPE_INT;
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_DURATION,
-                                    TRACKER_AKEY_DURATION);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_AKEY_ARTIST;
+                tracker_key->value_type = G_TYPE_STRING;
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_ARTIST,
-                                    TRACKER_AKEY_ARTIST);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_AKEY_ALBUM;
+                tracker_key->value_type = G_TYPE_STRING;
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_ALBUM,
-                                    TRACKER_AKEY_ALBUM);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_AKEY_GENRE;
+                tracker_key->value_type = G_TYPE_STRING;
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_GENRE,
-                                    TRACKER_AKEY_GENRE);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_AKEY_TRACK;
+                tracker_key->value_type = G_TYPE_INT;
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_TRACK,
-                                    TRACKER_AKEY_TRACK);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_AKEY_YEAR;
+                tracker_key->value_type = G_TYPE_DATE;
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_YEAR,
-                                    TRACKER_AKEY_YEAR);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_AKEY_BITRATE;
+                tracker_key->value_type = G_TYPE_DOUBLE;
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_BITRATE,
-                                    TRACKER_AKEY_BITRATE);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_AKEY_LAST_PLAYED;
+                tracker_key->value_type = G_TYPE_DATE;
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_LAST_PLAYED,
-                                    TRACKER_AKEY_LAST_PLAYED);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_AKEY_PLAY_COUNT;
+                tracker_key->value_type = G_TYPE_INT;
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_PLAY_COUNT,
-                                    TRACKER_AKEY_PLAY_COUNT);
+                                    tracker_key);
 
                 /* Insert mapping for videos service */
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_VKEY_TITLE;
+                tracker_key->value_type = G_TYPE_STRING;
                 g_hash_table_insert(table->videos_keys,
                                     MAFW_METADATA_KEY_TITLE,
-                                    TRACKER_VKEY_TITLE);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_VKEY_DURATION;
+                tracker_key->value_type = G_TYPE_INT;
                 g_hash_table_insert(table->videos_keys,
                                     MAFW_METADATA_KEY_DURATION,
-                                    TRACKER_VKEY_DURATION);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_VKEY_FRAMERATE;
+                tracker_key->value_type = G_TYPE_DOUBLE;
                 g_hash_table_insert(table->videos_keys,
                                     MAFW_METADATA_KEY_VIDEO_FRAMERATE,
-                                    TRACKER_VKEY_FRAMERATE);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_VKEY_PAUSED_THUMBNAIL;
+                tracker_key->value_type = G_TYPE_STRING;
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_PAUSED_THUMBNAIL_URI,
-                                    TRACKER_VKEY_PAUSED_THUMBNAIL);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_VKEY_PAUSED_POSITION;
+                tracker_key->value_type = G_TYPE_INT;
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_PAUSED_POSITION,
-                                    TRACKER_VKEY_PAUSED_POSITION);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_VKEY_SOURCE;
+                tracker_key->value_type = G_TYPE_STRING;
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_VIDEO_SOURCE,
-                                    TRACKER_VKEY_SOURCE);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_VKEY_RES_X;
+                tracker_key->value_type = G_TYPE_INT;
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_RES_X,
-                                    TRACKER_VKEY_RES_X);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_VKEY_RES_Y;
+                tracker_key->value_type = G_TYPE_INT;
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_RES_Y,
-                                    TRACKER_VKEY_RES_Y);
+                                    tracker_key);
 
                 /* Insert mapping for playlist service */
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_PKEY_DURATION;
+                tracker_key->value_type = G_TYPE_INT;
                 g_hash_table_insert(table->playlist_keys,
                                     MAFW_METADATA_KEY_DURATION,
-                                    TRACKER_PKEY_DURATION);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_PKEY_COUNT;
+                tracker_key->value_type = G_TYPE_INT;
                 g_hash_table_insert(table->playlist_keys,
                                     MAFW_METADATA_KEY_CHILDCOUNT,
-                                    TRACKER_PKEY_COUNT);
+                                    tracker_key);
 
                 /* Special key (not available in MAFW) */
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_PKEY_VALID_DURATION;
+                tracker_key->value_type = G_TYPE_INT;
                 g_hash_table_insert(table->playlist_keys,
                                     TRACKER_PKEY_VALID_DURATION,
-                                    TRACKER_PKEY_VALID_DURATION);
+                                    tracker_key);
 
                 /* Insert mapping common for all services */
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_FKEY_COPYRIGHT;
+                tracker_key->value_type = G_TYPE_STRING;
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_COPYRIGHT,
-                                    TRACKER_FKEY_COPYRIGHT);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_FKEY_FILESIZE;
+                tracker_key->value_type = G_TYPE_INT;
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_FILESIZE,
-                                    TRACKER_FKEY_FILESIZE);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_FKEY_FILENAME;
+                tracker_key->value_type = G_TYPE_STRING;
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_FILENAME,
-                                    TRACKER_FKEY_FILENAME);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_FKEY_MIME;
+                tracker_key->value_type = G_TYPE_STRING;
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_MIME,
-                                    TRACKER_FKEY_MIME);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_FKEY_ADDED;
+                tracker_key->value_type = G_TYPE_DATE;
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_ADDED,
-                                    TRACKER_FKEY_ADDED);
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_FKEY_FULLNAME;
+                tracker_key->value_type = G_TYPE_STRING;
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_URI,
-                                    TRACKER_FKEY_FULLNAME);
+                                    tracker_key);
 
                 /* Insert metadata assocciated with each key */
                 metadata_key = g_new0(MetadataKey, 1);
@@ -446,72 +534,21 @@ InfoKeyTable *keymap_get_info_key_table(void)
 	return table;
 }
 
-GHashTable *keymap_build_tracker_types_map(void)
-{
-	static GHashTable *table = NULL;
-
-        if (!table) {
-                table = g_hash_table_new(g_str_hash, g_str_equal);
-
-                g_hash_table_insert(table,
-                                    TRACKER_AKEY_DURATION, "Integer");
-                g_hash_table_insert(table,
-                                    TRACKER_VKEY_DURATION, "Integer");
-                g_hash_table_insert(table,
-                                    TRACKER_AKEY_TRACK, "Integer");
-                g_hash_table_insert(table,
-                                    TRACKER_AKEY_YEAR, "Date");
-                g_hash_table_insert(table,
-                                    TRACKER_AKEY_BITRATE, "Double");
-                g_hash_table_insert(table,
-                                    TRACKER_AKEY_LAST_PLAYED, "Date");
-                g_hash_table_insert(table,
-                                    TRACKER_AKEY_PLAY_COUNT, "Integer");
-                g_hash_table_insert(table,
-                                    TRACKER_FKEY_ADDED, "Date");
-                g_hash_table_insert(table,
-                                    TRACKER_VKEY_PAUSED_POSITION, "Integer");
-                g_hash_table_insert(table,
-                                    TRACKER_VKEY_RES_X, "Integer");
-                g_hash_table_insert(table,
-                                    TRACKER_VKEY_RES_Y, "Integer");
-        }
-
-        return table;
-}
-
 gchar **keymap_mafw_keys_to_tracker_keys(gchar **mafw_keys,
 					 ServiceType service)
 {
-        static InfoKeyTable *t = NULL;
-        GHashTable *lookin;
 	gchar **tracker_keys;
 	gint i, count;
+        TrackerKey *tracker_key;
 
 	if (mafw_keys == NULL) {
 		return NULL;
 	}
 
-        if (!t) {
-                t = keymap_get_info_key_table();
-        }
 	/* Count the number of keys */
-        switch (service) {
-        case SERVICE_MUSIC:
-                lookin = t->music_keys;
-                break;
-        case SERVICE_VIDEOS:
-                lookin = t->videos_keys;
-                break;
-        default:
-                lookin = t->playlist_keys;
-                break;
-        }
-
 	for (i=0, count=0; mafw_keys[i] != NULL; i++) {
                 /* Check if the key is translatable to tracker */
-                if (g_hash_table_lookup(lookin, mafw_keys[i]) ||
-                    g_hash_table_lookup(t->common_keys, mafw_keys[i])) {
+                if (keymap_get_tracker_info(mafw_keys[i], service) != NULL) {
                         count++;
                 }
 	}
@@ -519,10 +556,14 @@ gchar **keymap_mafw_keys_to_tracker_keys(gchar **mafw_keys,
 	/* Allocate memory for the converted array (include trailing NULL) */
 	tracker_keys = g_new0(gchar *, count + 1);
 
-	/* Now, translate the keys */
+	/* Now, translate the keys supported in tracker */
 	for (i=0, count=0; mafw_keys[i] != NULL; i++) {
-                tracker_keys[count++] =
-                        keymap_mafw_key_to_tracker_key(mafw_keys[i], service);
+                tracker_key = keymap_get_tracker_info(mafw_keys[i], service);
+                if (tracker_key) {
+                        tracker_keys[count++] =
+                                keymap_mafw_key_to_tracker_key(mafw_keys[i],
+                                                               service);
+                }
         }
 
 	return tracker_keys;
@@ -539,3 +580,48 @@ MetadataKey *keymap_get_metadata(const gchar *mafw_key)
         return g_hash_table_lookup(table->metadata_keys, mafw_key);
 }
 
+TrackerKey *keymap_get_tracker_info(const gchar *mafw_key,
+                                    ServiceType service)
+{
+        static InfoKeyTable *table = NULL;
+        TrackerKey *tracker_key;
+
+        if (!table) {
+                table = keymap_get_info_key_table();
+        }
+
+        switch (service) {
+        case SERVICE_VIDEOS:
+                tracker_key = g_hash_table_lookup(table->videos_keys,
+                                                  mafw_key);
+                break;
+        case SERVICE_PLAYLISTS:
+                tracker_key = g_hash_table_lookup(table->playlist_keys,
+                                                  mafw_key);
+                break;
+        default:
+                tracker_key = g_hash_table_lookup(table->music_keys,
+                                                  mafw_key);
+        }
+
+        if (tracker_key) {
+                return tracker_key;
+        } else {
+                return g_hash_table_lookup(table->common_keys,
+                                           mafw_key);
+        }
+}
+
+GType keymap_get_tracker_type(const gchar *mafw_key,
+                              ServiceType service)
+{
+        TrackerKey *tracker_key;
+
+        tracker_key = keymap_get_tracker_info(mafw_key, service);
+
+        if (tracker_key) {
+                return tracker_key->value_type;
+        } else {
+                return G_TYPE_NONE;
+        }
+}

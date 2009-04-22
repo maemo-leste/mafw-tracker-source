@@ -39,18 +39,22 @@ static void _insert_chars(gchar *str, gchar *chars, gint index)
 	}
 }
 
-const static gchar *_get_tracker_type(GHashTable *types_map,
-				      gchar *tracker_key,
-				      ServiceType service)
+const static gchar *_get_tracker_type(const gchar *mafw_key,
+                                      ServiceType service)
 {
-	gchar *value;
-	value = g_hash_table_lookup(types_map, tracker_key);
-	if (value == NULL) {
-		return "String";
-	} else {
-		return value;
-	}
+        GType key_type;
 
+        key_type = keymap_get_tracker_type(mafw_key, service);
+
+        if (key_type == G_TYPE_INT) {
+                return "Integer";
+        } else if (key_type == G_TYPE_DOUBLE) {
+                return "Double";
+        } else if (key_type == G_TYPE_DATE) {
+                return "Date";
+        } else {
+                return "String";
+        }
 }
 
 /* ------------------------- Public API ------------------------- */
@@ -63,28 +67,46 @@ void util_gvalue_free(GValue *value)
         }
 }
 
-gchar *util_get_tracker_value_for_filter(const gchar *tracker_key,
+gchar *util_get_tracker_value_for_filter(const gchar *mafw_key,
+                                         ServiceType service,
 					 const gchar *value)
 {
+        MetadataKey *metadata_key;
+        TrackerKey *tracker_key;
         gchar *pathname;
         gchar *escaped_pathname;
 
         if (!value)
                 return NULL;
 
-	if (!tracker_key) {
+	if (!mafw_key) {
 		return g_strdup(value);
 	}
 
+        metadata_key = keymap_get_metadata(mafw_key);
+
+        if (!metadata_key) {
+                return g_strdup(value);
+        }
+
 	/* Tracker just stores pathnames, so convert URI to pathame */
-	if (!strcmp(tracker_key, TRACKER_FKEY_FULLNAME)) {
+        if (metadata_key->special == SPECIAL_KEY_URI) {
                 pathname = g_filename_from_uri(value, NULL, NULL);
                 escaped_pathname = util_escape_rdf_text(pathname);
                 g_free(pathname);
+
                 return escaped_pathname;
-        } else if (!strcmp(tracker_key, TRACKER_AKEY_LAST_PLAYED) ||
-                   !strcmp(tracker_key, TRACKER_FKEY_ADDED)) {
-                /* convert from epoch to iso8601 */
+        }
+
+        tracker_key = keymap_get_tracker_info(mafw_key, service);
+
+        if (!tracker_key) {
+                return g_strdup(value);
+        }
+
+        /* If the tracker's type is a date, convert the value from epoch to iso
+         * 8601 */
+        if (tracker_key->value_type == G_TYPE_DATE) {
                 return util_epoch_to_iso8601(atol(value));
 	}
 
@@ -266,8 +288,7 @@ gchar *util_escape_rdf_text(const gchar *text)
 	return result;
 }
 
-gboolean util_mafw_filter_to_rdf(GHashTable *types_map,
-				 const MafwFilter *filter,
+gboolean util_mafw_filter_to_rdf(const MafwFilter *filter,
 				 GString *p)
 {
 	gboolean ret = TRUE;
@@ -319,13 +340,13 @@ gboolean util_mafw_filter_to_rdf(GHashTable *types_map,
                                 tracker_key);
 
 			tracker_type =
-				_get_tracker_type(types_map,
-						  tracker_key,
-						  SERVICE_MUSIC);
+				_get_tracker_type(filter->key,
+                                                  SERVICE_MUSIC);
 
 			tracker_value =
 				util_get_tracker_value_for_filter (
-					tracker_key,
+					filter->key,
+                                        SERVICE_MUSIC,
 					filter->value);
 
                         g_string_append_printf(
@@ -349,8 +370,7 @@ gboolean util_mafw_filter_to_rdf(GHashTable *types_map,
 			if (filter->type == mafw_f_not) {
 				GString *cts = g_string_new("");
 				g_string_append(p, "<rdfq:not>");
-				ret = ret && util_mafw_filter_to_rdf(types_map,
-                                                                     *parts,
+				ret = ret && util_mafw_filter_to_rdf(*parts,
                                                                      cts);
  				g_string_append(p, cts->str);
 				g_string_free(cts, TRUE);
@@ -362,7 +382,6 @@ gboolean util_mafw_filter_to_rdf(GHashTable *types_map,
 					GString *cts = g_string_new("");
 					ret = ret &&
 						util_mafw_filter_to_rdf(
-                                                        types_map,
                                                         *parts,
                                                         cts);
 					g_string_append(p, cts->str);
@@ -376,7 +395,6 @@ gboolean util_mafw_filter_to_rdf(GHashTable *types_map,
 					GString *cts = g_string_new("");
 					ret = ret &&
 						util_mafw_filter_to_rdf(
-                                                        types_map,
                                                         *parts,
                                                         cts);
 					g_string_append(p, cts->str);
@@ -450,8 +468,10 @@ gchar *util_create_filter_from_category(const gchar *genre,
 
         if (genre) {
                 escaped_genre =
-                        util_get_tracker_value_for_filter(TRACKER_AKEY_GENRE,
-							  genre);
+                        util_get_tracker_value_for_filter(
+                                MAFW_METADATA_KEY_GENRE,
+                                SERVICE_MUSIC,
+                                genre);
                 filters[i] = g_strdup_printf(RDF_QUERY_BY_GENRE,
                                              escaped_genre);
                 g_free(escaped_genre);
@@ -460,8 +480,10 @@ gchar *util_create_filter_from_category(const gchar *genre,
 
         if (artist) {
                 escaped_artist =
-			util_get_tracker_value_for_filter(TRACKER_AKEY_ARTIST,
-							  artist);
+			util_get_tracker_value_for_filter(
+                                MAFW_METADATA_KEY_ARTIST,
+                                SERVICE_MUSIC,
+                                artist);
                 filters[i] = g_strdup_printf(RDF_QUERY_BY_ARTIST,
 					     escaped_artist);
                 g_free(escaped_artist);
@@ -470,8 +492,10 @@ gchar *util_create_filter_from_category(const gchar *genre,
 
         if (album) {
                 escaped_album =
-                        util_get_tracker_value_for_filter(TRACKER_AKEY_ALBUM,
-							  album);
+                        util_get_tracker_value_for_filter(
+                                MAFW_METADATA_KEY_ALBUM,
+                                SERVICE_MUSIC,
+                                album);
                 filters[i] = g_strdup_printf(RDF_QUERY_BY_ALBUM,
                                              escaped_album);
                 g_free(escaped_album);
@@ -604,7 +628,7 @@ CategoryType util_extract_category_info(const gchar *object_id,
 	if (path != NULL) {
 		path_name = get_data(path);
 		path_length = g_list_length(path);
-		
+
 		if (g_strcasecmp(path_name, TRACKER_SOURCE_VIDEOS) == 0) {
 			category = CATEGORY_VIDEO;
 		} else if (g_strcasecmp(path_name,

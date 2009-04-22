@@ -73,7 +73,6 @@ struct _mafw_metadata_closure {
 
 static TrackerClient *tc = NULL;
 static InfoKeyTable *info_keys = NULL;
-static GHashTable *types_map = NULL;
 
 /* ------------------------- Private API ------------------------- */
 
@@ -417,7 +416,7 @@ gchar *ti_create_filter(const MafwFilter *filter)
 
 	/* Convert the filter to RDF */
 	clause = g_string_new("");
-	if (util_mafw_filter_to_rdf(types_map, filter, clause)) {
+	if (util_mafw_filter_to_rdf(filter, clause)) {
 		ret_str = g_string_free(clause, FALSE);
 	} else {
 		g_warning("Invalid or unsupported filter syntax");
@@ -431,10 +430,6 @@ gboolean ti_init(void)
 {
 	if (info_keys == NULL) {
 		info_keys = keymap_get_info_key_table();
-	}
-
-	if (types_map == NULL) {
-		types_map = keymap_build_tracker_types_map();
 	}
 
 	tc = tracker_connect(TRUE);
@@ -699,8 +694,10 @@ void ti_get_artists(const gchar *genre,
                         FALSE,
                         genre);
                 escaped_genre =
-                        util_get_tracker_value_for_filter(TRACKER_AKEY_GENRE,
-                                                          genre);
+                        util_get_tracker_value_for_filter(
+                                MAFW_METADATA_KEY_GENRE,
+                                SERVICE_MUSIC,
+                                genre);
                 filters[0] = g_strdup_printf(RDF_QUERY_BY_GENRE,
                                              escaped_genre);
                 g_free(escaped_genre);
@@ -884,8 +881,10 @@ void ti_get_albums(const gchar *genre,
                         FALSE,
                         genre);
                 escaped_genre =
-                        util_get_tracker_value_for_filter(TRACKER_AKEY_GENRE,
-                                                          genre);
+                        util_get_tracker_value_for_filter(
+                                MAFW_METADATA_KEY_GENRE,
+                                SERVICE_MUSIC,
+                                genre);
                 filters[i] = g_strdup_printf(RDF_QUERY_BY_GENRE,
                                              escaped_genre);
                 g_free(escaped_genre);
@@ -899,8 +898,10 @@ void ti_get_albums(const gchar *genre,
                         FALSE,
                         artist);
                 escaped_artist =
-                        util_get_tracker_value_for_filter(TRACKER_AKEY_ARTIST,
-                                                          artist);
+                        util_get_tracker_value_for_filter(
+                                MAFW_METADATA_KEY_ARTIST,
+                                SERVICE_MUSIC,
+                                artist);
                 filters[i] = g_strdup_printf(RDF_QUERY_BY_ARTIST,
                                              escaped_artist);
                 g_free(escaped_artist);
@@ -1348,6 +1349,12 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, gboolean *updated)
         GValue *value;
         gboolean updatable;
         ServiceType service;
+        static InfoKeyTable *t = NULL;
+        TrackerKey *tracker_key;
+
+        if (!t) {
+                t = keymap_get_info_key_table();
+        }
 
 	/* We have not updated anything yet */
 	if (updated) {
@@ -1368,8 +1375,8 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, gboolean *updated)
         service = SERVICE_VIDEOS;
         while (running_key) {
                 mafw_key = (gchar *) running_key->data;
-                if (strcmp(mafw_key, MAFW_METADATA_KEY_LAST_PLAYED) == 0 ||
-                    strcmp(mafw_key, MAFW_METADATA_KEY_PLAY_COUNT) == 0) {
+                /* If key is in service music */
+                if (g_hash_table_lookup(t->music_keys, mafw_key) != NULL) {
                         service = SERVICE_MUSIC;
                         break;
                 }
@@ -1386,10 +1393,12 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, gboolean *updated)
                 /* Get only supported keys, and convert values to
                  * strings */
                 if (keymap_mafw_key_is_writable(mafw_key)) {
-                        /* Special case: last-play should follow
-                         * ISO-8601 spec */
-                        if (strcmp(mafw_key,
-				   MAFW_METADATA_KEY_LAST_PLAYED) == 0) {
+                        /* Special case: some keys should follow ISO-8601
+                         * spec */
+                        tracker_key = keymap_get_tracker_info(mafw_key,
+                                                              service);
+                        if (tracker_key &&
+                            tracker_key->value_type == G_TYPE_DATE) {
                                 value = mafw_metadata_first(metadata,
                                                              mafw_key);
                                 if (G_VALUE_HOLDS_LONG(value)) {

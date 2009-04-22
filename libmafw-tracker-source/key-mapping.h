@@ -66,6 +66,13 @@ typedef struct MetadataKey {
         enum SpecialKey special;
 } MetadataKey;
 
+typedef struct TrackerKey {
+        /* The name of the key */
+        gchar *tracker_key;
+        /* It's type */
+        GType value_type;
+} TrackerKey;
+
 typedef struct InfoKeyTable {
         /* Mapping mafw->tracker keys within music service */
         GHashTable *music_keys;
@@ -87,7 +94,10 @@ gchar **keymap_mafw_keys_to_tracker_keys(gchar **mafw_keys,
 gboolean keymap_is_key_supported_in_tracker(const gchar *mafw_key);
 gboolean keymap_mafw_key_is_writable(gchar *mafw_key);
 InfoKeyTable *keymap_get_info_key_table(void);
-GHashTable *keymap_build_tracker_types_map(void);
 MetadataKey *keymap_get_metadata(const gchar *mafw_key);
+TrackerKey *keymap_get_tracker_info(const gchar *mafw_key,
+                                    ServiceType service);
+GType keymap_get_tracker_type(const gchar *mafw_key,
+                              ServiceType service);
 
 #endif
