@@ -37,6 +37,15 @@ enum KeyType {
         THUMBNAIL_KEY
 };
 
+enum SpecialKey {
+        NON_SPECIAL = 0,
+        SPECIAL_KEY_CHILDCOUNT,
+        SPECIAL_KEY_DURATION,
+        SPECIAL_KEY_MIME,
+        SPECIAL_KEY_TITLE,
+        SPECIAL_KEY_URI
+};
+
 typedef struct MetadataKey {
         /* The type of the key. NOTE: G_TYPE_DATE will be handle as
          * G_TYPE_INT. But they are separated 'cause in we need to use
@@ -50,6 +59,9 @@ typedef struct MetadataKey {
         enum KeyType key_type;
         /* A key needed to solve the current one (none by default) */
         gchar *depends_on;
+        /* For special keys (those that are corner cases in the cache), mark its
+         * speciality (nothing by default) */
+        enum SpecialKey special;
 } MetadataKey;
 
 typedef struct InfoKeyTable {

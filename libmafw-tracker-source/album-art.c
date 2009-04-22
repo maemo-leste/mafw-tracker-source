@@ -24,6 +24,7 @@
 
 #include "album-art.h"
 #include "util.h"
+#include "key-mapping.h"
 #include <string.h>
 #include <stdlib.h>
 #include <hildon-thumbnail-factory.h>
@@ -100,16 +101,28 @@ gchar *albumart_get_album_art_uri(const gchar *album)
 
 gboolean albumart_key_is_album_art(const gchar *key)
 {
-	return strcmp(key, MAFW_METADATA_KEY_ALBUM_ART_SMALL_URI) == 0 ||
-		strcmp(key, MAFW_METADATA_KEY_ALBUM_ART_MEDIUM_URI) == 0 ||
-		strcmp(key, MAFW_METADATA_KEY_ALBUM_ART_LARGE_URI) == 0 ||
-		strcmp(key, MAFW_METADATA_KEY_ALBUM_ART_URI) == 0;
+        MetadataKey *metadata_key;
+        InfoKeyTable *t = keymap_get_info_key_table();
+
+        metadata_key = g_hash_table_lookup(t->metadata_keys, key);
+
+        if (metadata_key) {
+                return metadata_key->key_type == ALBUM_ART_KEY;
+        } else {
+                return FALSE;
+        }
 }
 
 gboolean albumart_key_is_thumbnail(const gchar *key)
 {
-        return strcmp(key, MAFW_METADATA_KEY_THUMBNAIL_URI) == 0 ||
-                strcmp(key, MAFW_METADATA_KEY_THUMBNAIL_SMALL_URI) == 0 ||
-                strcmp(key, MAFW_METADATA_KEY_THUMBNAIL_MEDIUM_URI) == 0 ||
-                strcmp(key, MAFW_METADATA_KEY_THUMBNAIL_LARGE_URI) == 0;
+        MetadataKey *metadata_key;
+        InfoKeyTable *t = keymap_get_info_key_table();
+
+        metadata_key = g_hash_table_lookup(t->metadata_keys, key);
+
+        if (metadata_key) {
+                return metadata_key->key_type == THUMBNAIL_KEY;
+        } else {
+                return FALSE;
+        }
 }

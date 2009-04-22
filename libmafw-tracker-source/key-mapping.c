@@ -195,6 +195,7 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_INT;
                 metadata_key->allowed_empty = TRUE;
+                metadata_key->special = SPECIAL_KEY_CHILDCOUNT;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_CHILDCOUNT,
                                     metadata_key);
@@ -230,6 +231,7 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
                 metadata_key->allowed_empty = TRUE;
+                metadata_key->special = SPECIAL_KEY_TITLE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_TITLE,
                                     metadata_key);
@@ -237,6 +239,7 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_INT;
                 metadata_key->allowed_empty = FALSE;
+                metadata_key->special = SPECIAL_KEY_DURATION;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_DURATION,
                                     metadata_key);
@@ -244,6 +247,7 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
                 metadata_key->allowed_empty = FALSE;
+                metadata_key->special = SPECIAL_KEY_MIME;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_MIME,
                                     metadata_key);
@@ -293,6 +297,7 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
                 metadata_key->allowed_empty = FALSE;
+                metadata_key->special = SPECIAL_KEY_URI;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_URI,
                                     metadata_key);
