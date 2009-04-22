@@ -57,21 +57,17 @@ static void _replace_various_values(GValue *value)
 static gboolean _value_is_allowed(GValue *value, const gchar *key)
 {
         const gchar *str_value;
-        gboolean is_empty;
 
         /* Value is empty if is NULL */
         if (value) {
                 /* Value is empty if is "" */
                 if (G_VALUE_HOLDS_STRING(value)) {
                         str_value = g_value_get_string(value);
-                        is_empty = (!str_value ||
-                                    strcmp(str_value, "") == 0);
-                        return (!is_empty ||
+                        return (!IS_STRING_EMPTY(str_value) ||
                                 strcmp(key, MAFW_METADATA_KEY_TITLE) == 0);
                 } else if (G_VALUE_HOLDS_INT(value)) {
                         /* Value is empty if is 0 */
-                        is_empty = (g_value_get_int(value) <= 0);
-                        return (!is_empty ||
+                        return (g_value_get_int(value) > 0 ||
                                 strcmp(key,
                                        MAFW_METADATA_KEY_DURATION) != 0);
                 } else {
@@ -90,14 +86,15 @@ static GValue *_get_title(TrackerCache *cache, gint index)
         gchar *filename;
         gchar *pathname;
         gchar *dot;
+        const gchar *value_title_str;
 
         value_title = tracker_cache_value_get(cache,
                                               MAFW_METADATA_KEY_TITLE,
                                               index);
 
         /* If it is empty, then use the URI */
-        if ((g_value_get_string(value_title) == NULL ||
-             strcmp(g_value_get_string(value_title), "") == 0) &&
+        value_title_str = g_value_get_string(value_title);
+        if (IS_STRING_EMPTY(value_title_str) &&
             cache->result_type != TRACKER_CACHE_RESULT_TYPE_UNIQUE) {
                 value_uri = tracker_cache_value_get(cache,
                                                 MAFW_METADATA_KEY_URI,

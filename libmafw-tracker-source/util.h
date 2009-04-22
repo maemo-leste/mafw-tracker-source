@@ -30,6 +30,8 @@
 #include <tracker.h>
 #include "definitions.h"
 
+#define IS_STRING_EMPTY(str) ((str) == NULL || (str)[0] == '\0')
+
 typedef enum {
 	CATEGORY_ROOT,
 	CATEGORY_VIDEO,

@@ -76,14 +76,9 @@ gchar *albumart_get_album_art_uri(const gchar *album)
         GFile *file;
 
 	if (util_tracker_value_is_unknown(album) || strlen(album) == 1) {
-		album_key = g_strdup("");
+                return NULL;
 	} else {
 		album_key = g_strdup(album);
-	}
-
-	if (*album_key == '\0') {
-		g_free(album_key);
-		return NULL;
 	}
 
 	/* Get the path to the album-art */
