@@ -72,7 +72,7 @@ struct _mafw_metadata_closure {
 /* ---------------------------- Globals -------------------------- */
 
 static TrackerClient *tc = NULL;
-static GHashTable *keys_map = NULL;
+static InfoKeyTable *info_keys = NULL;
 static GHashTable *types_map = NULL;
 
 /* ------------------------- Private API ------------------------- */
@@ -417,7 +417,7 @@ gchar *ti_create_filter(const MafwFilter *filter)
 
 	/* Convert the filter to RDF */
 	clause = g_string_new("");
-	if (util_mafw_filter_to_rdf(keys_map, types_map, filter, clause)) {
+	if (util_mafw_filter_to_rdf(types_map, filter, clause)) {
 		ret_str = g_string_free(clause, FALSE);
 	} else {
 		g_warning("Invalid or unsupported filter syntax");
@@ -429,8 +429,8 @@ gchar *ti_create_filter(const MafwFilter *filter)
 
 gboolean ti_init(void)
 {
-	if (keys_map == NULL) {
-		keys_map = keymap_build_mafw_to_tracker_keys_map();
+	if (info_keys == NULL) {
+		info_keys = keymap_build_mafw_to_tracker_keys_map();
 	}
 
 	if (types_map == NULL) {

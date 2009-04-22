@@ -28,11 +28,29 @@
 #include <glib.h>
 #include <tracker.h>
 
+typedef struct MetadataKey {
+        GType value_type;
+} MetadataKey;
+
+typedef struct InfoKeyTable {
+        /* Mapping mafw->tracker keys within music service */
+        GHashTable *music_keys;
+        /* Mapping mafw->tracker keys within videos service */
+        GHashTable *videos_keys;
+        /* Mapping mafw->tracker keys within playlist service */
+        GHashTable *playlist_keys;
+        /* Mapping mafw->tracker keys within common service */
+        GHashTable *common_keys;
+        /* Metadata associated with each mafw key */
+        GHashTable *metadata_keys;
+} InfoKeyTable;
+
+
 gchar *keymap_mafw_key_to_tracker_key(const gchar *mafw_key,
 				      ServiceType service);
-inline gboolean keymap_mafw_key_supported_in_tracker(const gchar *mafw_key);
+gboolean keymap_mafw_key_supported_in_tracker(const gchar *mafw_key);
 gboolean keymap_mafw_key_is_writable(gchar *mafw_key);
-GHashTable *keymap_build_mafw_to_tracker_keys_map(void);
+InfoKeyTable *keymap_build_mafw_to_tracker_keys_map(void);
 GHashTable *keymap_build_tracker_types_map(void);
 gchar **keymap_mafw_keys_to_tracker_keys(gchar **mafw_keys,
 					 ServiceType service);

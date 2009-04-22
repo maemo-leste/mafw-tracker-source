@@ -121,11 +121,14 @@
 #define TRACKER_KEY_ADDED                   "File:Modified"
 #define TRACKER_KEY_VIDEO_SOURCE            "Video:Source"
 #define TRACKER_KEY_VIDEO_DURATION          "Video:Duration"
+#define TRACKER_KEY_FRAMERATE               "Video:FrameRate"
 #define TRACKER_KEY_RES_X                   "Video:Width"
 #define TRACKER_KEY_RES_Y                   "Video:Height"
 #define TRACKER_KEY_PLAYLIST_DURATION       "Playlist:Duration"
 #define TRACKER_KEY_PLAYLIST_VALID_DURATION "Playlist:ValidDuration"
 #define TRACKER_KEY_PLAYLIST_COUNT          "Playlist:Songs"
+#define TRACKER_KEY_COPYRIGHT               "File:Copyright"
+#define TRACKER_KEY_FILESIZE                "File:Size"
 
 #define RDF_QUERY_BEGIN \
 	"<rdfq:Condition>"

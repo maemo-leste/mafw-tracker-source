@@ -266,8 +266,7 @@ gchar *util_escape_rdf_text(const gchar *text)
 	return result;
 }
 
-gboolean util_mafw_filter_to_rdf(GHashTable *keys_map,
-				 GHashTable *types_map,
+gboolean util_mafw_filter_to_rdf(GHashTable *types_map,
 				 const MafwFilter *filter,
 				 GString *p)
 {
@@ -350,8 +349,9 @@ gboolean util_mafw_filter_to_rdf(GHashTable *keys_map,
 			if (filter->type == mafw_f_not) {
 				GString *cts = g_string_new("");
 				g_string_append(p, "<rdfq:not>");
-				ret = ret && util_mafw_filter_to_rdf(
-					keys_map, types_map, *parts, cts);
+				ret = ret && util_mafw_filter_to_rdf(types_map,
+                                                                     *parts,
+                                                                     cts);
  				g_string_append(p, cts->str);
 				g_string_free(cts, TRUE);
 				g_string_append(p, "</rdfq:not>");
@@ -362,7 +362,6 @@ gboolean util_mafw_filter_to_rdf(GHashTable *keys_map,
 					GString *cts = g_string_new("");
 					ret = ret &&
 						util_mafw_filter_to_rdf(
-                                                        keys_map,
                                                         types_map,
                                                         *parts,
                                                         cts);
@@ -377,7 +376,6 @@ gboolean util_mafw_filter_to_rdf(GHashTable *keys_map,
 					GString *cts = g_string_new("");
 					ret = ret &&
 						util_mafw_filter_to_rdf(
-                                                        keys_map,
                                                         types_map,
                                                         *parts,
                                                         cts);
