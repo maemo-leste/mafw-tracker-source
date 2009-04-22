@@ -519,6 +519,13 @@ tracker_cache_key_add(TrackerCache *cache,
                 return;
         }
 
+        /* Within the current service, check if the key makes sense */
+        if (keymap_get_tracker_info(key, cache->service) == NULL) {
+                _insert_key(cache, key, TRACKER_CACHE_KEY_TYPE_VOID,
+                            user_key, -1);
+                return;
+        }
+
         /* Insert dependencies */
         if (metadata_key->depends_on) {
                 tracker_cache_key_add(cache, metadata_key->depends_on, FALSE);
