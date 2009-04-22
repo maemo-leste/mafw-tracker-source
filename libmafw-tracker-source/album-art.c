@@ -102,9 +102,8 @@ gchar *albumart_get_album_art_uri(const gchar *album)
 gboolean albumart_key_is_album_art(const gchar *key)
 {
         MetadataKey *metadata_key;
-        InfoKeyTable *t = keymap_get_info_key_table();
 
-        metadata_key = g_hash_table_lookup(t->metadata_keys, key);
+        metadata_key = keymap_get_metadata(key);
 
         if (metadata_key) {
                 return metadata_key->key_type == ALBUM_ART_KEY;
@@ -116,9 +115,8 @@ gboolean albumart_key_is_album_art(const gchar *key)
 gboolean albumart_key_is_thumbnail(const gchar *key)
 {
         MetadataKey *metadata_key;
-        InfoKeyTable *t = keymap_get_info_key_table();
 
-        metadata_key = g_hash_table_lookup(t->metadata_keys, key);
+        metadata_key = keymap_get_metadata(key);
 
         if (metadata_key) {
                 return metadata_key->key_type == THUMBNAIL_KEY;

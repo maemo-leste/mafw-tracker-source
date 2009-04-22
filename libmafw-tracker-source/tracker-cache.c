@@ -56,12 +56,10 @@ static void _replace_various_values(GValue *value)
 
 static gboolean _value_is_allowed(GValue *value, const gchar *key)
 {
-        InfoKeyTable *t = keymap_get_info_key_table();
         MetadataKey *metadata_key;
         const gchar *str_value;
 
-        metadata_key = g_hash_table_lookup(t->metadata_keys,
-                                           key);
+        metadata_key = keymap_get_metadata(key);
 
         if (!metadata_key) {
                 return FALSE;
@@ -498,10 +496,8 @@ tracker_cache_key_add(TrackerCache *cache,
         TrackerCacheValue *value;
         gint offset;
         MetadataKey *metadata_key;
-        InfoKeyTable *t = keymap_get_info_key_table();
 
-        metadata_key = g_hash_table_lookup(t->metadata_keys,
-                                           key);
+        metadata_key = keymap_get_metadata(key);
 
         /* Discard unsupported keys */
         if (!metadata_key) {
@@ -665,7 +661,6 @@ tracker_cache_key_add_unique(TrackerCache *cache,
 {
         gint i;
         MetadataKey *metadata_key;
-        InfoKeyTable *t = keymap_get_info_key_table();
 
         /* Check if cache was created to store data from
          * unique_count_sum functions */
@@ -674,8 +669,8 @@ tracker_cache_key_add_unique(TrackerCache *cache,
 
         i = 0;
         while (unique_keys[i]) {
-                metadata_key = g_hash_table_lookup(t->metadata_keys,
-                                                   unique_keys[i]);
+                metadata_key = keymap_get_metadata(unique_keys[i]);
+
                 /* Skip unsupported keys */
                 if (metadata_key) {
                         /* Check the key doesn't exist */
@@ -1083,7 +1078,6 @@ tracker_cache_build_metadata_aggregated(TrackerCache *cache,
         GValue *value;
         GHashTable *metadata;
         MetadataKey *metadata_key;
-        InfoKeyTable *t = keymap_get_info_key_table();
 
         /* Get the list of user-requested keys */
         user_keys = tracker_cache_keys_get_user(cache);
@@ -1091,8 +1085,7 @@ tracker_cache_build_metadata_aggregated(TrackerCache *cache,
         /* Create metadata */
         metadata = mafw_metadata_new();
         for (key_index = 0; user_keys[key_index]; key_index++) {
-                metadata_key = g_hash_table_lookup(t->metadata_keys,
-                                                   user_keys[key_index]);
+                metadata_key = keymap_get_metadata(user_keys[key_index]);
 
                 /* Special cases */
                 if (metadata_key->special == SPECIAL_KEY_CHILDCOUNT ||

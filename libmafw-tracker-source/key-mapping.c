@@ -33,8 +33,12 @@
 gchar *keymap_mafw_key_to_tracker_key(const gchar *mafw_key,
 				      ServiceType service)
 {
-        InfoKeyTable *t = keymap_get_info_key_table();
+        static InfoKeyTable *t = NULL;
         gchar *tracker_key;
+
+        if (!t) {
+                t = keymap_get_info_key_table();
+        }
 
         switch (service) {
         case SERVICE_MUSIC:
@@ -58,7 +62,11 @@ gchar *keymap_mafw_key_to_tracker_key(const gchar *mafw_key,
 
 gboolean keymap_is_key_supported_in_tracker(const gchar *mafw_key)
 {
-        InfoKeyTable *t = keymap_get_info_key_table();
+        static InfoKeyTable *t = NULL;
+
+        if (!t) {
+                t = keymap_get_info_key_table();
+        }
 
         return g_hash_table_lookup(t->music_keys, mafw_key) != NULL ||
                 g_hash_table_lookup(t->videos_keys, mafw_key) != NULL ||
@@ -66,19 +74,11 @@ gboolean keymap_is_key_supported_in_tracker(const gchar *mafw_key)
                 g_hash_table_lookup(t->common_keys, mafw_key) != NULL;
 }
 
-gboolean keymap_is_key_supported(const gchar *mafw_key)
-{
-        InfoKeyTable *t = keymap_get_info_key_table();
-
-        return g_hash_table_lookup(t->metadata_keys, mafw_key) != NULL;
-}
-
 gboolean keymap_mafw_key_is_writable(gchar *mafw_key)
 {
-        InfoKeyTable *t = keymap_get_info_key_table();
         MetadataKey *metadata_key;
 
-        metadata_key = g_hash_table_lookup(t->metadata_keys, mafw_key);
+        metadata_key = keymap_get_metadata(mafw_key);
 
         /* If key is not found, return FALSE */
         return metadata_key && metadata_key->writable;
@@ -483,7 +483,7 @@ GHashTable *keymap_build_tracker_types_map(void)
 gchar **keymap_mafw_keys_to_tracker_keys(gchar **mafw_keys,
 					 ServiceType service)
 {
-        InfoKeyTable *t = keymap_get_info_key_table();
+        static InfoKeyTable *t = NULL;
         GHashTable *lookin;
 	gchar **tracker_keys;
 	gint i, count;
@@ -492,6 +492,9 @@ gchar **keymap_mafw_keys_to_tracker_keys(gchar **mafw_keys,
 		return NULL;
 	}
 
+        if (!t) {
+                t = keymap_get_info_key_table();
+        }
 	/* Count the number of keys */
         switch (service) {
         case SERVICE_MUSIC:
@@ -524,3 +527,15 @@ gchar **keymap_mafw_keys_to_tracker_keys(gchar **mafw_keys,
 
 	return tracker_keys;
 }
+
+MetadataKey *keymap_get_metadata(const gchar *mafw_key)
+{
+        static InfoKeyTable *table = NULL;
+
+        if (!table) {
+                table = keymap_get_info_key_table();
+        }
+
+        return g_hash_table_lookup(table->metadata_keys, mafw_key);
+}
+
