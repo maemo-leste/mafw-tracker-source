@@ -35,6 +35,8 @@ typedef struct MetadataKey {
         GType value_type;
         /* Is the key writable? Default is FALSE */
         gboolean writable;
+        /* Allow the key's value empty (""/0) values? */
+        gboolean allowed_empty;
 } MetadataKey;
 
 typedef struct InfoKeyTable {

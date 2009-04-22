@@ -56,25 +56,36 @@ static void _replace_various_values(GValue *value)
 
 static gboolean _value_is_allowed(GValue *value, const gchar *key)
 {
+        InfoKeyTable *t = keymap_get_info_key_table();
+        MetadataKey *metadata_key;
         const gchar *str_value;
 
-        /* Value is empty if is NULL */
-        if (value) {
-                /* Value is empty if is "" */
-                if (G_VALUE_HOLDS_STRING(value)) {
+        metadata_key = g_hash_table_lookup(t->metadata_keys,
+                                           key);
+
+        if (!metadata_key) {
+                return FALSE;
+        }
+
+        if (metadata_key->allowed_empty) {
+                return TRUE;
+        } else {
+                /* Check if value is empty */
+                if (!value) {
+                        return FALSE;
+                } else if (G_VALUE_HOLDS_STRING(value)) {
                         str_value = g_value_get_string(value);
-                        return (!IS_STRING_EMPTY(str_value) ||
-                                strcmp(key, MAFW_METADATA_KEY_TITLE) == 0);
+                        return !IS_STRING_EMPTY(str_value);
                 } else if (G_VALUE_HOLDS_INT(value)) {
-                        /* Value is empty if is 0 */
-                        return (g_value_get_int(value) > 0 ||
-                                strcmp(key,
-                                       MAFW_METADATA_KEY_DURATION) != 0);
+                        return g_value_get_int(value) > 0;
+                } else if (G_VALUE_HOLDS_LONG(value)) {
+                        return g_value_get_long(value) > 0;
+                } else if (G_VALUE_HOLDS_FLOAT(value)) {
+                        return g_value_get_float(value) > 0;
                 } else {
+                        /* This is the case of storing a gboolean */
                         return TRUE;
                 }
-        } else {
-                return FALSE;
         }
 }
 
