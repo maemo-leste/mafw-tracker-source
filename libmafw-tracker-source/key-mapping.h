@@ -29,7 +29,12 @@
 #include <tracker.h>
 
 typedef struct MetadataKey {
+        /* The type of the key. NOTE: G_TYPE_DATE will be handle as
+         * G_TYPE_INT. But they are separated 'cause in we need to use
+         * conversion functions when converting the keys to tracker keys */
         GType value_type;
+        /* Is the key writable? Default is FALSE */
+        gboolean writable;
 } MetadataKey;
 
 typedef struct InfoKeyTable {

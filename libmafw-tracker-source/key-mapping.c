@@ -69,15 +69,15 @@ gboolean keymap_mafw_key_supported_in_tracker(const gchar *mafw_key)
 
 gboolean keymap_mafw_key_is_writable(gchar *mafw_key)
 {
-        if (strcmp(mafw_key, MAFW_METADATA_KEY_LAST_PLAYED) == 0 ||
-            strcmp(mafw_key, MAFW_METADATA_KEY_PLAY_COUNT) == 0 ||
-            strcmp(mafw_key, MAFW_METADATA_KEY_PAUSED_THUMBNAIL_URI) == 0 ||
-            strcmp(mafw_key, MAFW_METADATA_KEY_PAUSED_POSITION) == 0) {
-                return TRUE;
-        } else {
-                return FALSE;
-        }
+        InfoKeyTable *t = keymap_get_info_key_table();
+        MetadataKey *metadata_key;
+
+        metadata_key = g_hash_table_lookup(t->metadata_keys, mafw_key);
+
+        /* If key is not found, return FALSE */
+        return metadata_key && metadata_key->writable;
 }
+
 
 InfoKeyTable *keymap_get_info_key_table(void)
 {
@@ -278,12 +278,14 @@ InfoKeyTable *keymap_get_info_key_table(void)
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_LONG;
+                metadata_key->writable = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_LAST_PLAYED,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_INT;
+                metadata_key->writable = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_PLAY_COUNT,
                                     metadata_key);
@@ -296,12 +298,14 @@ InfoKeyTable *keymap_get_info_key_table(void)
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
+                metadata_key->writable = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_PAUSED_THUMBNAIL_URI,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_INT;
+                metadata_key->writable = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_PAUSED_POSITION,
                                     metadata_key);
