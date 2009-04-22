@@ -54,11 +54,6 @@ static void _replace_various_values(GValue *value)
         }
 }
 
-static gboolean _unknown_value_allowed(const gchar *key)
-{
-        return (strcmp(key, MAFW_METADATA_KEY_TITLE) == 0);
-}
-
 static gboolean _value_is_allowed(GValue *value, const gchar *key)
 {
         const gchar *str_value;
@@ -72,7 +67,7 @@ static gboolean _value_is_allowed(GValue *value, const gchar *key)
                         is_empty = (!str_value ||
                                     strcmp(str_value, "") == 0);
                         return (!is_empty ||
-                                _unknown_value_allowed(key));
+                                strcmp(key, MAFW_METADATA_KEY_TITLE) == 0);
                 } else if (G_VALUE_HOLDS_INT(value)) {
                         /* Value is empty if is 0 */
                         is_empty = (g_value_get_int(value) <= 0);
