@@ -1004,7 +1004,7 @@ tracker_cache_value_get(TrackerCache *cache,
 		    strcmp(key, MAFW_METADATA_KEY_CHILDCOUNT) == 0 ||
                     strcmp(key, MAFW_METADATA_KEY_DURATION) == 0 ||
                     strcmp(key, MAFW_METADATA_KEY_PAUSED_POSITION) == 0 ||
-		    strcmp(key, TRACKER_KEY_PLAYLIST_VALID_DURATION) == 0) {
+		    strcmp(key, TRACKER_PKEY_VALID_DURATION) == 0) {
                         g_value_init(return_value, G_TYPE_INT);
                         g_value_set_int(
                                 return_value,

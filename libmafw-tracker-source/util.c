@@ -77,13 +77,13 @@ gchar *util_get_tracker_value_for_filter(const gchar *tracker_key,
 	}
 
 	/* Tracker just stores pathnames, so convert URI to pathame */
-	if (!strcmp(tracker_key, TRACKER_KEY_FULLNAME)) {
+	if (!strcmp(tracker_key, TRACKER_FKEY_FULLNAME)) {
                 pathname = g_filename_from_uri(value, NULL, NULL);
                 escaped_pathname = util_escape_rdf_text(pathname);
                 g_free(pathname);
                 return escaped_pathname;
-        } else if (!strcmp(tracker_key, TRACKER_KEY_LAST_PLAYED) ||
-                   !strcmp(tracker_key, TRACKER_KEY_ADDED)) {
+        } else if (!strcmp(tracker_key, TRACKER_AKEY_LAST_PLAYED) ||
+                   !strcmp(tracker_key, TRACKER_FKEY_ADDED)) {
                 /* convert from epoch to iso8601 */
                 return util_epoch_to_iso8601(atol(value));
 	}
@@ -450,7 +450,7 @@ gchar *util_create_filter_from_category(const gchar *genre,
 
         if (genre) {
                 escaped_genre =
-                        util_get_tracker_value_for_filter(TRACKER_KEY_GENRE,
+                        util_get_tracker_value_for_filter(TRACKER_AKEY_GENRE,
 							  genre);
                 filters[i] = g_strdup_printf(RDF_QUERY_BY_GENRE,
                                              escaped_genre);
@@ -460,7 +460,7 @@ gchar *util_create_filter_from_category(const gchar *genre,
 
         if (artist) {
                 escaped_artist =
-			util_get_tracker_value_for_filter(TRACKER_KEY_ARTIST,
+			util_get_tracker_value_for_filter(TRACKER_AKEY_ARTIST,
 							  artist);
                 filters[i] = g_strdup_printf(RDF_QUERY_BY_ARTIST,
 					     escaped_artist);
@@ -470,7 +470,7 @@ gchar *util_create_filter_from_category(const gchar *genre,
 
         if (album) {
                 escaped_album =
-                        util_get_tracker_value_for_filter(TRACKER_KEY_ALBUM,
+                        util_get_tracker_value_for_filter(TRACKER_AKEY_ALBUM,
 							  album);
                 filters[i] = g_strdup_printf(RDF_QUERY_BY_ALBUM,
                                              escaped_album);
@@ -839,7 +839,7 @@ gboolean util_calculate_playlist_duration_is_needed(GHashTable *pls_metadata)
 		/* Check if MAFW has calculated this duration before. */
 		gval = mafw_metadata_first(
 			pls_metadata,
-			TRACKER_KEY_PLAYLIST_VALID_DURATION);
+			TRACKER_PKEY_VALID_DURATION);
 
 		if ((gval) && (g_value_get_int(gval) == 0)) {
 			/* The duration hasn't been calculated before,
@@ -858,7 +858,7 @@ gchar** util_add_tracker_data_to_check_pls_duration(gchar **keys)
 	   check if MAFW has calculated the playlist duration before.
 	   Don't forget remove it from the MAFW results before sending them to
 	   the user!. */
-	return _add_key(keys, TRACKER_KEY_PLAYLIST_VALID_DURATION);
+	return _add_key(keys, TRACKER_PKEY_VALID_DURATION);
 }
 
 void util_remove_tracker_data_to_check_pls_duration(GHashTable *metadata,
@@ -867,10 +867,10 @@ void util_remove_tracker_data_to_check_pls_duration(GHashTable *metadata,
 	/* Remove the valid-duration value from the results.
 	   It's a Tracker metadata key without correspondence in MAFW.
 	   Don't return it to the user!. */
-	g_hash_table_remove(metadata, TRACKER_KEY_PLAYLIST_VALID_DURATION);
+	g_hash_table_remove(metadata, TRACKER_PKEY_VALID_DURATION);
 
 	if (_contains_key((const gchar **) metadata_keys,
-			  TRACKER_KEY_PLAYLIST_VALID_DURATION)) {
+			  TRACKER_PKEY_VALID_DURATION)) {
 		gint n = g_strv_length(metadata_keys);
 		g_free(metadata_keys[n-1]);
 		metadata_keys[n-1] = NULL;

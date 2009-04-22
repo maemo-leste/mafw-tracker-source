@@ -280,12 +280,12 @@ static void _do_tracker_get_unique_values(gchar **keys,
 	   if we are browsing the artists category, then childcount
 	   applies to its children (the #albums of each artist), so
 	   the key we have to count are the individual albums of the
-	   artist (TRACKER_KEY_ALBUM) */
+	   artist (TRACKER_AKEY_ALBUM) */
         if (tracker_cache_key_exists(mc->cache, MAFW_METADATA_KEY_CHILDCOUNT)) {
-                if (g_strcmp0 (keys[0], TRACKER_KEY_GENRE) == 0) {
-                        count_key = TRACKER_KEY_ARTIST;
-                } else if (g_strcmp0 (keys[0], TRACKER_KEY_ARTIST) == 0) {
-                        count_key = TRACKER_KEY_ALBUM;
+                if (g_strcmp0 (keys[0], TRACKER_AKEY_GENRE) == 0) {
+                        count_key = TRACKER_AKEY_ARTIST;
+                } else if (g_strcmp0 (keys[0], TRACKER_AKEY_ARTIST) == 0) {
+                        count_key = TRACKER_AKEY_ALBUM;
                 } else {
                         count_key = "*";
                 }
@@ -295,7 +295,7 @@ static void _do_tracker_get_unique_values(gchar **keys,
 
         /* Check if we have to use sum API */
         if (tracker_cache_key_exists(mc->cache, MAFW_METADATA_KEY_DURATION)) {
-                sum_key = TRACKER_KEY_DURATION;
+                sum_key = TRACKER_AKEY_DURATION;
         } else {
                 sum_key = NULL;
         }
@@ -533,8 +533,8 @@ void ti_get_videos(gchar **keys,
 	} else {
 		tracker_sort_keys =
 			util_create_sort_keys_array(2,
-						    TRACKER_KEY_V_TITLE,
-						    TRACKER_KEY_FILENAME);
+						    TRACKER_VKEY_TITLE,
+						    TRACKER_FKEY_FILENAME);
 	}
 
 	/* Query tracker */
@@ -679,7 +679,7 @@ void ti_get_artists(const gchar *genre,
         gchar **filters;
         gchar **unique_keys;
         gchar *concat_key;
-        gchar *tracker_unique_keys[] = {TRACKER_KEY_ARTIST, NULL};
+        gchar *tracker_unique_keys[] = {TRACKER_AKEY_ARTIST, NULL};
 
 	/* Prepare mafw closure struct */
 	mc = g_new0(struct _mafw_query_closure, 1);
@@ -699,7 +699,7 @@ void ti_get_artists(const gchar *genre,
                         FALSE,
                         genre);
                 escaped_genre =
-                        util_get_tracker_value_for_filter(TRACKER_KEY_GENRE,
+                        util_get_tracker_value_for_filter(TRACKER_AKEY_GENRE,
                                                           genre);
                 filters[0] = g_strdup_printf(RDF_QUERY_BY_GENRE,
                                              escaped_genre);
@@ -726,7 +726,7 @@ void ti_get_artists(const gchar *genre,
         if (tracker_cache_key_exists(mc->cache, MAFW_METADATA_KEY_ALBUM)) {
                 tracker_cache_key_add_concat(mc->cache,
                                              MAFW_METADATA_KEY_ALBUM);
-                concat_key = TRACKER_KEY_ALBUM;
+                concat_key = TRACKER_AKEY_ALBUM;
         } else {
                 concat_key = NULL;
         }
@@ -753,7 +753,7 @@ void ti_get_genres(gchar **keys,
         gchar **unique_keys;
         gchar **filters;
         gchar *concat_key;
-        gchar *tracker_unique_keys[] = {TRACKER_KEY_GENRE, NULL};
+        gchar *tracker_unique_keys[] = {TRACKER_AKEY_GENRE, NULL};
 
 	/* Prepare mafw closure struct */
 	mc = g_new0(struct _mafw_query_closure, 1);
@@ -781,7 +781,7 @@ void ti_get_genres(gchar **keys,
         if (tracker_cache_key_exists(mc->cache, MAFW_METADATA_KEY_ARTIST)) {
                 tracker_cache_key_add_concat(mc->cache,
                                              MAFW_METADATA_KEY_ARTIST);
-                concat_key = TRACKER_KEY_ARTIST;
+                concat_key = TRACKER_AKEY_ARTIST;
         } else {
                 concat_key = NULL;
         }
@@ -860,7 +860,7 @@ void ti_get_albums(const gchar *genre,
         gchar *concat_key;
         gchar **filters;
         gchar **unique_keys;
-        gchar *tracker_unique_keys[] = {TRACKER_KEY_ALBUM, NULL};
+        gchar *tracker_unique_keys[] = {TRACKER_AKEY_ALBUM, NULL};
         gint i;
         struct _mafw_query_closure *mc;
 
@@ -884,7 +884,7 @@ void ti_get_albums(const gchar *genre,
                         FALSE,
                         genre);
                 escaped_genre =
-                        util_get_tracker_value_for_filter(TRACKER_KEY_GENRE,
+                        util_get_tracker_value_for_filter(TRACKER_AKEY_GENRE,
                                                           genre);
                 filters[i] = g_strdup_printf(RDF_QUERY_BY_GENRE,
                                              escaped_genre);
@@ -899,7 +899,7 @@ void ti_get_albums(const gchar *genre,
                         FALSE,
                         artist);
                 escaped_artist =
-                        util_get_tracker_value_for_filter(TRACKER_KEY_ARTIST,
+                        util_get_tracker_value_for_filter(TRACKER_AKEY_ARTIST,
                                                           artist);
                 filters[i] = g_strdup_printf(RDF_QUERY_BY_ARTIST,
                                              escaped_artist);
@@ -926,8 +926,9 @@ void ti_get_albums(const gchar *genre,
         /* Concat artists, if requested */
         if (!artist &&
             tracker_cache_key_exists(mc->cache, MAFW_METADATA_KEY_ARTIST)) {
-                tracker_cache_key_add_concat(mc->cache, MAFW_METADATA_KEY_ARTIST);
-                concat_key = TRACKER_KEY_ARTIST;
+                tracker_cache_key_add_concat(mc->cache,
+                                             MAFW_METADATA_KEY_ARTIST);
+                concat_key = TRACKER_AKEY_ARTIST;
         } else {
                 concat_key = NULL;
         }
@@ -987,13 +988,13 @@ static void _do_tracker_get_metadata_from_service(
 	unique_keys[0] = g_strdup("File:Mime");
 
         if (tracker_type == TRACKER_TYPE_MUSIC) {
-                sum_key = TRACKER_KEY_DURATION;
+                sum_key = TRACKER_AKEY_DURATION;
                 service = SERVICE_MUSIC;
         } else if (tracker_type == TRACKER_TYPE_VIDEO) {
-                sum_key = TRACKER_KEY_VIDEO_DURATION;
+                sum_key = TRACKER_VKEY_DURATION;
                 service = SERVICE_VIDEOS;
         } else {
-                sum_key = TRACKER_KEY_PLAYLIST_DURATION;
+                sum_key = TRACKER_PKEY_DURATION;
                 service = SERVICE_PLAYLISTS;
         }
 
@@ -1171,13 +1172,16 @@ void ti_get_metadata_from_category(const gchar *genre,
         if (artist && !album &&
             tracker_cache_key_exists(mc->cache, MAFW_METADATA_KEY_ALBUM)) {
 		/* Concatenate albums if requesting metadata from an artist */
-                tracker_cache_key_add_concat(mc->cache, MAFW_METADATA_KEY_ALBUM);
-		concat_key = TRACKER_KEY_ALBUM;
+                tracker_cache_key_add_concat(mc->cache,
+                                             MAFW_METADATA_KEY_ALBUM);
+		concat_key = TRACKER_AKEY_ALBUM;
         } else if (!artist && album &&
-                   tracker_cache_key_exists(mc->cache, MAFW_METADATA_KEY_ARTIST)) {
+                   tracker_cache_key_exists(mc->cache,
+                                            MAFW_METADATA_KEY_ARTIST)) {
 		/* Concatenate artist if requesting metadata from an album */
-                tracker_cache_key_add_concat(mc->cache, MAFW_METADATA_KEY_ARTIST);
-		concat_key = TRACKER_KEY_ARTIST;
+                tracker_cache_key_add_concat(mc->cache,
+                                             MAFW_METADATA_KEY_ARTIST);
+		concat_key = TRACKER_AKEY_ARTIST;
 	} else {
                 concat_key = NULL;
         }
@@ -1188,15 +1192,16 @@ void ti_get_metadata_from_category(const gchar *genre,
                         count_key = g_strdup("*");
                         mc->count_childcount = FALSE;
                 } else if (artist) {
-                        count_key = g_strdup(TRACKER_KEY_ALBUM);
+                        count_key = g_strdup(TRACKER_AKEY_ALBUM);
                         mc->count_childcount = FALSE;
                 } else if (genre) {
-                        count_key = g_strdup(TRACKER_KEY_ARTIST);
+                        count_key = g_strdup(TRACKER_AKEY_ARTIST);
                         mc->count_childcount = FALSE;
                 } else {
                         count_key =
-                                keymap_mafw_key_to_tracker_key(default_count_key,
-                                                               SERVICE_MUSIC);
+                                keymap_mafw_key_to_tracker_key(
+                                        default_count_key,
+                                        SERVICE_MUSIC);
                         mc->count_childcount = TRUE;
                 }
         } else {
@@ -1205,7 +1210,7 @@ void ti_get_metadata_from_category(const gchar *genre,
 
         /* Check if we have to use sum API */
         if (tracker_cache_key_exists(mc->cache, MAFW_METADATA_KEY_DURATION)) {
-                sum_key = TRACKER_KEY_DURATION;
+                sum_key = TRACKER_AKEY_DURATION;
         } else {
                 sum_key = NULL;
         }
@@ -1489,8 +1494,8 @@ void ti_set_playlist_duration(const gchar *uri, guint duration)
 	pathname = g_filename_from_uri(uri, NULL, NULL);
 
         keys_array = g_new0(gchar *, 3);
-	keys_array[0] = g_strdup(TRACKER_KEY_PLAYLIST_DURATION);
-	keys_array[1] = g_strdup(TRACKER_KEY_PLAYLIST_VALID_DURATION);
+	keys_array[0] = g_strdup(TRACKER_PKEY_DURATION);
+	keys_array[1] = g_strdup(TRACKER_PKEY_VALID_DURATION);
 
         values_array = g_new0(gchar *, 3);
 	values_array[0] = g_strdup_printf("%d", duration);

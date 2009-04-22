@@ -97,93 +97,93 @@ InfoKeyTable *keymap_build_mafw_to_tracker_keys_map(void)
                 /* Insert mapping for music service */
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_TITLE,
-                                    TRACKER_KEY_TITLE);
+                                    TRACKER_AKEY_TITLE);
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_DURATION,
-                                    TRACKER_KEY_DURATION);
+                                    TRACKER_AKEY_DURATION);
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_ARTIST,
-                                    TRACKER_KEY_ARTIST);
+                                    TRACKER_AKEY_ARTIST);
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_ALBUM,
-                                    TRACKER_KEY_ALBUM);
+                                    TRACKER_AKEY_ALBUM);
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_GENRE,
-                                    TRACKER_KEY_GENRE);
+                                    TRACKER_AKEY_GENRE);
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_TRACK,
-                                    TRACKER_KEY_TRACK);
+                                    TRACKER_AKEY_TRACK);
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_YEAR,
-                                    TRACKER_KEY_YEAR);
+                                    TRACKER_AKEY_YEAR);
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_BITRATE,
-                                    TRACKER_KEY_BITRATE);
+                                    TRACKER_AKEY_BITRATE);
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_LAST_PLAYED,
-                                    TRACKER_KEY_LAST_PLAYED);
+                                    TRACKER_AKEY_LAST_PLAYED);
                 g_hash_table_insert(table->music_keys,
                                     MAFW_METADATA_KEY_PLAY_COUNT,
-                                    TRACKER_KEY_AUDIO_PLAY_COUNT);
+                                    TRACKER_AKEY_PLAY_COUNT);
 
                 /* Insert mapping for videos service */
                 g_hash_table_insert(table->videos_keys,
                                     MAFW_METADATA_KEY_TITLE,
-                                    TRACKER_KEY_V_TITLE);
+                                    TRACKER_VKEY_TITLE);
                 g_hash_table_insert(table->videos_keys,
                                     MAFW_METADATA_KEY_DURATION,
-                                    TRACKER_KEY_VIDEO_DURATION);
+                                    TRACKER_VKEY_DURATION);
                 g_hash_table_insert(table->videos_keys,
                                     MAFW_METADATA_KEY_VIDEO_FRAMERATE,
-                                    TRACKER_KEY_FRAMERATE);
+                                    TRACKER_VKEY_FRAMERATE);
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_PAUSED_THUMBNAIL_URI,
-                                    TRACKER_KEY_PAUSED_THUMBNAIL);
+                                    TRACKER_VKEY_PAUSED_THUMBNAIL);
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_PAUSED_POSITION,
-                                    TRACKER_KEY_PAUSED_POSITION);
+                                    TRACKER_VKEY_PAUSED_POSITION);
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_VIDEO_SOURCE,
-                                    TRACKER_KEY_VIDEO_SOURCE);
+                                    TRACKER_VKEY_SOURCE);
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_RES_X,
-                                    TRACKER_KEY_RES_X);
+                                    TRACKER_VKEY_RES_X);
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_RES_Y,
-                                    TRACKER_KEY_RES_Y);
+                                    TRACKER_VKEY_RES_Y);
 
                 /* Insert mapping for playlist service */
                 g_hash_table_insert(table->playlist_keys,
                                     MAFW_METADATA_KEY_DURATION,
-                                    TRACKER_KEY_PLAYLIST_DURATION);
+                                    TRACKER_PKEY_DURATION);
                 g_hash_table_insert(table->playlist_keys,
                                     MAFW_METADATA_KEY_CHILDCOUNT,
-                                    TRACKER_KEY_PLAYLIST_COUNT);
+                                    TRACKER_PKEY_COUNT);
 
                 /* Special key (not available in MAFW) */
                 g_hash_table_insert(table->playlist_keys,
-                                    TRACKER_KEY_PLAYLIST_VALID_DURATION,
-                                    TRACKER_KEY_PLAYLIST_VALID_DURATION);
+                                    TRACKER_PKEY_VALID_DURATION,
+                                    TRACKER_PKEY_VALID_DURATION);
 
                 /* Insert mapping common for all services */
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_COPYRIGHT,
-                                    TRACKER_KEY_COPYRIGHT);
+                                    TRACKER_FKEY_COPYRIGHT);
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_FILESIZE,
-                                    TRACKER_KEY_FILESIZE);
+                                    TRACKER_FKEY_FILESIZE);
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_FILENAME,
-                                    TRACKER_KEY_FILENAME);
+                                    TRACKER_FKEY_FILENAME);
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_MIME,
-                                    TRACKER_KEY_MIME);
+                                    TRACKER_FKEY_MIME);
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_ADDED,
-                                    TRACKER_KEY_ADDED);
+                                    TRACKER_FKEY_ADDED);
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_URI,
-                                    TRACKER_KEY_FULLNAME);
+                                    TRACKER_FKEY_FULLNAME);
 
                 /* Insert metadata assocciated with each key */
                 metadata_key = g_new0(MetadataKey, 1);
@@ -327,7 +327,7 @@ InfoKeyTable *keymap_build_mafw_to_tracker_keys_map(void)
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_BOOLEAN;
                 g_hash_table_insert(table->metadata_keys,
-                                    TRACKER_KEY_PLAYLIST_VALID_DURATION,
+                                    TRACKER_PKEY_VALID_DURATION,
                                     metadata_key);
         }
 
@@ -342,27 +342,27 @@ GHashTable *keymap_build_tracker_types_map(void)
                 table = g_hash_table_new(g_str_hash, g_str_equal);
 
                 g_hash_table_insert(table,
-                                    TRACKER_KEY_DURATION, "Integer");
+                                    TRACKER_AKEY_DURATION, "Integer");
                 g_hash_table_insert(table,
-                                    TRACKER_KEY_VIDEO_DURATION, "Integer");
+                                    TRACKER_VKEY_DURATION, "Integer");
                 g_hash_table_insert(table,
-                                    TRACKER_KEY_TRACK, "Integer");
+                                    TRACKER_AKEY_TRACK, "Integer");
                 g_hash_table_insert(table,
-                                    TRACKER_KEY_YEAR, "Date");
+                                    TRACKER_AKEY_YEAR, "Date");
                 g_hash_table_insert(table,
-                                    TRACKER_KEY_BITRATE, "Double");
+                                    TRACKER_AKEY_BITRATE, "Double");
                 g_hash_table_insert(table,
-                                    TRACKER_KEY_LAST_PLAYED, "Date");
+                                    TRACKER_AKEY_LAST_PLAYED, "Date");
                 g_hash_table_insert(table,
-                                    TRACKER_KEY_AUDIO_PLAY_COUNT, "Integer");
+                                    TRACKER_AKEY_PLAY_COUNT, "Integer");
                 g_hash_table_insert(table,
-                                    TRACKER_KEY_ADDED, "Date");
+                                    TRACKER_FKEY_ADDED, "Date");
                 g_hash_table_insert(table,
-                                    TRACKER_KEY_PAUSED_POSITION, "Integer");
+                                    TRACKER_VKEY_PAUSED_POSITION, "Integer");
                 g_hash_table_insert(table,
-                                    TRACKER_KEY_RES_X, "Integer");
+                                    TRACKER_VKEY_RES_X, "Integer");
                 g_hash_table_insert(table,
-                                    TRACKER_KEY_RES_Y, "Integer");
+                                    TRACKER_VKEY_RES_Y, "Integer");
         }
 
         return table;
