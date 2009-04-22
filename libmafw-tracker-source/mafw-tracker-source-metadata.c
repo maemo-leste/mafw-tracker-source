@@ -194,8 +194,8 @@ static void _get_metadatas_tracker_cb(GList *results,
                 mc->common->remaining--;
         }
 
-        /* If there aren't more elements, send results */
-        if (mc->common->remaining == 0) {
+        /* If there aren't more elements or there was an error, send results */
+        if ((mc->common->remaining == 0) || error) {
                 _emit_metadatas_results(mc->common);
         }
 
