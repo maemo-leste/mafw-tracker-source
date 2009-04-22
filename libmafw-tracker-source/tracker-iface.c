@@ -430,7 +430,7 @@ gchar *ti_create_filter(const MafwFilter *filter)
 gboolean ti_init(void)
 {
 	if (info_keys == NULL) {
-		info_keys = keymap_build_mafw_to_tracker_keys_map();
+		info_keys = keymap_get_info_key_table();
 	}
 
 	if (types_map == NULL) {

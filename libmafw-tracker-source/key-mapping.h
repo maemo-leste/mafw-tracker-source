@@ -48,11 +48,11 @@ typedef struct InfoKeyTable {
 
 gchar *keymap_mafw_key_to_tracker_key(const gchar *mafw_key,
 				      ServiceType service);
-gboolean keymap_mafw_key_supported_in_tracker(const gchar *mafw_key);
-gboolean keymap_mafw_key_is_writable(gchar *mafw_key);
-InfoKeyTable *keymap_build_mafw_to_tracker_keys_map(void);
-GHashTable *keymap_build_tracker_types_map(void);
 gchar **keymap_mafw_keys_to_tracker_keys(gchar **mafw_keys,
 					 ServiceType service);
+gboolean keymap_mafw_key_supported_in_tracker(const gchar *mafw_key);
+gboolean keymap_mafw_key_is_writable(gchar *mafw_key);
+InfoKeyTable *keymap_get_info_key_table(void);
+GHashTable *keymap_build_tracker_types_map(void);
 
 #endif

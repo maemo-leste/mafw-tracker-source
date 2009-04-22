@@ -33,7 +33,7 @@
 gchar *keymap_mafw_key_to_tracker_key(const gchar *mafw_key,
 				      ServiceType service)
 {
-        InfoKeyTable *t = keymap_build_mafw_to_tracker_keys_map();
+        InfoKeyTable *t = keymap_get_info_key_table();
         gchar *tracker_key;
 
         switch (service) {
@@ -58,7 +58,7 @@ gchar *keymap_mafw_key_to_tracker_key(const gchar *mafw_key,
 
 gboolean keymap_mafw_key_supported_in_tracker(const gchar *mafw_key)
 {
-        InfoKeyTable *t = keymap_build_mafw_to_tracker_keys_map();
+        InfoKeyTable *t = keymap_get_info_key_table();
 
         return g_hash_table_lookup(t->music_keys, mafw_key) != NULL ||
                 g_hash_table_lookup(t->videos_keys, mafw_key) != NULL ||
@@ -79,7 +79,7 @@ gboolean keymap_mafw_key_is_writable(gchar *mafw_key)
         }
 }
 
-InfoKeyTable *keymap_build_mafw_to_tracker_keys_map(void)
+InfoKeyTable *keymap_get_info_key_table(void)
 {
 	static InfoKeyTable *table = NULL;
         MetadataKey *metadata_key = NULL;
@@ -371,7 +371,7 @@ GHashTable *keymap_build_tracker_types_map(void)
 gchar **keymap_mafw_keys_to_tracker_keys(gchar **mafw_keys,
 					 ServiceType service)
 {
-        InfoKeyTable *t = keymap_build_mafw_to_tracker_keys_map();
+        InfoKeyTable *t = keymap_get_info_key_table();
         GHashTable *lookin;
 	gchar **tracker_keys;
 	gint i, count;
