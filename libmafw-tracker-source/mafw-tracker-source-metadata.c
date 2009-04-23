@@ -186,9 +186,13 @@ static void _get_metadatas_tracker_cb(GList *results,
         current_result = results;
 
         while (current_obj && current_result) {
-                g_hash_table_insert(mc->common->metadatas,
-                                    current_obj->data,
-                                    g_hash_table_ref(current_result->data));
+                /* Check there's a hashtable for this object id */
+                if (current_result->data) {
+                        g_hash_table_insert(
+                                mc->common->metadatas,
+                                current_obj->data,
+                                g_hash_table_ref(current_result->data));
+                }
                 current_obj = current_obj->next;
                 current_result = current_result->next;
                 mc->common->remaining--;

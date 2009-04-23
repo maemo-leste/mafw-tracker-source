@@ -973,6 +973,12 @@ tracker_cache_value_get(TrackerCache *cache,
                         cache->tracker_results,
                         index);
 
+                /* Verify that tracked found the metadata for the corresponding
+                 * entry */
+                if (!queried_result[0]) {
+                        return NULL;
+                }
+
                 return_value = g_new0(GValue, 1);
                 metadata_key = keymap_get_metadata(key);
                 switch (metadata_key->value_type) {
@@ -1052,6 +1058,7 @@ tracker_cache_build_metadata(TrackerCache *cache)
         gint result_index;
         gint key_index;
         GHashTable *metadata = NULL;
+        gchar **tracker_entry;
 
         /* Check if there are results */
         if (!cache->tracker_results ||
@@ -1066,6 +1073,15 @@ tracker_cache_build_metadata(TrackerCache *cache)
         for (result_index = 0;
              result_index < cache->tracker_results->len;
              result_index++) {
+                /* As it is possible tracker didn't found metadata for some
+                 * clips, check that the current entry contains data */
+                tracker_entry = g_ptr_array_index(cache->tracker_results,
+                                                  result_index);
+                if (!tracker_entry[0]) {
+                        mafw_list = g_list_prepend(mafw_list, NULL);
+                        continue;
+                }
+
                 metadata = mafw_metadata_new();
                 for (key_index = 0; user_keys[key_index]; key_index++) {
                         /* Special cache: title must use filename if
