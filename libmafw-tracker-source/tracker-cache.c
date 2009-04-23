@@ -107,7 +107,7 @@ static GValue *_get_title(TrackerCache *cache, gint index)
                                               index);
 
         /* If it is empty, then use the URI */
-        value_title_str = g_value_get_string(value_title);
+        value_title_str = value_title? g_value_get_string(value_title): NULL;
         if (IS_STRING_EMPTY(value_title_str) &&
             cache->result_type != TRACKER_CACHE_RESULT_TYPE_UNIQUE) {
                 value_uri = tracker_cache_value_get(cache,
@@ -519,8 +519,10 @@ tracker_cache_key_add(TrackerCache *cache,
                 return;
         }
 
-        /* Within the current service, check if the key makes sense */
-        if (keymap_get_tracker_info(key, cache->service) == NULL) {
+        /* Within the current service, check if the key makes sense (CHILDCOUNT
+         * always makes sense */
+        if (metadata_key->special != SPECIAL_KEY_CHILDCOUNT &&
+            keymap_get_tracker_info(key, cache->service) == NULL) {
                 _insert_key(cache, key, TRACKER_CACHE_KEY_TYPE_VOID,
                             user_key, -1);
                 return;
