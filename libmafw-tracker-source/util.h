@@ -83,4 +83,6 @@ gchar** util_add_tracker_data_to_check_pls_duration(gchar **keys);
 void util_remove_tracker_data_to_check_pls_duration(GHashTable *metadata,
 						    gchar **metadata_keys);
 
+gchar** util_list_to_strv(GList *list);
+gchar** util_add_element_to_strv(gchar **array, const gchar *element);
 #endif

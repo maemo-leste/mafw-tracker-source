@@ -807,18 +807,6 @@ CategoryType util_extract_category_info(const gchar *object_id,
 	return category;
 }
 
-static gchar** _add_key(gchar **key_list, const gchar *key)
-{
-	gchar **new_key_list;
-	guint n = g_strv_length(key_list);
-
-	new_key_list = g_try_renew(gchar *, key_list, n + 2);
-	new_key_list[n] = g_strdup(key);
-	new_key_list[n + 1] = NULL;
-
-	return new_key_list;
-}
-
 static gboolean _contains_key(const gchar **key_list, const gchar *key)
 {
 	int i = 0;
@@ -882,7 +870,7 @@ gchar** util_add_tracker_data_to_check_pls_duration(gchar **keys)
 	   check if MAFW has calculated the playlist duration before.
 	   Don't forget remove it from the MAFW results before sending them to
 	   the user!. */
-	return _add_key(keys, TRACKER_PKEY_VALID_DURATION);
+	return util_add_element_to_strv(keys, TRACKER_PKEY_VALID_DURATION);
 }
 
 void util_remove_tracker_data_to_check_pls_duration(GHashTable *metadata,
@@ -901,3 +889,30 @@ void util_remove_tracker_data_to_check_pls_duration(GHashTable *metadata,
 	}
 }
 
+gchar** util_list_to_strv(GList *list)
+{
+        gchar **strv = NULL;
+        gint i;
+
+        strv = g_new0(gchar *, g_list_length(list) + 1);
+        i=0;
+        while (list) {
+                strv[i] = list->data;
+                i++;
+                list = list->next;
+        }
+
+        return strv;
+}
+
+gchar** util_add_element_to_strv(gchar **array, const gchar *element)
+{
+	gchar **new_array;
+	guint n = g_strv_length(array);
+
+	new_array = g_try_renew(gchar *, array, n + 2);
+	new_array[n] = g_strdup(element);
+	new_array[n + 1] = NULL;
+
+	return new_array;
+}

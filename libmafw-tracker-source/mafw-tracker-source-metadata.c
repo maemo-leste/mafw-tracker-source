@@ -550,22 +550,6 @@ static gboolean _update_metadata_idle(gpointer data)
         return FALSE;
 }
 
-static gchar** _list_to_strv(GList *list)
-{
-        gchar **strv = NULL;
-        gint i;
-
-        strv = g_new0(gchar *, g_list_length(list) + 1);
-        i=0;
-        while (list) {
-                strv[i] = list->data;
-                i++;
-                list = list->next;
-        }
-
-        return strv;
-}
-
 void
 mafw_tracker_source_get_metadata(MafwSource *self,
                                  const gchar *object_id,
@@ -815,7 +799,7 @@ mafw_tracker_source_get_metadatas(MafwSource *self,
         }
 
         if (audio_mc) {
-                clips = _list_to_strv(audio_clips);
+                clips = util_list_to_strv(audio_clips);
                 ti_get_metadata_from_audioclip(clips, mcc->metadata_keys,
                                                _get_metadatas_tracker_cb,
                                                audio_mc);
@@ -824,7 +808,7 @@ mafw_tracker_source_get_metadatas(MafwSource *self,
         }
 
         if (video_mc) {
-                clips = _list_to_strv(video_clips);
+                clips = util_list_to_strv(video_clips);
                 ti_get_metadata_from_videoclip(clips, mcc->metadata_keys,
                                                _get_metadatas_tracker_cb,
                                                video_mc);
@@ -833,7 +817,7 @@ mafw_tracker_source_get_metadatas(MafwSource *self,
         }
 
         if (playlist_mc) {
-                clips = _list_to_strv(playlist_clips);
+                clips = util_list_to_strv(playlist_clips);
                 ti_get_metadata_from_playlist(
                         clips,
                         playlist_metadata_keys,

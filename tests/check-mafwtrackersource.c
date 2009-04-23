@@ -3429,9 +3429,6 @@ _check_query_case(const gchar *actual_query)
                    g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0 ||
                    g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0) {
                 return actual_query == NULL;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_playlists_playlist1") == 0) {
-                return g_ascii_strcasecmp(actual_query,
-                                          "<rdfq:Condition>  <rdfq:inSet>    <rdfq:Property name=\"File:NameDelimited\"/>    <rdf:String>/home/user/MyDocs/SomeSong.mp3,/home/user/MyDocs/clip1.mp3,/home/user/MyDocs/clip2.mp3</rdf:String>  </rdfq:inSet></rdfq:Condition>") == 0;
         } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_count") == 0 ||
 		   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_offset") == 0) {
 		return actual_query == NULL;
@@ -3953,11 +3950,6 @@ _send_query_expected_result(TrackerGPtrArrayReply callback,
                 result = g_ptr_array_sized_new(2);
                 _add_query_to_result(result, 14, keys);
                 _add_query_to_result(result, 15, keys);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_playlists_playlist1") == 0) {
-                result = g_ptr_array_sized_new(3);
-                _add_query_to_result(result, 0, keys);
-                _add_query_to_result(result, 1, keys);
-                _add_query_to_result(result, 2, keys);
         } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_count") == 0) {
                 switch (max_hits) {
                 case 13:
@@ -4126,7 +4118,7 @@ tracker_metadata_get_multiple_async(TrackerClient *client,
                                     TrackerGPtrArrayReply callback,
                                     gpointer user_data)
 {
-        gint indexes[2] = { 0 };
+        gint indexes[3] = { 0 };
 
         if ((g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_clip") == 0 ||
              g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_artist_album_clip") == 0 ||
@@ -4149,7 +4141,13 @@ tracker_metadata_get_multiple_async(TrackerClient *client,
                 indexes[0] = 1;
                 indexes[1] = 1;
                 _send_metadatas(indexes, 2, keys, callback, user_data);
-        }
+        } else if (g_ascii_strcasecmp(RUNNING_CASE,
+				      "test_browse_music_playlists_playlist1") == 0) {
+		indexes[0] = 0;
+		indexes[1] = 1;
+		indexes[3] = 2;
+		_send_metadatas(indexes, 3, keys, callback, user_data);
+	}
 }
 
 void

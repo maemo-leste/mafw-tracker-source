@@ -72,9 +72,9 @@ struct _browse_closure {
 	   in bulk, so we need to save the URIs */
 	GList *pls_uris;
 	/* When parsing playlists we cannot expect tracker to provide
-	   info about non-local URIs, so we have to store the
-	   pathnames to ask tracker for */
-	GList *pls_local_pathnames;
+	   info about non-local files, so we have to store the ids of those
+	   files to ask tracker for */
+	GList *pls_local_ids;
 	/* Stores the playlist duration calculated exhaustively by MAFW. */
 	guint pls_duration;
 	/* The user callback used to emit the browse results to the user */
@@ -220,8 +220,8 @@ static void _browse_closure_free(gpointer data)
 	/* Free pls_(local)_uris field */
 	g_list_foreach(bc->pls_uris, (GFunc) g_free, NULL);
 	g_list_free(bc->pls_uris);
-        g_list_foreach(bc->pls_local_pathnames, (GFunc) g_free, NULL);
-	g_list_free(bc->pls_local_pathnames);
+        g_list_foreach(bc->pls_local_ids, (GFunc) g_free, NULL);
+	g_list_free(bc->pls_local_ids);
 
 	/* Free metadata keys */
 	g_strfreev(bc->metadata_keys);
@@ -307,7 +307,7 @@ static void _add_object_id_prefix_to_list(gchar *object_id_prefix,
 				       MAFW_URI_SOURCE_UUID "::")) {
 			if (escape) {
 				data = mafw_tracker_source_escape_string(
-								iter->data);
+					iter->data);
 			} else {
 				data = g_strdup(iter->data);
 			}
@@ -638,31 +638,17 @@ static GHashTable *_new_metadata_from_untracked_resource(gchar *uri,
 	return metadata;
 }
 
-static gint _get_index(GList *list, gchar *item)
-{
-	GList *iter = list;
-	gint i = 0;
-
-	while (iter != NULL) {
-		if (g_strcmp0(item, (gchar *) iter->data) == 0) {
-			return i;
-		}
-		iter = g_list_next(iter);
-		i++;
-	}
-	return -1;
-}
-
 static void _construct_playlist_entries_result(struct _browse_closure * bc,
-					       MafwResult *tracker_clips,
+					       GHashTable *tracker_metadatas,
 					       MafwResult *clips)
 {
 	GList *iter;
 	GHashTable *metadata;
 	gchar *clip;
 	gchar *pathname;
+	gchar *escape_pathname;
+	gchar *objectid;
         gchar *uri;
-        gint i;
 
 	iter = bc->pls_uris;
 	while (iter != NULL) {
@@ -673,20 +659,27 @@ static void _construct_playlist_entries_result(struct _browse_closure * bc,
 		}
 
                 if (g_str_has_prefix(uri, "file://")) {
+			/* Construct the objectid for the local file */
                         pathname = g_filename_from_uri(uri, NULL, NULL);
+			escape_pathname =
+				mafw_tracker_source_escape_string(pathname);
+			objectid = g_strconcat(bc->object_id_prefix, "/",
+					      escape_pathname,
+					      NULL);
+			g_free(pathname);
+			g_free(escape_pathname);
 		} else {
-                        pathname = NULL;
+                        objectid = NULL;
                 }
 
-		if (pathname &&
-                    (tracker_clips != NULL) &&
-                    (i = _get_index(tracker_clips->ids, pathname))!= -1) {
-                        /* The clip is in tracker results. Add tracker
+		if (objectid &&
+                    (tracker_metadatas != NULL) &&
+                    (metadata = g_hash_table_lookup(tracker_metadatas,
+						    objectid))) {
+			/* The clip is in tracker results. Add tracker
                            metadata. */
-                        clip = g_strdup(g_list_nth_data(tracker_clips->ids, i));
-                        metadata = (GHashTable *) g_list_nth_data(
-                                tracker_clips->metadata_values, i);
-                        g_hash_table_ref(metadata);
+                        clip = g_strdup(objectid);
+			g_hash_table_ref(metadata);
 
                         clips->ids = g_list_prepend(clips->ids, clip);
                         clips->metadata_values =
@@ -706,53 +699,10 @@ static void _construct_playlist_entries_result(struct _browse_closure * bc,
                                                metadata);
                 }
 		iter = g_list_next(iter);
-		g_free(pathname);
+		g_free(objectid);
 	}
         clips->ids = g_list_reverse(clips->ids);
         clips->metadata_values = g_list_reverse(clips->metadata_values);
-	if (tracker_clips)
-	{
-		g_list_free(tracker_clips->ids);
-		g_list_free(tracker_clips->metadata_values);
-	}
-	g_free(tracker_clips);
-}
-
-static void _browse_playlist_tracker_cb(MafwResult *tracker_clips,
-					GError *error,
-					gpointer user_data)
-{
-
-	struct _browse_closure *bc = (struct _browse_closure *) user_data;
-
-	MafwResult *clips;
-
-	/* We may get an error if none of the elements in the playlist exists
-	   or they are stored in untracked directories, so let's just
-	   print a warning here */
-	if (error != NULL) {
-		g_warning ("Got error from tracker when querying local " \
-			   "references in a playlist file: %s",
-                           error->message);
-	}
-
-	clips = g_new0(MafwResult, 1);
-
-	_construct_playlist_entries_result(bc, tracker_clips, clips);
-
-	_add_object_id_prefix_to_list(bc->object_id_prefix,
-				      clips->ids,
-				      TRUE);
-
-	/* Add results to browse closure */
-	bc->ids = clips->ids;
-	bc->metadata_values = clips->metadata_values;
-
-	/* Free MafwResult structure (not the info within though) */
-	g_free(clips);
-
-	/* Emit results */
-	_emit_browse_results(bc);
 }
 
 static void
@@ -791,14 +741,47 @@ _pls_entry_parsed (TotemPlParser *parser,
                 if (g_str_has_prefix(escaped_uri, "file://")) {
                         filename = g_filename_from_uri(escaped_uri, NULL, NULL);
                         if (filename) {
-                                bc->pls_local_pathnames =
-                                        g_list_prepend(bc->pls_local_pathnames,
+                                bc->pls_local_ids =
+                                        g_list_prepend(bc->pls_local_ids,
                                                        filename);
                         }
                 }
 		bc->pls_uris = g_list_prepend(bc->pls_uris, escaped_uri);
 	}
 	bc->index++;
+}
+
+static void _browse_playlist_tracker_cb(MafwSource *self,
+					GHashTable *tracker_metadatas,
+					gpointer user_data,
+					const GError *error)
+{
+	struct _browse_closure *bc = (struct _browse_closure *) user_data;
+
+	MafwResult *clips;
+
+	/* We may get an error if none of the elements in the playlist exists
+	   or they are stored in untracked directories, so let's just
+	   print a warning here */
+	if (error != NULL) {
+		g_warning ("Got error from tracker when getting metadata for " \
+			   "local references in a playlist file: %s",
+                           error->message);
+	}
+
+	clips = g_new0(MafwResult, 1);
+
+	_construct_playlist_entries_result(bc, tracker_metadatas, clips);
+
+	/* Add results to browse closure */
+	bc->ids = clips->ids;
+	bc->metadata_values = clips->metadata_values;
+
+	/* Free MafwResult structure (not the info within though) */
+	g_free(clips);
+
+	/* Emit results */
+	_emit_browse_results(bc);
 }
 
 static gboolean _get_playlist_entries(const gchar *pls_uri,
@@ -826,27 +809,45 @@ static gboolean _get_playlist_entries(const gchar *pls_uri,
 				bc->object_id);
 		}
 	} else {
-		if (bc->pls_local_pathnames != NULL) {
+		if (bc->pls_local_ids != NULL) {
+			gchar **local_objectids;
+
                         /* Reverse the list */
-                        bc->pls_local_pathnames =
-                                g_list_reverse(bc->pls_local_pathnames);
+                        bc->pls_local_ids =
+                                g_list_reverse(bc->pls_local_ids);
+
+			/* Construct the objectids */
+			_add_object_id_prefix_to_list(bc->object_id_prefix,
+						      bc->pls_local_ids,
+						      TRUE);
+			local_objectids = util_list_to_strv(bc->pls_local_ids);
+
 			/* Do we have local references in the playlist? If so,
 			   try to resolve metadata for them using Tracker */
-			ti_get_playlist_entries(bc->pls_local_pathnames,
-                                                bc->metadata_keys,
-                                                _browse_playlist_tracker_cb,
-                                                bc,
-                                                error);
+			mafw_tracker_source_get_metadatas(
+				bc->source,
+				(const gchar **) local_objectids,
+				(const gchar *const *) bc->metadata_keys,
+				_browse_playlist_tracker_cb,
+				bc);
+
+			g_free(local_objectids);
 		} else if (bc->pls_uris != NULL) {
                         /* Reverse the list */
                         bc->pls_uris = g_list_reverse(bc->pls_uris);
 			/* We do not have local references, but we have
 			   external references at least: simulate an empty
 			   tracker result */
-			_browse_playlist_tracker_cb(NULL, NULL, bc);
+			_browse_playlist_tracker_cb(bc->source,
+						    NULL,
+						    bc,
+						    NULL);
 		} else {
 			/* The playlist is empty! */
-			_browse_playlist_tracker_cb(NULL, NULL, bc);
+			_browse_playlist_tracker_cb(bc->source,
+						    NULL,
+						    bc,
+						    NULL);
 		}
 		result = TRUE;
 	}
