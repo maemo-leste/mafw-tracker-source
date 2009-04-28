@@ -965,7 +965,6 @@ tracker_cache_value_get(TrackerCache *cache,
                 /* Verify there is data, and index is within the range */
                 if (!cache->tracker_results ||
                     cache->tracker_results->len <= index) {
-                        g_warning ("index is out of range");
                         return NULL;
                 }
 
@@ -1057,31 +1056,24 @@ tracker_cache_build_metadata(TrackerCache *cache)
         GValue *value;
         gint result_index;
         gint key_index;
+        gint requested_metadatas;
         GHashTable *metadata = NULL;
-        gchar **tracker_entry;
-
-        /* Check if there are results */
-        if (!cache->tracker_results ||
-            cache->tracker_results->len == 0) {
-                return NULL;
-        }
 
         /* Get the list of keys user requested */
         user_keys = tracker_cache_keys_get_user(cache);
 
+        /* If there aren't results from tracker, there is even a chance of being
+         * able to build metadata with precomputed values */
+        if (!cache->tracker_results || cache->tracker_results->len == 0) {
+                requested_metadatas = 1;
+        } else {
+                requested_metadatas = cache->tracker_results->len;
+        }
+
         /* Create metadata */
         for (result_index = 0;
-             result_index < cache->tracker_results->len;
+             result_index < requested_metadatas;
              result_index++) {
-                /* As it is possible tracker didn't found metadata for some
-                 * clips, check that the current entry contains data */
-                tracker_entry = g_ptr_array_index(cache->tracker_results,
-                                                  result_index);
-                if (!tracker_entry[0]) {
-                        mafw_list = g_list_prepend(mafw_list, NULL);
-                        continue;
-                }
-
                 metadata = mafw_metadata_new();
                 for (key_index = 0; user_keys[key_index]; key_index++) {
                         /* Special cache: title must use filename if
@@ -1103,7 +1095,13 @@ tracker_cache_build_metadata(TrackerCache *cache)
                         }
                         util_gvalue_free(value);
                 }
-                mafw_list = g_list_prepend(mafw_list, metadata);
+                /* If we didn't get any metadata, add a NULL */
+                if (g_hash_table_size(metadata) == 0) {
+                        mafw_metadata_release(metadata);
+                        mafw_list = g_list_prepend(mafw_list, NULL);
+                } else {
+                        mafw_list = g_list_prepend(mafw_list, metadata);
+                }
         }
 
         /* Place elements in right order */

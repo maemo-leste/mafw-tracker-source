@@ -380,6 +380,14 @@ static void _do_tracker_get_metadata(gchar **uris,
         mc->cache = tracker_cache_new(service_type,
                                       TRACKER_CACHE_RESULT_TYPE_GET_METADATA);
 
+        /* If we have only a URI, add it as a predefined value */
+        if (!uris[1]) {
+                tracker_cache_key_add_precomputed_string(mc->cache,
+                                                         MAFW_METADATA_KEY_URI,
+                                                         FALSE,
+                                                         uris[0]);
+        }
+
         tracker_cache_key_add_several(mc->cache, keys, TRUE);
 
         user_keys = tracker_cache_keys_get_tracker(mc->cache);
