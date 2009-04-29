@@ -519,6 +519,19 @@ tracker_cache_key_add(TrackerCache *cache,
                 return;
         }
 
+        /* Insert dependencies */
+        if (metadata_key->depends_on) {
+                tracker_cache_key_add(cache, metadata_key->depends_on, FALSE);
+        }
+
+        /* Insert album-art and thumbnail keys */
+        if (albumart_key_is_album_art(key) ||
+            albumart_key_is_thumbnail(key)) {
+                _insert_key(cache, key, TRACKER_CACHE_KEY_TYPE_THUMBNAILER,
+                            user_key, -1);
+                return;
+        }
+
         /* Within the current service, check if the key makes sense (CHILDCOUNT
          * always makes sense */
         if (metadata_key->special != SPECIAL_KEY_CHILDCOUNT &&
@@ -526,11 +539,6 @@ tracker_cache_key_add(TrackerCache *cache,
                 _insert_key(cache, key, TRACKER_CACHE_KEY_TYPE_VOID,
                             user_key, -1);
                 return;
-        }
-
-        /* Insert dependencies */
-        if (metadata_key->depends_on) {
-                tracker_cache_key_add(cache, metadata_key->depends_on, FALSE);
         }
 
         /* With unique, only duration, childcount and mime keys
@@ -541,14 +549,6 @@ tracker_cache_key_add(TrackerCache *cache,
             metadata_key->special != SPECIAL_KEY_MIME  &&
             !albumart_key_is_album_art(key)) {
                 _insert_key(cache, key, TRACKER_CACHE_KEY_TYPE_VOID,
-                            user_key, -1);
-                return;
-        }
-
-        /* Insert album-art and thumbnail keys */
-        if (albumart_key_is_album_art(key) ||
-            albumart_key_is_thumbnail(key)) {
-                _insert_key(cache, key, TRACKER_CACHE_KEY_TYPE_THUMBNAILER,
                             user_key, -1);
                 return;
         }
