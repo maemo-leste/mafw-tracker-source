@@ -1,15 +1,20 @@
-mafw-tracker-source (0.1.2009.18-2) unstable; urgency=low
+mafw-tracker-source (0.1.2009.19-2) unstable; urgency=low
 
-  * MAFW tracker source, pre-release 0.2009.18-2
+  * MAFW tracker source, pre-release 0.2009.19-2
 
- -- Juha Kellokoski <veitikka6@gmail.com>  Fri, 17 Apr 2009 09:18:07 +0300
+ -- Juha Kellokoski <veitikka6@gmail.com>  Thu, 30 Apr 2009 10:00:00 +0300
 
-mafw-tracker-source (0.1.2009.18-1) unstable; urgency=low
+mafw-tracker-source (0.1.2009.19-1) unstable; urgency=low
 
-  * MAFW tracker source, pre-release 0.2009.18-1
+  * MAFW tracker source, pre-release 0.2009.19-1
+  * Fixes: NB#112540 - Album art URI is not displayed for Album container
+  * Fixes: NB#110221 - ML: Album Art is not displaying in All Album and in Artists library view
   * Fixes: NB#110477 - DBus connectivity lost while Pause/Play default video clip
-  * Fixes: NB#112540 - Album art URI is not displayed for Album container 
   * Fixes: NB#110568 - Tracker source returns addition date as a gchararray instead of glong
+  * Check first if key is related with album-art or thumbnail when inserting in 
+    the cache.
+  * When getting metadata from just one clip, don't ask tracker for the URI 
+    value: it's just already coded in objectid.
   * Handle the case when some entry is not found in tracker within get_metadatas
     function.
   * Fix unit tests.
@@ -40,6 +45,12 @@ mafw-tracker-source (0.1.2009.18-1) unstable; urgency=low
   * Removed unused functions of the Tracker mockup.
   * Fixing browse unit tests.
   * Fixing get_metadata unit tests.
+
+ -- Juha Kellokoski <veitikka6@gmail.com>  Thu, 30 Apr 2009 10:00:00 +0300
+
+mafw-tracker-source (0.1.2009.18-1) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.18-1
 
  -- Juha Kellokoski <veitikka6@gmail.com>  Fri, 17 Apr 2009 09:18:07 +0300
 
