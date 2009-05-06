@@ -529,16 +529,23 @@ void ti_get_videos(gchar **keys,
 							SERVICE_VIDEOS);
         g_strfreev(keys_to_query);
 
-	if (sort_fields != NULL) {
-		tracker_sort_keys =
-			keymap_mafw_keys_to_tracker_keys(sort_fields,
-							 SERVICE_VIDEOS);
-	} else {
-		tracker_sort_keys =
-			util_create_sort_keys_array(2,
-						    TRACKER_VKEY_TITLE,
-						    TRACKER_FKEY_FILENAME);
-	}
+        /* Retrieving just one clip sort_fields doesn't make sense */
+        if (count > 1) {
+                if (sort_fields != NULL) {
+                        tracker_sort_keys =
+                                keymap_mafw_keys_to_tracker_keys(
+                                        sort_fields,
+                                        SERVICE_VIDEOS);
+                } else {
+                        tracker_sort_keys =
+                                util_create_sort_keys_array(
+                                        2,
+                                        TRACKER_VKEY_TITLE,
+                                        TRACKER_FKEY_FILENAME);
+                }
+        } else {
+                tracker_sort_keys = NULL;
+        }
 
 	/* Query tracker */
         tracker_search_query_async(tc, -1,
@@ -581,16 +588,21 @@ void ti_get_songs(const gchar *genre,
 	struct _mafw_query_closure *mc;
         gchar **keys_to_query = NULL;
 
-        /* Select default sort fields */
-        if (!sort_fields) {
-                use_sort_fields = g_new0(gchar *, 2);
-                if (album) {
-                        use_sort_fields[0] = MAFW_METADATA_KEY_TRACK;
+        /* Retrieving just one clip sort_fields doesn't make sense */
+        if (count > 1) {
+                /* Select default sort fields */
+                if (!sort_fields) {
+                        use_sort_fields = g_new0(gchar *, 2);
+                        if (album) {
+                                use_sort_fields[0] = MAFW_METADATA_KEY_TRACK;
+                        } else {
+                                use_sort_fields[0] = MAFW_METADATA_KEY_TITLE;
+                        }
                 } else {
-                        use_sort_fields[0] = MAFW_METADATA_KEY_TITLE;
+                        use_sort_fields = sort_fields;
                 }
         } else {
-                use_sort_fields = sort_fields;
+                use_sort_fields = NULL;
         }
 
 	/* Prepare mafw closure struct */
