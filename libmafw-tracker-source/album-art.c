@@ -83,7 +83,7 @@ gchar *albumart_get_album_art_uri(const gchar *album)
 	}
 
 	/* Get the path to the album-art */
-	file_path = hildon_albumart_get_path(" ", album_key, "album");
+	file_path = hildon_albumart_get_path(NULL, album_key, "album");
         file_uri = g_filename_to_uri(file_path, NULL, NULL);
         g_free(file_path);
 
