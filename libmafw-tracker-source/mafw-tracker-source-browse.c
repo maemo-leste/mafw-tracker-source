@@ -701,8 +701,6 @@ static void _construct_playlist_entries_result(struct _browse_closure * bc,
 		iter = g_list_next(iter);
 		g_free(objectid);
 	}
-        clips->ids = g_list_reverse(clips->ids);
-        clips->metadata_values = g_list_reverse(clips->metadata_values);
 }
 
 static void
