@@ -637,6 +637,12 @@ mafw_tracker_source_get_metadatas(MafwSource *self,
 		return;
         }
 
+	if (!meta_keys || !meta_keys[0]) {
+		/* No requested metadata, emit an empty result */
+		_emit_metadatas_results(mcc);
+		return;
+        }
+
         i = 0;
         while (object_ids[i]) {
                 category = util_extract_category_info(object_ids[i],
