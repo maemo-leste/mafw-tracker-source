@@ -1,8 +1,16 @@
-mafw-tracker-source (0.1.2009.19-2) unstable; urgency=low
+mafw-tracker-source (0.1.2009.20-2) unstable; urgency=low
 
-  * MAFW tracker source, pre-release 0.2009.19-2
+  * MAFW tracker source, pre-release 0.2009.20-2
 
- -- Juha Kellokoski <veitikka6@gmail.com>  Thu, 30 Apr 2009 10:00:00 +0300
+ -- Juha Kellokoski <veitikka6@gmail.com>  Thu, 07 May 2009 11:00:00 +0300
+
+mafw-tracker-source (0.1.2009.20-1) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.20-1
+  * Fixes: NB#109315 - Local source doesn't found first item enought fast when shuffle 5000 items
+  * Maintainer changed in control file.
+
+ -- Juha Kellokoski <veitikka6@gmail.com>  Thu, 07 May 2009 11:00:00 +0300
 
 mafw-tracker-source (0.1.2009.19-1) unstable; urgency=low
 
