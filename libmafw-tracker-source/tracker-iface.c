@@ -65,6 +65,8 @@ struct _mafw_metadata_closure {
         /* If the childcount key must be counted instead of aggregated
          * when aggregating data in get_metadata */
         gboolean count_childcount;
+        /* Type of service to be used in tracker */
+        enum TrackerObjectType tracker_type;
         /* Cache to store keys and values */
         TrackerCache *cache;
 };
@@ -975,6 +977,65 @@ static void _tracker_metadata_from_container_cb(GPtrArray *tracker_result,
         g_free(mc);
 }
 
+static void _get_stats_cb(GPtrArray *result, GError *error, gpointer user_data)
+{
+        GHashTable *metadata = NULL;
+        gchar **item;
+        gchar *lookstring;
+        gint i;
+        gint firstlook;
+        struct _mafw_metadata_closure *mc =
+                (struct _mafw_metadata_closure *) user_data;
+
+        if (!error) {
+                switch (mc->tracker_type) {
+                case TRACKER_TYPE_MUSIC:
+                        lookstring = "Music";
+                        firstlook = 11;
+                        break;
+
+                case TRACKER_TYPE_VIDEO:
+                        lookstring = "Videos";
+                        firstlook = 15;
+                        break;
+
+                default:
+                        lookstring = "Playlists";
+                        firstlook = 13;
+                        break;
+                }
+
+                /* First try to search in the expected position */
+                item = g_ptr_array_index(result, firstlook);
+                if (item &&
+                    strcmp(item[0], lookstring) == 0) {
+                        metadata = mafw_metadata_new();
+                        mafw_metadata_add_int(metadata,
+                                              MAFW_METADATA_KEY_CHILDCOUNT,
+                                              atoi(item[1]));
+                } else {
+                        item = g_ptr_array_index(result, 0);
+                        i = 0;
+                        while (item) {
+                                if (strcmp(item[0], lookstring) == 0) {
+                                        metadata = mafw_metadata_new();
+                                        mafw_metadata_add_int(metadata,
+                                                              MAFW_METADATA_KEY_CHILDCOUNT,
+                                                              atoi(item[1]));
+                                        break;
+                                } else {
+                                        item = g_ptr_array_index(result, ++i);
+                                }
+                        }
+                }
+                mc->callback(metadata, NULL, mc->user_data);
+        } else {
+                mc->callback(NULL, error, mc->user_data);
+        }
+
+        g_free(mc);
+}
+
 static void _do_tracker_get_metadata_from_service(
         gchar **keys,
         const gchar *title,
@@ -992,6 +1053,16 @@ static void _do_tracker_get_metadata_from_service(
         mc = g_new0(struct _mafw_metadata_closure, 1);
         mc->callback = callback;
         mc->user_data = user_data;
+        mc->tracker_type = tracker_type;
+
+        /* If user has only requested CHILDCOUNT, then use a special tracker API
+         * to speed up the request */
+        if (strcmp(keys[0], MAFW_METADATA_KEY_CHILDCOUNT) == 0 &&
+            !keys[1]) {
+                tracker_get_stats_async(tc, _get_stats_cb, mc);
+                return;
+        }
+
         mc->count_childcount = FALSE;
        	unique_keys = g_new0(gchar *, 2);
 	unique_keys[0] = g_strdup("File:Mime");
