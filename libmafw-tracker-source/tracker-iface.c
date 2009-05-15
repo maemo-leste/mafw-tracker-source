@@ -1007,7 +1007,7 @@ static void _get_stats_cb(GPtrArray *result, GError *error, gpointer user_data)
 
                 /* First try to search in the expected position */
                 item = g_ptr_array_index(result, firstlook);
-                if (item &&
+                if (item && item[0] &&
                     strcmp(item[0], lookstring) == 0) {
                         metadata = mafw_metadata_new();
                         mafw_metadata_add_int(metadata,
@@ -1017,7 +1017,8 @@ static void _get_stats_cb(GPtrArray *result, GError *error, gpointer user_data)
                         item = g_ptr_array_index(result, 0);
                         i = 0;
                         while (item) {
-                                if (strcmp(item[0], lookstring) == 0) {
+                                if (item[0] &&
+                                    strcmp(item[0], lookstring) == 0) {
                                         metadata = mafw_metadata_new();
                                         mafw_metadata_add_int(metadata,
                                                               MAFW_METADATA_KEY_CHILDCOUNT,
