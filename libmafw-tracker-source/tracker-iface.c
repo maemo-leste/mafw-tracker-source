@@ -983,7 +983,6 @@ static void _get_stats_cb(GPtrArray *result, GError *error, gpointer user_data)
         gchar **item;
         gchar *lookstring;
         gint i;
-        gint firstlook;
         struct _mafw_metadata_closure *mc =
                 (struct _mafw_metadata_closure *) user_data;
 
@@ -991,42 +990,28 @@ static void _get_stats_cb(GPtrArray *result, GError *error, gpointer user_data)
                 switch (mc->tracker_type) {
                 case TRACKER_TYPE_MUSIC:
                         lookstring = "Music";
-                        firstlook = 11;
                         break;
 
                 case TRACKER_TYPE_VIDEO:
                         lookstring = "Videos";
-                        firstlook = 15;
                         break;
 
                 default:
                         lookstring = "Playlists";
-                        firstlook = 13;
                         break;
                 }
 
-                /* First try to search in the expected position */
-                item = g_ptr_array_index(result, firstlook);
-                if (item && item[0] &&
-                    strcmp(item[0], lookstring) == 0) {
-                        metadata = mafw_metadata_new();
-                        mafw_metadata_add_int(metadata,
-                                              MAFW_METADATA_KEY_CHILDCOUNT,
-                                              atoi(item[1]));
-                } else {
-                        item = g_ptr_array_index(result, 0);
-                        i = 0;
-                        while (item) {
-                                if (item[0] &&
-                                    strcmp(item[0], lookstring) == 0) {
-                                        metadata = mafw_metadata_new();
-                                        mafw_metadata_add_int(metadata,
-                                                              MAFW_METADATA_KEY_CHILDCOUNT,
-                                                              atoi(item[1]));
-                                        break;
-                                } else {
-                                        item = g_ptr_array_index(result, ++i);
-                                }
+                i = 0;
+                while (i < result->len) {
+                        item = g_ptr_array_index(result, i);
+                        if (strcmp(item[0], lookstring) == 0) {
+                                metadata = mafw_metadata_new();
+                                mafw_metadata_add_int(metadata,
+                                                      MAFW_METADATA_KEY_CHILDCOUNT,
+                                                      atoi(item[1]));
+                                break;
+                        } else {
+                                i++;
                         }
                 }
                 mc->callback(metadata, NULL, mc->user_data);
