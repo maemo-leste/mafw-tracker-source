@@ -30,9 +30,8 @@
 
 /* Supportted album art thumbnail sizes */
 enum thumbnail_size {
-	THUMBNAIL_SMALL = 1,
-	THUMBNAIL_MEDIUM,
-	THUMBNAIL_LARGE
+	THUMBNAIL_CROPPED = 1,
+	THUMBNAIL_NORMAL
 };
 
 

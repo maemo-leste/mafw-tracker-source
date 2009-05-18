@@ -237,15 +237,11 @@ static GValue *_get_value_thumbnail(TrackerCache *cache,
         if (uri) {
                 /* Compute size requested */
                 if (strcmp(key, MAFW_METADATA_KEY_ALBUM_ART_SMALL_URI) == 0 ||
-                    strcmp(key, MAFW_METADATA_KEY_THUMBNAIL_SMALL_URI) == 0) {
-                        size = THUMBNAIL_SMALL;
-                } else if (strcmp(key,
-                                  MAFW_METADATA_KEY_ALBUM_ART_MEDIUM_URI) == 0 ||
-                           strcmp(key,
-                                  MAFW_METADATA_KEY_THUMBNAIL_MEDIUM_URI) == 0) {
-                        size = THUMBNAIL_MEDIUM;
+                    strcmp(key, MAFW_METADATA_KEY_ALBUM_ART_MEDIUM_URI) == 0 ||
+                    albumart_key_is_thumbnail(key)) {
+                        size = THUMBNAIL_CROPPED;
                 } else {
-                        size = THUMBNAIL_LARGE;
+                        size = THUMBNAIL_NORMAL;
                 }
                 return_value = g_new0(GValue, 1);
                 g_value_init(return_value, G_TYPE_STRING);

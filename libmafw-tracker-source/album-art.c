@@ -37,34 +37,23 @@
 gchar *albumart_get_thumbnail_uri(const gchar *orig_file_uri,
                                    enum thumbnail_size size)
 {
-	gint width, height;
-	gboolean is_cropped;
         gchar *file_uri;
         GFile *file;
 
-	if (size == THUMBNAIL_SMALL) {
-		width = 1;
-		height = 1;
-		is_cropped = TRUE;
-	} else if (size == THUMBNAIL_MEDIUM) {
-		width = 1;
-		height = 1;
-		is_cropped = FALSE;
-	} else if (size == THUMBNAIL_LARGE) {
-		width = 512;
-		height = 512;
-		is_cropped = FALSE;
-	}
-
-	file_uri =  hildon_thumbnail_get_uri(orig_file_uri,
-                                             width, height, is_cropped);
-        /* Check if file doesn't exist */
-        file = g_file_new_for_uri(file_uri);
-        if (!g_file_query_exists(file, NULL)) {
-                g_free(file_uri);
-                file_uri = NULL;
+        if (size == THUMBNAIL_CROPPED) {
+                file_uri = hildon_thumbnail_get_uri(orig_file_uri,
+                                                    128, 128, TRUE);
+                /* Check if file doesn't exist */
+                file = g_file_new_for_uri(file_uri);
+                if (!g_file_query_exists(file, NULL)) {
+                        g_free(file_uri);
+                        file_uri = NULL;
+                }
+                g_object_unref(file);
+        } else {
+                /* Get the original album art */
+                file_uri = albumart_get_album_art_uri(orig_file_uri);
         }
-        g_object_unref(file);
 
         return file_uri;
 }
