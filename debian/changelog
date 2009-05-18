@@ -4,6 +4,8 @@ mafw-tracker-source (0.1.2009.21-1) unstable; urgency=low
   * Fixes: NB#116598 - ‘Import selected object-id’ not working for playlist file from tracker source
   * Fixes: NB#114405 - playlist items are displayed in reverse order when imported in different methods
   * Fixes: NB#115303 - Media Player gets song and video counts too slowly from tracker
+  * Use the new API for getting thumbnails.
+  * Check GPtrArray boundary limits.
   * Avoid calling Tracker when no metadata is requested get metadatas
     function.
   * Updated to changes in hildon-thumbnail beahvior.
