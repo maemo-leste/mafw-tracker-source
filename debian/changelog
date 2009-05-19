@@ -1,3 +1,17 @@
+mafw-tracker-source (0.1.2009.21-3) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.21-3
+  * Fixes: NB#100164 - 'All albums' displays 1 icon per artist per album iso 1 icon per album
+  * Fixes: NB#103164 - 'Most played ' automatic playlist is not updating properly 
+
+ -- Juha Kellokoski <veitikka6@gmail.com>  Tue, 19 May 2009 10:30:00 +0300
+
+mafw-tracker-source (0.1.2009.21-2) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.21-2
+
+ -- Juha Kellokoski <veitikka6@gmail.com>  Mon, 18 May 2009 11:00:00 +0300
+
 mafw-tracker-source (0.1.2009.21-1) unstable; urgency=low
 
   * MAFW tracker source, pre-release 0.2009.21-1
