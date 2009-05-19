@@ -1466,7 +1466,7 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, gboolean *updated)
                             tracker_key->value_type == G_TYPE_DATE) {
                                 value = mafw_metadata_first(metadata,
                                                              mafw_key);
-                                if (G_VALUE_HOLDS_LONG(value)) {
+                                if (value && G_VALUE_HOLDS_LONG(value)) {
                                         values_array[i_key] =
 					  util_epoch_to_iso8601(
 					    g_value_get_long(value));
@@ -1476,16 +1476,17 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, gboolean *updated)
                         } else {
                                 value = mafw_metadata_first(metadata,
                                                              mafw_key);
-                                switch (G_VALUE_TYPE(value)) {
-                                case G_TYPE_STRING:
-                                        values_array[i_key] =
-                                                g_value_dup_string(value);
-                                        break;
-                                default:
-                                        values_array[i_key] =
-                                                g_strdup_value_contents(value);
-                                        break;
-                                }
+				if (value)
+                                	switch (G_VALUE_TYPE(value)) {
+                                		case G_TYPE_STRING:
+                                        		values_array[i_key] =
+                                                	g_value_dup_string(value);
+                                        	break;
+                                	default:
+                                        	values_array[i_key] =
+                                                	g_strdup_value_contents(value);
+                                        	break;
+                                	}
 
                         }
                 } else {
