@@ -795,9 +795,6 @@ CategoryType util_extract_category_info(const gchar *object_id,
 			break;
 		}
 		break;
-	default:
-		category = CATEGORY_ERROR;
-		break;
 	}
 
 	/* Frees */
