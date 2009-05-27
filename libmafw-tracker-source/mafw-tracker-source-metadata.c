@@ -393,7 +393,7 @@ static void _get_metadata_tracker_from_music_cb(GHashTable *result,
                 /* The count on 'music' category is 5: albums,
                  * artists, genres, songs and playlists */
                 gval = mafw_metadata_first(result,
-                                            MAFW_METADATA_KEY_CHILDCOUNT);
+                                           TRACKER_SOURCE_KEY_CHILDCOUNT_1);
                 if (gval) {
                         g_value_set_int(gval, 5);
                 }
@@ -433,7 +433,7 @@ static void _get_metadata_tracker_from_root_videos_cb(GHashTable *result,
         if (result) {
                 /* Change childcount: it is 2 (music and videos) */
                 gvalcur = mafw_metadata_first(result,
-                                               MAFW_METADATA_KEY_CHILDCOUNT);
+                                               TRACKER_SOURCE_KEY_CHILDCOUNT_1);
                 if (gvalcur) {
                         g_value_set_int(gvalcur, 2);
                 }

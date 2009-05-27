@@ -44,6 +44,8 @@
 #define ROOT_MUSIC_GENRES_TITLE              "Genres"
 #define ROOT_MUSIC_PLAYLISTS_TITLE           "Playlists"
 
+#define TRACKER_SOURCE_KEY_CHILDCOUNT_1 "childcount(1)"
+
 #define KNOWN_METADATA_KEYS                                             \
         MAFW_METADATA_KEY_URI,						\
 		MAFW_METADATA_KEY_MIME,                                 \
@@ -97,9 +99,9 @@
                 MAFW_METADATA_KEY_VIDEO_SOURCE,                         \
 		MAFW_METADATA_KEY_BPP,					\
                 MAFW_METADATA_KEY_EXIF_XML,				\
-		MAFW_METADATA_KEY_CHILDCOUNT,				\
                 MAFW_METADATA_KEY_ICON_URI,				\
-		MAFW_METADATA_KEY_ICON
+		MAFW_METADATA_KEY_ICON,                                 \
+                TRACKER_SOURCE_KEY_CHILDCOUNT_1
 
 /* Tracker metadata keys */
 #define TRACKER_AKEY_ALBUM            "Audio:Album"

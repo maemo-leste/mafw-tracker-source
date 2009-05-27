@@ -619,7 +619,7 @@ static GHashTable *_new_metadata_from_untracked_resource(gchar *uri,
 						unescaped_title);
 			g_free(unescaped_title);
 			g_free(temp);
-		} else if (!strcmp(keys[i], MAFW_METADATA_KEY_CHILDCOUNT)) {
+		} else if (!strcmp(keys[i], TRACKER_SOURCE_KEY_CHILDCOUNT_1)) {
 			mafw_metadata_add_int(metadata, keys[i], 0);
 		} else if (!strcmp(keys[i], MAFW_METADATA_KEY_URI)) {
 			gchar *fixed_uri;

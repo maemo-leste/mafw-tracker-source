@@ -268,7 +268,7 @@ static GValue * _aggregate_key(TrackerCache *cache,
         results_length = cache->tracker_results? cache->tracker_results->len: 0;
 
         if (count_childcount &&
-            strcmp(key, MAFW_METADATA_KEY_CHILDCOUNT) == 0) {
+            strcmp(key, TRACKER_SOURCE_KEY_CHILDCOUNT_1) == 0) {
                 total = results_length;
         } else {
                 for (i=0; i < results_length; i++) {
@@ -753,7 +753,7 @@ tracker_cache_key_add_concat(TrackerCache *cache,
         /* Now, increase index for childcount and duration, if they were
          * inserted */
         if (cache->count_added) {
-                _increase_key_index(cache, MAFW_METADATA_KEY_CHILDCOUNT);
+                _increase_key_index(cache, TRACKER_SOURCE_KEY_CHILDCOUNT_1);
         }
 
         if (cache->sum_added) {

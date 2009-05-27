@@ -225,7 +225,7 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 tracker_key->tracker_key = TRACKER_PKEY_COUNT;
                 tracker_key->value_type = G_TYPE_INT;
                 g_hash_table_insert(table->playlist_keys,
-                                    MAFW_METADATA_KEY_CHILDCOUNT,
+                                    TRACKER_SOURCE_KEY_CHILDCOUNT_1,
                                     tracker_key);
 
                 /* Special key (not available in MAFW) */
@@ -285,7 +285,7 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 metadata_key->allowed_empty = TRUE;
                 metadata_key->special = SPECIAL_KEY_CHILDCOUNT;
                 g_hash_table_insert(table->metadata_keys,
-                                    MAFW_METADATA_KEY_CHILDCOUNT,
+                                    TRACKER_SOURCE_KEY_CHILDCOUNT_1,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);

@@ -296,7 +296,8 @@ static void _do_tracker_get_unique_values(gchar **keys,
 	   applies to its children (the #albums of each artist), so
 	   the key we have to count are the individual albums of the
 	   artist (TRACKER_AKEY_ALBUM) */
-        if (tracker_cache_key_exists(mc->cache, MAFW_METADATA_KEY_CHILDCOUNT)) {
+        if (tracker_cache_key_exists(mc->cache,
+                                     TRACKER_SOURCE_KEY_CHILDCOUNT_1)) {
                 aggregated_types[i] = AGGREGATED_TYPE_COUNT;
                 if (g_strcmp0 (keys[0], TRACKER_AKEY_GENRE) == 0) {
                         aggregated_keys[i] = TRACKER_AKEY_ARTIST;
@@ -1018,9 +1019,10 @@ static void _get_stats_cb(GPtrArray *result, GError *error, gpointer user_data)
                         item = g_ptr_array_index(result, i);
                         if (strcmp(item[0], lookstring) == 0) {
                                 metadata = mafw_metadata_new();
-                                mafw_metadata_add_int(metadata,
-                                                      MAFW_METADATA_KEY_CHILDCOUNT,
-                                                      atoi(item[1]));
+                                mafw_metadata_add_int(
+                                        metadata,
+                                        TRACKER_SOURCE_KEY_CHILDCOUNT_1,
+                                        atoi(item[1]));
                                 break;
                         } else {
                                 i++;
@@ -1057,7 +1059,7 @@ static void _do_tracker_get_metadata_from_service(
 
         /* If user has only requested CHILDCOUNT, then use a special tracker API
          * to speed up the request */
-        if (strcmp(keys[0], MAFW_METADATA_KEY_CHILDCOUNT) == 0 &&
+        if (strcmp(keys[0], TRACKER_SOURCE_KEY_CHILDCOUNT_1) == 0 &&
             !keys[1]) {
                 tracker_get_stats_async(tc, _get_stats_cb, mc);
                 return;
@@ -1098,7 +1100,8 @@ static void _do_tracker_get_metadata_from_service(
 
         /* Check if we have to use count API */
         i = 0;
-        if (tracker_cache_key_exists(mc->cache, MAFW_METADATA_KEY_CHILDCOUNT)) {
+        if (tracker_cache_key_exists(mc->cache,
+                                     TRACKER_SOURCE_KEY_CHILDCOUNT_1)) {
                 aggregated_types[i] = AGGREGATED_TYPE_COUNT;
                 aggregated_keys[i] = "*";
                 i++;
@@ -1272,7 +1275,8 @@ void ti_get_metadata_from_category(const gchar *genre,
         }
 
         /* Check if we have to use count API */
-        if (tracker_cache_key_exists(mc->cache, MAFW_METADATA_KEY_CHILDCOUNT)) {
+        if (tracker_cache_key_exists(mc->cache,
+                                     TRACKER_SOURCE_KEY_CHILDCOUNT_1)) {
                 aggregated_types[i] = AGGREGATED_TYPE_COUNT;
                 if (album) {
                         aggregated_keys[i] = g_strdup("*");
