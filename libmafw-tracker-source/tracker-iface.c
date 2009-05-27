@@ -116,32 +116,6 @@ static void _stats_changed_handler(DBusGProxy *proxy,
 	}
 }
 
-static gchar *_ids_concat(gchar **parts)
-{
-        gchar **fixed_parts;
-        gchar *joined;
-        gint i;
-
-        if (g_strv_length(parts) <= 1) {
-                return g_strdup(parts[0]);
-        }
-
-        /* Replace each occurrence of "-" by "--" */
-        fixed_parts = g_new0(gchar *, g_strv_length(parts) + 1);
-        i=0;
-        while (parts[i]) {
-                fixed_parts[i] = util_str_replace(parts[i], "-", "--");
-                i++;
-        }
-
-        /* Join result */
-        joined = g_strjoinv(" - ", fixed_parts);
-
-        g_strfreev(fixed_parts);
-
-        return joined;
-}
-
 static GList *_build_objectids_from_pathname(TrackerCache *cache)
 {
         GList *objectid_list = NULL;
@@ -164,46 +138,33 @@ static GList *_build_objectids_from_pathname(TrackerCache *cache)
         return objectid_list;
 }
 
-static GList *_build_objectids_from_unique_keys(TrackerCache *cache)
+static GList *_build_objectids_from_unique_key(TrackerCache *cache)
 {
         GList *objectid_list = NULL;
         const GPtrArray *results;
-        gchar **unique_keys;
-        gchar **values;
-        gint unique_keys_length;
+        gchar **tracker_keys;
+        gchar *unique_value;
         gint i;
-        gint key_index;
         GValue *value;
 
         results = tracker_cache_values_get_results(cache);
-        unique_keys = tracker_cache_keys_get_tracker(cache);
-        unique_keys_length = g_strv_length(unique_keys);
+        tracker_keys = tracker_cache_keys_get_tracker(cache);
 
         for (i = 0; i < results->len; i++) {
-                values = g_new0(gchar *, unique_keys_length + 1);
-                key_index = 0;
-                while (unique_keys[key_index]) {
-                        value = tracker_cache_value_get(cache,
-                                                        unique_keys[key_index],
-                                                        i);
-                        if (G_VALUE_HOLDS_STRING(value)) {
-                                values[key_index] =
-                                        g_strdup(g_value_get_string(value));
-                        } else if (G_VALUE_HOLDS_INT(value)) {
-                                values[key_index] =
-                                        g_strdup_printf("%d",
-                                                        g_value_get_int(value));
-                        } else {
-                                values[key_index] = "";
-                        }
-                        util_gvalue_free(value);
-                        key_index++;
+                /* Unique key is the first key */
+                value = tracker_cache_value_get(cache, tracker_keys[0], i);
+                if (G_VALUE_HOLDS_STRING(value)) {
+                        unique_value = g_strdup(g_value_get_string(value));
+                } else if (G_VALUE_HOLDS_INT(value)) {
+                        unique_value =
+                                g_strdup_printf("%d", g_value_get_int(value));
+                } else {
+                        unique_value = g_strdup("");
                 }
-                objectid_list = g_list_prepend(objectid_list,
-                                               _ids_concat(values));
-                g_strfreev(values);
+                util_gvalue_free(value);
+                objectid_list = g_list_prepend(objectid_list, unique_value);
         }
-        g_strfreev(unique_keys);
+        g_strfreev(tracker_keys);
         objectid_list = g_list_reverse(objectid_list);
 
         return objectid_list;
@@ -251,7 +212,7 @@ static void _tracker_unique_values_cb(GPtrArray *tracker_result,
                 tracker_cache_values_add_results(mc->cache, tracker_result);
                 mafw_result->metadata_values =
                         tracker_cache_build_metadata(mc->cache);
-                mafw_result->ids = _build_objectids_from_unique_keys(mc->cache);
+                mafw_result->ids = _build_objectids_from_unique_key(mc->cache);
 
                 /* Invoke callback */
                 mc->callback(mafw_result, NULL, mc->user_data);
@@ -661,7 +622,6 @@ void ti_get_artists(const gchar *genre,
 	struct _mafw_query_closure *mc;
         gchar *escaped_genre = NULL;
         gchar **filters;
-        gchar **unique_keys;
         gchar *tracker_unique_keys[] = {TRACKER_AKEY_ARTIST, NULL};
         gchar **tracker_keys;
         gchar **aggregate_keys;
@@ -705,11 +665,8 @@ void ti_get_artists(const gchar *genre,
                                       FALSE,
                                       MAFW_METADATA_KEY_ARTIST);
 
-        /* Insert unique keys */
-	unique_keys = g_new0(gchar *, 2);
-	unique_keys[0] = g_strdup(MAFW_METADATA_KEY_ARTIST);
-        tracker_cache_key_add_unique(mc->cache, unique_keys);
-        g_strfreev(unique_keys);
+        /* Insert unique key */
+        tracker_cache_key_add_unique(mc->cache, MAFW_METADATA_KEY_ARTIST);
 
         tracker_cache_key_add_several(mc->cache, keys, MAXLEVEL, TRUE);
 
@@ -779,7 +736,6 @@ void ti_get_genres(gchar **keys,
 {
         const int MAXLEVEL = 3;
 	struct _mafw_query_closure *mc;
-        gchar **unique_keys;
         gchar **filters;
         gchar *tracker_unique_keys[] = {TRACKER_AKEY_GENRE, NULL};
         gchar **tracker_keys;
@@ -802,11 +758,8 @@ void ti_get_genres(gchar **keys,
                                       FALSE,
                                       MAFW_METADATA_KEY_GENRE);
 
-        /* Insert unique keys */
-	unique_keys = g_new0(gchar *, 2);
-	unique_keys[0] = g_strdup(MAFW_METADATA_KEY_GENRE);
-        tracker_cache_key_add_unique(mc->cache, unique_keys);
-        g_strfreev(unique_keys);
+        /* Insert unique key */
+        tracker_cache_key_add_unique(mc->cache, MAFW_METADATA_KEY_GENRE);
 
         tracker_cache_key_add_several(mc->cache, keys, MAXLEVEL, TRUE);
 
@@ -931,7 +884,6 @@ void ti_get_albums(const gchar *genre,
         gchar *escaped_genre;
         gchar *escaped_artist;
         gchar **filters;
-        gchar **unique_keys;
         gchar *tracker_unique_keys[] = {TRACKER_AKEY_ALBUM, NULL};
         gchar **tracker_keys;
         gchar **aggregate_keys;
@@ -995,11 +947,8 @@ void ti_get_albums(const gchar *genre,
                                       FALSE,
                                       MAFW_METADATA_KEY_ALBUM);
 
-        /* Insert unique keys */
-        unique_keys = g_new0(gchar *, 2);
-        unique_keys[0] = g_strdup(MAFW_METADATA_KEY_ALBUM);
-        tracker_cache_key_add_unique(mc->cache, unique_keys);
-        g_strfreev(unique_keys);
+        /* Insert unique key */
+        tracker_cache_key_add_unique(mc->cache, MAFW_METADATA_KEY_ALBUM);
 
         /* Add user keys */
         tracker_cache_key_add_several(mc->cache, keys, MAXLEVEL, TRUE);
@@ -1134,7 +1083,6 @@ static void _do_tracker_get_metadata_from_service(
         gchar *aggregated_keys[3] = { 0 };
         gchar *sum_key;
         ServiceType service;
-        gchar **ukeys;
         gchar **unique_keys;
         gint i;
         struct _mafw_metadata_closure *mc = NULL;
@@ -1170,10 +1118,7 @@ static void _do_tracker_get_metadata_from_service(
         mc->cache =
                 tracker_cache_new(service, TRACKER_CACHE_RESULT_TYPE_UNIQUE);
 
-        ukeys = g_new0(gchar *, 2);
-        ukeys[0] = g_strdup(MAFW_METADATA_KEY_MIME);
-        tracker_cache_key_add_unique(mc->cache, ukeys);
-        g_strfreev(ukeys);
+        tracker_cache_key_add_unique(mc->cache, MAFW_METADATA_KEY_MIME);
 
         if (title) {
                 tracker_cache_key_add_precomputed_string(
@@ -1255,8 +1200,8 @@ void ti_get_metadata_from_category(const gchar *genre,
 {
         gchar *filter;
         struct _mafw_metadata_closure *mc;
-        gchar **ukeys;
-        gchar **tracker_ukeys;
+        const gchar *ukey;
+        gchar *tracker_ukeys[2] = { 0 };
         gchar *aggregated_types[4] = { 0 };
         gchar **aggregated_keys;
         gint i;
@@ -1322,20 +1267,19 @@ void ti_get_metadata_from_category(const gchar *genre,
                         title);
         }
 
-	/* Select unique keys to use */
-        ukeys = g_new0(gchar *, 2);
+	/* Select unique key to use */
         if (album) {
-                ukeys[0] = g_strdup(MAFW_METADATA_KEY_ALBUM);
+                ukey = MAFW_METADATA_KEY_ALBUM;
         } else if (artist) {
-                ukeys[0] = g_strdup(MAFW_METADATA_KEY_ARTIST);
+                ukey = MAFW_METADATA_KEY_ARTIST;
         } else if (genre) {
-                ukeys[0] = g_strdup(MAFW_METADATA_KEY_GENRE);
+                ukey = MAFW_METADATA_KEY_GENRE;
         } else {
-                ukeys[0] = g_strdup(default_count_key);
+                ukey = default_count_key;
         }
 
 	/* Add required keys to the cache (beware: order is important) */
-        tracker_cache_key_add_unique(mc->cache, ukeys);
+        tracker_cache_key_add_unique(mc->cache, ukey);
 
         tracker_cache_key_add_several(mc->cache, keys, 1, TRUE);
 
@@ -1393,8 +1337,7 @@ void ti_get_metadata_from_category(const gchar *genre,
 	/* Compute tracker filter and tracker keys */
         filter = util_create_filter_from_category(genre, artist, album, NULL);
 
-        tracker_ukeys = keymap_mafw_keys_to_tracker_keys(ukeys,
-                                                         SERVICE_MUSIC);
+        tracker_ukeys[0] = keymap_mafw_key_to_tracker_key(ukey, SERVICE_MUSIC);
 
         tracker_metadata_get_unique_values_with_aggregates_async(
                 tc,
@@ -1411,7 +1354,6 @@ void ti_get_metadata_from_category(const gchar *genre,
 
         g_free(filter);
         g_strfreev(tracker_ukeys);
-        g_strfreev(ukeys);
         g_strfreev(aggregated_keys);
 }
 

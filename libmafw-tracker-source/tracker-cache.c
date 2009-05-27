@@ -636,18 +636,16 @@ tracker_cache_key_add_several(TrackerCache *cache,
 /*
  * tracker_cache_key_add_unique:
  * @cache: tracker cache
- * @unique_keys: a NULL-ending array of keys
+ * @unique_keys: the unique key
  *
- * Add a list of keys that will be used to query tracker with 'unique'
- * functions. If some of the keys already exists, they are
- * skipped. Warning! This function only works if the case was created
- * with TRACKER_CACHE_RESULT_TYPE_UNIQUE.
+ * Add a key that will be used to query tracker with 'unique' functions. If some
+ * the key already exists, it is skipped. Warning! This function only works if
+ * the case was created with TRACKER_CACHE_RESULT_TYPE_UNIQUE.
  */
 void
 tracker_cache_key_add_unique(TrackerCache *cache,
-                             gchar **unique_keys)
+                             const gchar *unique_key)
 {
-        gint i;
         MetadataKey *metadata_key;
 
         /* Check if cache was created to store data from
@@ -655,42 +653,37 @@ tracker_cache_key_add_unique(TrackerCache *cache,
         g_return_if_fail(
                 cache->result_type == TRACKER_CACHE_RESULT_TYPE_UNIQUE);
 
-        i = 0;
-        while (unique_keys[i]) {
-                metadata_key = keymap_get_metadata(unique_keys[i]);
+        metadata_key = keymap_get_metadata(unique_key);
 
-                /* Skip unsupported keys */
-                if (metadata_key) {
-                        /* Check the key doesn't exist */
-                        if (g_hash_table_lookup(cache->cache,
-                                                unique_keys[i]) == NULL) {
-                                /* Special case: 'unique' functions are used
-                                 * when processing containers. In this case,
-                                 * mime type of a container must be always
-                                 * @MAFW_METADATA_VALUE_MIME_CONTAINER, no
-                                 * matter the result tracker returns. */
-                                if (metadata_key->special == SPECIAL_KEY_MIME) {
-                                        tracker_cache_key_add_precomputed_string(
-                                                cache,
-                                                unique_keys[i],
-                                                FALSE,
-                                                MAFW_METADATA_VALUE_MIME_CONTAINER);
-                                } else {
-                                        _insert_key(
-                                                cache,
-                                                unique_keys[i],
-                                                TRACKER_CACHE_KEY_TYPE_TRACKER,
-                                                FALSE,
-                                                cache->last_tracker_index);
-                                }
+        /* Skip unsupported keys */
+        if (metadata_key) {
+                /* Check the key doesn't exist */
+                if (g_hash_table_lookup(cache->cache, unique_key) == NULL) {
+                        /* Special case: 'unique' functions are used
+                         * when processing containers. In this case,
+                         * mime type of a container must be always
+                         * @MAFW_METADATA_VALUE_MIME_CONTAINER, no
+                         * matter the result tracker returns. */
+                        if (metadata_key->special == SPECIAL_KEY_MIME) {
+                                tracker_cache_key_add_precomputed_string(
+                                        cache,
+                                        unique_key,
+                                        FALSE,
+                                        MAFW_METADATA_VALUE_MIME_CONTAINER);
+                        } else {
+                                _insert_key(
+                                        cache,
+                                        unique_key,
+                                        TRACKER_CACHE_KEY_TYPE_TRACKER,
+                                        FALSE,
+                                        cache->last_tracker_index);
                         }
-                        /* Though the key already exists, skip its place in
-                         * the results. That is, we will use the already
-                         * stored value even tracker will be returning a
-                         * different value */
-                        cache->last_tracker_index++;
                 }
-                i++;
+                /* Though the key already exists, skip its place in
+                 * the results. That is, we will use the already
+                 * stored value even tracker will be returning a
+                 * different value */
+                cache->last_tracker_index++;
         }
 }
 
