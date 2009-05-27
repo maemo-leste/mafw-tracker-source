@@ -92,6 +92,14 @@ static gboolean _value_is_allowed(GValue *value, const gchar *key)
         }
 }
 
+static int _get_childcount_level(const gchar *childcount_key)
+{
+        gint level;
+
+        sscanf(childcount_key, "childcount(%d)", &level);
+        return level;
+}
+
 static GValue *_get_title(TrackerCache *cache, gint index)
 {
         GValue *value_title;
@@ -301,19 +309,6 @@ static void _tracker_cache_value_free(gpointer data)
         }
 }
 
-static void _increase_key_index(TrackerCache *cache, const gchar *key)
-{
-        TrackerCacheValue *cached_value;
-
-        /* Look for the key */
-        cached_value = g_hash_table_lookup(cache->cache, key);
-
-        if (cached_value &&
-            cached_value->key_type == TRACKER_CACHE_KEY_TYPE_TRACKER) {
-                cached_value->tracker_index++;
-        }
-}
-
 /* ------------------------- Public API ------------------------- */
 
 /*
@@ -481,6 +476,7 @@ tracker_cache_key_add_derived(TrackerCache *cache,
  * tracker_cache_key_add:
  * @cache: the cache
  * @key: the key to be inserted
+ * @maximum_level: maxium level allowed for childcount keys
  * @user_key: @TRUE if the user has requested this key
  *
  * Inserts in the cache a new key. If the key exists, and the new one
@@ -492,10 +488,12 @@ tracker_cache_key_add_derived(TrackerCache *cache,
 void
 tracker_cache_key_add(TrackerCache *cache,
                       const gchar *key,
+                      gint maximum_level,
                       gboolean user_key)
 {
         TrackerCacheValue *value;
         gint offset;
+        gint level;
         MetadataKey *metadata_key;
 
         /* Look if the key already exists */
@@ -517,7 +515,8 @@ tracker_cache_key_add(TrackerCache *cache,
 
         /* Insert dependencies */
         if (metadata_key->depends_on) {
-                tracker_cache_key_add(cache, metadata_key->depends_on, FALSE);
+                tracker_cache_key_add(cache, metadata_key->depends_on,
+                                      maximum_level, FALSE);
         }
 
         /* Insert album-art and thumbnail keys */
@@ -526,6 +525,16 @@ tracker_cache_key_add(TrackerCache *cache,
                 _insert_key(cache, key, TRACKER_CACHE_KEY_TYPE_THUMBNAILER,
                             user_key, -1);
                 return;
+        }
+
+        /* With childcount, check that fits in the allowed range */
+        if (metadata_key->special == SPECIAL_KEY_CHILDCOUNT) {
+                level = _get_childcount_level(key);
+                if (level < 1 || level > maximum_level) {
+                        _insert_key(cache, key, TRACKER_CACHE_KEY_TYPE_VOID,
+                                    user_key, -1);
+                        return;
+                }
         }
 
         /* Within the current service, check if the key makes sense (CHILDCOUNT
@@ -558,44 +567,9 @@ tracker_cache_key_add(TrackerCache *cache,
                 return;
         }
 
-        /* If unique is used, childcount is the first value after
-         * the concat key (if it was inserted) */
-        if (cache->result_type == TRACKER_CACHE_RESULT_TYPE_UNIQUE &&
-            metadata_key->special == SPECIAL_KEY_CHILDCOUNT) {
-                if (cache->concat_added) {
-                        offset = 1;
-                } else {
-                        offset = 0;
-                }
-                _insert_key(cache, key, TRACKER_CACHE_KEY_TYPE_TRACKER,
-                            user_key, cache->last_tracker_index + offset);
-                /* Increase index for the 'sum' key */
-                if (cache->sum_added) {
-                        _increase_key_index(cache, MAFW_METADATA_KEY_DURATION);
-                }
-                cache->count_added = TRUE;
-                return;
-        }
-
-        /* If unique_count is used, duration is the second value
-         * after the unique values and count */
-        if (cache->result_type == TRACKER_CACHE_RESULT_TYPE_UNIQUE &&
-            metadata_key->special == SPECIAL_KEY_DURATION) {
-                if (cache->concat_added && cache->count_added) {
-                        offset = 2;
-                } else if (cache->concat_added || cache->count_added) {
-                        offset = 1;
-                } else {
-                        offset = 0;
-                }
-                _insert_key(cache, key, TRACKER_CACHE_KEY_TYPE_TRACKER,
-                            user_key, cache->last_tracker_index + offset);
-                cache->sum_added = TRUE;
-                return;
-        }
-
         /* Childcount is 0 for all clips, unless playlists */
-        if (metadata_key->special == SPECIAL_KEY_CHILDCOUNT &&
+        if (cache->result_type != TRACKER_CACHE_RESULT_TYPE_UNIQUE &&
+            metadata_key->special == SPECIAL_KEY_CHILDCOUNT &&
             cache->service != SERVICE_PLAYLISTS) {
                 tracker_cache_key_add_precomputed_int(cache, key, user_key, 0);
                 return;
@@ -617,7 +591,8 @@ tracker_cache_key_add(TrackerCache *cache,
          * could be used as title just if there it doesn't have one */
         if (cache->result_type != TRACKER_CACHE_RESULT_TYPE_UNIQUE &&
             metadata_key->special == SPECIAL_KEY_TITLE) {
-                tracker_cache_key_add(cache, MAFW_METADATA_KEY_URI, FALSE);
+                tracker_cache_key_add(cache, MAFW_METADATA_KEY_URI,
+                                      maximum_level, FALSE);
         }
 
         /* Insert remaining keys */
@@ -627,6 +602,7 @@ tracker_cache_key_add(TrackerCache *cache,
         } else {
                 offset = 0;
         }
+
         _insert_key(cache, key, TRACKER_CACHE_KEY_TYPE_TRACKER,
                     user_key, cache->last_tracker_index + offset);
         cache->last_tracker_index++;
@@ -638,6 +614,7 @@ tracker_cache_key_add(TrackerCache *cache,
  * tracker_cache_key_add_several:
  * @cache: the cache
  * @keys: NULL-ending array of keys
+ * @max_level: maximum level allowed for childcount
  * @user_keys: @TRUE if the user has requested these keys
  *
  * Inserts in the cache the keys specified. See @tracker_cache_key_add
@@ -646,12 +623,13 @@ tracker_cache_key_add(TrackerCache *cache,
 void
 tracker_cache_key_add_several(TrackerCache *cache,
                               gchar **keys,
+                              gint max_level,
                               gboolean user_keys)
 {
         gint i;
 
         for (i=0; keys[i]; i++) {
-                tracker_cache_key_add(cache, keys[i], user_keys);
+                tracker_cache_key_add(cache, keys[i], max_level, user_keys);
         }
 }
 
@@ -746,21 +724,10 @@ tracker_cache_key_add_concat(TrackerCache *cache,
 
         }
 
-        /* 'concat' key comes in the first position after the unique keys */
         _insert_key(cache, concat_key, TRACKER_CACHE_KEY_TYPE_TRACKER,
                     user_req, cache->last_tracker_index);
 
-        /* Now, increase index for childcount and duration, if they were
-         * inserted */
-        if (cache->count_added) {
-                _increase_key_index(cache, TRACKER_SOURCE_KEY_CHILDCOUNT_1);
-        }
-
-        if (cache->sum_added) {
-                _increase_key_index(cache, MAFW_METADATA_KEY_DURATION);
-        }
-
-        cache->concat_added = TRUE;
+        cache->last_tracker_index++;
 }
 
 /*

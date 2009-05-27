@@ -45,6 +45,8 @@
 #define ROOT_MUSIC_PLAYLISTS_TITLE           "Playlists"
 
 #define TRACKER_SOURCE_KEY_CHILDCOUNT_1 "childcount(1)"
+#define TRACKER_SOURCE_KEY_CHILDCOUNT_2 "childcount(2)"
+#define TRACKER_SOURCE_KEY_CHILDCOUNT_3 "childcount(3)"
 
 #define KNOWN_METADATA_KEYS                                             \
         MAFW_METADATA_KEY_URI,						\
@@ -101,7 +103,9 @@
                 MAFW_METADATA_KEY_EXIF_XML,				\
                 MAFW_METADATA_KEY_ICON_URI,				\
 		MAFW_METADATA_KEY_ICON,                                 \
-                TRACKER_SOURCE_KEY_CHILDCOUNT_1
+                TRACKER_SOURCE_KEY_CHILDCOUNT_1,                        \
+                TRACKER_SOURCE_KEY_CHILDCOUNT_2,                        \
+                TRACKER_SOURCE_KEY_CHILDCOUNT_3
 
 /* Tracker metadata keys */
 #define TRACKER_AKEY_ALBUM            "Audio:Album"

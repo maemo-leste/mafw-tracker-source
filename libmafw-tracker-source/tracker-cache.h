@@ -48,7 +48,7 @@ enum TrackerCacheResultType {
         /* Results were obtained with tracker_search_query_async */
         TRACKER_CACHE_RESULT_TYPE_QUERY,
         /* Results were obtained with
-         * tracker_metadata_get_unique_values_with_* */
+         * tracker_metadata_get_unique_values_with_aggregated */
         TRACKER_CACHE_RESULT_TYPE_UNIQUE,
         /* Results were obtained with tracker_get_metadata */
         TRACKER_CACHE_RESULT_TYPE_GET_METADATA,
@@ -82,12 +82,6 @@ typedef struct TrackerCache {
         GPtrArray *tracker_results;
         /* The list of keys */
         GHashTable *cache;
-        /* 'concat' key has been added */
-        gboolean concat_added;
-        /* 'count' key has been added */
-        gboolean count_added;
-        /* 'sum' key has been added */
-        gboolean sum_added;
 } TrackerCache;
 
 
@@ -118,10 +112,12 @@ void tracker_cache_key_add_derived(TrackerCache *cache,
 
 void tracker_cache_key_add(TrackerCache *cache,
                            const gchar *key,
+                           gint maximum_level,
                            gboolean user_key);
 
 void tracker_cache_key_add_several(TrackerCache *cache,
                                    gchar **keys,
+                                   gint max_level,
                                    gboolean user_keys);
 
 void tracker_cache_key_add_unique(TrackerCache *cache,
