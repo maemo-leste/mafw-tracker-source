@@ -242,6 +242,13 @@ InfoKeyTable *keymap_get_info_key_table(void)
                                     TRACKER_SOURCE_KEY_CHILDCOUNT_3,
                                     tracker_key);
 
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_PKEY_COUNT;
+                tracker_key->value_type = G_TYPE_INT;
+                g_hash_table_insert(table->playlist_keys,
+                                    TRACKER_SOURCE_KEY_CHILDCOUNT_4,
+                                    tracker_key);
+
                 /* Special key (not available in MAFW) */
                 tracker_key = g_new0(TrackerKey, 1);
                 tracker_key->tracker_key = TRACKER_PKEY_VALID_DURATION;
@@ -316,6 +323,14 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 metadata_key->special = SPECIAL_KEY_CHILDCOUNT;
                 g_hash_table_insert(table->metadata_keys,
                                     TRACKER_SOURCE_KEY_CHILDCOUNT_3,
+                                    metadata_key);
+
+                metadata_key = g_new0(MetadataKey, 1);
+                metadata_key->value_type = G_TYPE_INT;
+                metadata_key->allowed_empty = TRUE;
+                metadata_key->special = SPECIAL_KEY_CHILDCOUNT;
+                g_hash_table_insert(table->metadata_keys,
+                                    TRACKER_SOURCE_KEY_CHILDCOUNT_4,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);

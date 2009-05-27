@@ -531,8 +531,6 @@ tracker_cache_key_add(TrackerCache *cache,
         if (metadata_key->special == SPECIAL_KEY_CHILDCOUNT) {
                 level = _get_childcount_level(key);
                 if (level < 1 || level > maximum_level) {
-                        _insert_key(cache, key, TRACKER_CACHE_KEY_TYPE_VOID,
-                                    user_key, -1);
                         return;
                 }
         }
