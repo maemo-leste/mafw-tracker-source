@@ -154,6 +154,18 @@ tracker_metadata_get_unique_values_with_concat_count_and_sum_async(TrackerClient
                                                                    TrackerGPtrArrayReply callback,
                                                                    gpointer user_data);
 void
+tracker_metadata_get_unique_values_with_aggregates_async(TrackerClient *client,
+                                                         ServiceType service,
+                                                         char **meta_types,
+                                                         const char *query,
+                                                         char **aggregates,
+                                                         char **aggregate_fields,
+                                                         gboolean descending,
+                                                         int offset,
+                                                         int max_hits,
+                                                         TrackerGPtrArrayReply callback,
+                                                         gpointer user_data);
+void
 tracker_metadata_set(TrackerClient *client,
 		     ServiceType service,
 		     const char *id,
@@ -3534,6 +3546,78 @@ _check_sum_case(gchar *actual_sum, ServiceType service)
 }
 
 static gboolean
+_check_aggregates_case(char **aggregates)
+{
+        if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0 ||
+            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0 ||
+            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1") == 0 ||
+            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown") == 0 ||
+            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2") == 0) {
+                return aggregates[0] == NULL;
+        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists") == 0 ||
+                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums") == 0 ||
+                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres") == 0 ||
+                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2") == 0 ||
+                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_unknown") == 0 ||
+                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_invalid") == 0) {
+                return (g_ascii_strcasecmp(aggregates[0], "CONCAT") == 0 &&
+                        aggregates[1] == NULL);
+        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_albums") == 0 ||
+                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_music") == 0 ||
+                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_videos") == 0 ||
+                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_root") == 0 ||
+                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadatas_several") == 0) {
+                return (g_ascii_strcasecmp(aggregates[0], "COUNT") == 0 &&
+                        g_ascii_strcasecmp(aggregates[1], "SUM") == 0 &&
+                        aggregates[2] == NULL);
+        } else {
+                return FALSE;
+        }
+}
+
+static gboolean
+_check_aggregate_fields_case(char **aggregate_fields)
+{
+        if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0 ||
+            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0 ||
+            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1") == 0 ||
+            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown") == 0 ||
+            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2") == 0) {
+                return aggregate_fields[0] == NULL;
+        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists") == 0 ||
+                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2") == 0 ||
+                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_unknown") == 0) {
+                return (g_ascii_strcasecmp(aggregate_fields[0], "Audio:Album") == 0 &&
+                        aggregate_fields[1] == NULL);
+        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums") == 0 ||
+                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres") == 0 ||
+                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_invalid") == 0) {
+                return (g_ascii_strcasecmp(aggregate_fields[0], "Audio:Artist") == 0 &&
+                        aggregate_fields[1] == NULL);
+        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_albums") == 0 ||
+                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadatas_several") == 0) {
+                return (g_ascii_strcasecmp(aggregate_fields[0], "Audio:Album") == 0 &&
+                        g_ascii_strcasecmp(aggregate_fields[1], "Audio:Duration") == 0 &&
+                        aggregate_fields[2] == NULL);
+        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_music") == 0) {
+                return (g_ascii_strcasecmp(aggregate_fields[0], "*") == 0 &&
+                        g_ascii_strcasecmp(aggregate_fields[1], "Audio:Duration") == 0 &&
+                        aggregate_fields[2] == NULL);
+        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_videos") == 0) {
+                return (g_ascii_strcasecmp(aggregate_fields[0], "*") == 0 &&
+                        g_ascii_strcasecmp(aggregate_fields[1], "Video:Duration") == 0 &&
+                        aggregate_fields[2] == NULL);
+        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_root") == 0) {
+                return (g_ascii_strcasecmp(aggregate_fields[0], "*") == 0 &&
+                        (g_ascii_strcasecmp(aggregate_fields[1], "Audio:Duration") == 0 ||
+                         g_ascii_strcasecmp(aggregate_fields[1], "Video:Duration") == 0) &&
+                        aggregate_fields[2] == NULL);
+        } else {
+                return FALSE;
+        }
+}
+
+static gboolean
 _check_params(ServiceType service, const char *id, char **keys, char **values)
 {
 	GHashTable *metadata;
@@ -3902,6 +3986,15 @@ _send_concat_count_and_sum_expected_result(TrackerGPtrArrayReply callback,
 }
 
 static void
+_send_aggregates_expected_result(TrackerGPtrArrayReply callback,
+                                 char **keys,
+                                 ServiceType service,
+                                 gpointer user_data)
+{
+        _send_concat_count_and_sum_expected_result(callback, keys, service, user_data);
+}
+
+static void
 _send_query_expected_result(TrackerGPtrArrayReply callback,
                             int offset,
                             int max_hits,
@@ -4064,6 +4157,26 @@ tracker_metadata_get_unique_values_with_concat_count_and_sum_async(TrackerClient
             _check_count_case(count) &&
             _check_sum_case(sum, service)) {
                 _send_concat_count_and_sum_expected_result(callback, meta_types, service, user_data);
+        }
+}
+
+void tracker_metadata_get_unique_values_with_aggregates_async(TrackerClient *client,
+                                                              ServiceType service,
+                                                              char **meta_types,
+                                                              const char *query,
+                                                              char **aggregates,
+                                                              char **aggregate_fields,
+                                                              gboolean descending,
+                                                              int offset,
+                                                              int max_hits,
+                                                              TrackerGPtrArrayReply callback,
+                                                              gpointer user_data)
+{
+        if (_check_query_case(query) &&
+            _check_aggregates_case(aggregates) &&
+            _check_aggregate_fields_case(aggregate_fields)) {
+                _send_aggregates_expected_result(callback, meta_types,
+                                                 service, user_data);
         }
 }
 
