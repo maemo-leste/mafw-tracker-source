@@ -1079,11 +1079,13 @@ static void _do_tracker_get_metadata_from_service(
         MafwTrackerMetadataResultCB callback,
         gpointer user_data)
 {
-        gchar *aggregated_types[3] = { 0 };
-        gchar *aggregated_keys[3] = { 0 };
+        gchar *aggregate_types[3] = { 0 };
+        gchar *aggregate_keys[3] = { 0 };
         gchar *sum_key;
         ServiceType service;
         gchar **unique_keys;
+        gchar **tracker_keys;
+        MetadataKey *metadata_key;
         gint i;
         struct _mafw_metadata_closure *mc = NULL;
 
@@ -1130,28 +1132,44 @@ static void _do_tracker_get_metadata_from_service(
 
         tracker_cache_key_add_several(mc->cache, keys, 1, TRUE);
 
-        /* Check if we have to use count API */
-        i = 0;
-        if (tracker_cache_key_exists(mc->cache,
-                                     MAFW_METADATA_KEY_CHILDCOUNT_1)) {
-                aggregated_types[i] = AGGREGATED_TYPE_COUNT;
-                aggregated_keys[i] = "*";
-                i++;
+        /* Get the list of keys to use with tracker */
+        tracker_keys = tracker_cache_keys_get_tracker(mc->cache);
+
+        /* Create the array for aggregate keys and their types; skip unique
+         * key */
+        for (i = 1; tracker_keys[i]; i++) {
+                metadata_key = keymap_get_metadata(tracker_keys[i]);
+                switch (metadata_key->special) {
+                case SPECIAL_KEY_DURATION:
+                        aggregate_keys[i-1] =
+                                keymap_mafw_key_to_tracker_key(tracker_keys[i],
+                                                               service);
+                        aggregate_types[i-1] = AGGREGATED_TYPE_SUM;
+                        break;
+
+                case SPECIAL_KEY_CHILDCOUNT:
+                        aggregate_keys[i-1] = g_strdup("*");
+                        aggregate_types[i-1] = AGGREGATED_TYPE_COUNT;
+                        break;
+
+                default:
+                        aggregate_keys[i-1] =
+                                keymap_mafw_key_to_tracker_key(tracker_keys[i],
+                                                               service);
+                        aggregate_types[i-1] = AGGREGATED_TYPE_CONCAT;
+                        break;
+                }
         }
 
-        /* Check if we have to use sum API */
-        if (tracker_cache_key_exists(mc->cache, MAFW_METADATA_KEY_DURATION)) {
-                aggregated_types[i] = AGGREGATED_TYPE_SUM;
-                aggregated_keys[i] = sum_key;
-        }
+        g_strfreev(tracker_keys);
 
         tracker_metadata_get_unique_values_with_aggregates_async(
                 tc,
                 service,
                 unique_keys,
                 NULL,
-                aggregated_types,
-                aggregated_keys,
+                aggregate_types,
+                aggregate_keys,
                 FALSE,
                 0,
                 -1,
