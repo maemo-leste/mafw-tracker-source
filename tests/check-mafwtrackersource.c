@@ -1959,7 +1959,6 @@ START_TEST(test_get_metadata_playlist)
 	const gchar *const *metadata_keys = NULL;
 	gchar *object_id = NULL;
 	gchar *clip_id = NULL;
-        gchar *childcount_key = NULL;
 	GHashTable *metadata = NULL;
 	const gchar *mime = NULL;
 	GMainLoop *loop = NULL;
@@ -1972,11 +1971,10 @@ START_TEST(test_get_metadata_playlist)
 	loop = g_main_loop_new(NULL, FALSE);
 	context = g_main_loop_get_context(loop);
 
-        childcount_key = MAFW_METADATA_KEY_CHILDCOUNT(1);
 	metadata_keys = MAFW_SOURCE_LIST(
 		MAFW_METADATA_KEY_MIME,
 		MAFW_METADATA_KEY_DURATION,
-		childcount_key);
+		MAFW_METADATA_KEY_CHILDCOUNT_1);
 
 	object_id =
 		MAFW_TRACKER_SOURCE_UUID "::music/playlists/"
@@ -2025,14 +2023,13 @@ START_TEST(test_get_metadata_playlist)
 		clip_id, duration);
 
 	mval = mafw_metadata_first(metadata,
-				   childcount_key);
+				   MAFW_METADATA_KEY_CHILDCOUNT_1);
 	childcount = mval ? g_value_get_int(mval) : 0;
 	fail_if(childcount != 4,
 		"Childcount for '%s' is '%i' instead of expected '4'",
 		clip_id, childcount);
 
 	g_free(clip_id);
-        g_free(childcount_key);
 
         clear_metadata_results();
 
@@ -2183,7 +2180,6 @@ START_TEST(test_get_metadata_albums)
 
 	const gchar *const *metadata_keys = NULL;
 	gchar *object_id = NULL;
-        gchar *childcount_key = NULL;
 	GHashTable *metadata = NULL;
 	GList *item_metadata = NULL;
 	GValue *mval = NULL;
@@ -2197,11 +2193,10 @@ START_TEST(test_get_metadata_albums)
 	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
-        childcount_key = MAFW_METADATA_KEY_CHILDCOUNT(1);
 	metadata_keys = MAFW_SOURCE_LIST(
 		MAFW_METADATA_KEY_TITLE,
 		MAFW_METADATA_KEY_MIME,
-                childcount_key,
+                MAFW_METADATA_KEY_CHILDCOUNT_1,
 		MAFW_METADATA_KEY_DURATION);
 
 	/* Object ids to query */
@@ -2257,14 +2252,13 @@ START_TEST(test_get_metadata_albums)
 		category_id, duration);
 
 	mval = mafw_metadata_first(metadata,
-				   childcount_key);
+				   MAFW_METADATA_KEY_CHILDCOUNT_1);
 	childcount = mval ? g_value_get_int(mval) : 0;
 	fail_if(childcount != 9,
 		"Childcount for '%s' is '%i' instead of expected '9'",
 		category_id, childcount);
 
 	g_free(category_id);
-        g_free(childcount_key);
 
         clear_metadata_results();
 
@@ -2279,7 +2273,6 @@ START_TEST(test_get_metadata_music)
 
 	const gchar *const *metadata_keys = NULL;
 	gchar *object_id = NULL;
-        gchar *childcount_key = NULL;
 	GHashTable *metadata = NULL;
 	GList *item_metadata = NULL;
 	GValue *mval = NULL;
@@ -2293,11 +2286,10 @@ START_TEST(test_get_metadata_music)
 	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
-        childcount_key = MAFW_METADATA_KEY_CHILDCOUNT(1);
 	metadata_keys = MAFW_SOURCE_LIST(
 		MAFW_METADATA_KEY_TITLE,
 		MAFW_METADATA_KEY_MIME,
-                childcount_key,
+                MAFW_METADATA_KEY_CHILDCOUNT_1,
 		MAFW_METADATA_KEY_DURATION);
 
 	/* Object ids to query */
@@ -2353,14 +2345,13 @@ START_TEST(test_get_metadata_music)
 		category_id, duration);
 
 	mval = mafw_metadata_first(metadata,
-				   childcount_key);
+				   MAFW_METADATA_KEY_CHILDCOUNT_1);
 	childcount = mval ? g_value_get_int(mval) : 0;
 	fail_if(childcount != 5,
 		"Childcount for '%s' is '%i' instead of expected '5'",
 		category_id, childcount);
 
 	g_free(category_id);
-        g_free(childcount_key);
 
         clear_metadata_results();
 
@@ -2376,7 +2367,6 @@ START_TEST(test_get_metadata_videos)
 
 	const gchar *const *metadata_keys = NULL;
 	gchar *object_id = NULL;
-        gchar *childcount_key = NULL;
 	GHashTable *metadata = NULL;
 	GList *item_metadata = NULL;
 	GValue *mval = NULL;
@@ -2390,11 +2380,10 @@ START_TEST(test_get_metadata_videos)
 	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
-        childcount_key = MAFW_METADATA_KEY_CHILDCOUNT(1);
 	metadata_keys = MAFW_SOURCE_LIST(
 		MAFW_METADATA_KEY_TITLE,
 		MAFW_METADATA_KEY_MIME,
-                childcount_key,
+                MAFW_METADATA_KEY_CHILDCOUNT_1,
 		MAFW_METADATA_KEY_DURATION);
 
 	/* Object ids to query */
@@ -2450,14 +2439,13 @@ START_TEST(test_get_metadata_videos)
 		category_id, duration);
 
 	mval = mafw_metadata_first(metadata,
-				   childcount_key);
+				   MAFW_METADATA_KEY_CHILDCOUNT_1);
 	childcount = mval ? g_value_get_int(mval) : 0;
 	fail_if(childcount != 2,
 		"Childcount for '%s' is '%i' instead of expected '2'",
 		category_id, childcount);
 
 	g_free(category_id);
-        g_free(childcount_key);
 
         clear_metadata_results();
 
@@ -2472,7 +2460,6 @@ START_TEST(test_get_metadata_root)
 
 	const gchar *const *metadata_keys = NULL;
 	gchar *object_id = NULL;
-        gchar *childcount_key = NULL;
 	GHashTable *metadata = NULL;
 	GList *item_metadata = NULL;
 	GValue *mval = NULL;
@@ -2486,11 +2473,10 @@ START_TEST(test_get_metadata_root)
 	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
-        childcount_key = MAFW_METADATA_KEY_CHILDCOUNT(1);
 	metadata_keys = MAFW_SOURCE_LIST(
 		MAFW_METADATA_KEY_TITLE,
 		MAFW_METADATA_KEY_MIME,
-                childcount_key,
+                MAFW_METADATA_KEY_CHILDCOUNT_1,
 		MAFW_METADATA_KEY_DURATION);
 
 	/* Object ids to query */
@@ -2546,14 +2532,13 @@ START_TEST(test_get_metadata_root)
 		category_id, duration);
 
 	mval = mafw_metadata_first(metadata,
-				   childcount_key);
+				   MAFW_METADATA_KEY_CHILDCOUNT_1);
 	childcount = mval ? g_value_get_int(mval) : 0;
 	fail_if(childcount != 2,
 		"Childcount for '%s' is '%i' instead of expected '2'",
 		category_id, childcount);
 
 	g_free(category_id);
-        g_free(childcount_key);
 
         clear_metadata_results();
 
@@ -2598,19 +2583,17 @@ START_TEST(test_get_metadatas_none)
         GMainContext *context = NULL;
         const gchar *const *metadata_keys = NULL;
         gchar **object_ids = NULL;
-        gchar *childcount_key = NULL;
 
         RUNNING_CASE = "test_get_metadatas_none";
         loop = g_main_loop_new(NULL, FALSE);
         context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
-        childcount_key = MAFW_METADATA_KEY_CHILDCOUNT(1);
 	metadata_keys = MAFW_SOURCE_LIST(
 		MAFW_METADATA_KEY_TITLE,
 		MAFW_METADATA_KEY_MIME,
 		MAFW_METADATA_KEY_DURATION,
-		childcount_key);
+		MAFW_METADATA_KEY_CHILDCOUNT_1);
 
         object_ids = g_new0(gchar *, 1);
 
@@ -2634,7 +2617,6 @@ START_TEST(test_get_metadatas_none)
                 "Getting metadata from none returns some result");
 
         g_strfreev(object_ids);
-        g_free(childcount_key);
         clear_metadatas_results();
 
         g_main_loop_unref(loop);
@@ -2647,18 +2629,16 @@ START_TEST(test_get_metadatas_several)
         GMainContext *context = NULL;
         const gchar *const *metadata_keys = NULL;
         gchar **object_ids = NULL;
-        gchar *childcount_key = NULL;
 
         RUNNING_CASE = "test_get_metadatas_several";
         loop = g_main_loop_new(NULL, FALSE);
         context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
-        childcount_key = MAFW_METADATA_KEY_CHILDCOUNT(1);
 	metadata_keys = MAFW_SOURCE_LIST(
 		MAFW_METADATA_KEY_TITLE,
 		MAFW_METADATA_KEY_MIME,
-                childcount_key,
+                MAFW_METADATA_KEY_CHILDCOUNT_1,
 		MAFW_METADATA_KEY_DURATION);
 
         object_ids = g_new(gchar *, 4);
@@ -2693,7 +2673,6 @@ START_TEST(test_get_metadatas_several)
                 g_list_length(g_metadata_results));
 
         g_strfreev(object_ids);
-        g_free(childcount_key);
         clear_metadatas_results();
 
         g_main_loop_unref(loop);

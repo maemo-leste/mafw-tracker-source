@@ -574,7 +574,7 @@ void util_sum_count(gpointer data, gpointer user_data)
         gint *total_sum = (gint *) user_data;
         GHashTable *metadata = (GHashTable *) data;
 
-        gval = mafw_metadata_first(metadata, TRACKER_SOURCE_KEY_CHILDCOUNT_1);
+        gval = mafw_metadata_first(metadata, MAFW_METADATA_KEY_CHILDCOUNT_1);
         if (gval) {
                 *total_sum += g_value_get_int(gval);
         }

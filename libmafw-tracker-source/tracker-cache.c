@@ -276,7 +276,7 @@ static GValue * _aggregate_key(TrackerCache *cache,
         results_length = cache->tracker_results? cache->tracker_results->len: 0;
 
         if (count_childcount &&
-            strcmp(key, TRACKER_SOURCE_KEY_CHILDCOUNT_1) == 0) {
+            strcmp(key, MAFW_METADATA_KEY_CHILDCOUNT_1) == 0) {
                 total = results_length;
         } else {
                 for (i=0; i < results_length; i++) {
