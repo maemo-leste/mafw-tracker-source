@@ -4258,7 +4258,7 @@ tracker_metadata_get_multiple_async(TrackerClient *client,
 				      "test_browse_music_playlists_playlist1") == 0) {
 		indexes[0] = 0;
 		indexes[1] = 1;
-		indexes[3] = 2;
+		indexes[2] = 2;
 		_send_metadatas(indexes, 3, keys, callback, user_data);
 	}
 }
