@@ -231,10 +231,16 @@ static GValue *_get_value_thumbnail(TrackerCache *cache,
                                                     MAFW_METADATA_KEY_URI,
                                                     index);
         } else {
-                uri_value =
-                        tracker_cache_value_get(cache,
-                                                MAFW_METADATA_KEY_ALBUM_ART_URI,
-                                                index);
+                /* In case of album-art-large-uri, album-art is used */
+                if (strcmp(key, MAFW_METADATA_KEY_ALBUM_ART_LARGE_URI) == 0) {
+                        return _get_value_album_art(cache, index);
+                } else {
+                        uri_value =
+                                tracker_cache_value_get(
+                                        cache,
+                                        MAFW_METADATA_KEY_ALBUM_ART_URI,
+                                        index);
+                }
         }
 
         if (uri_value) {
