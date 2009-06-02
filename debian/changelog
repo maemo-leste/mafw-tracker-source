@@ -1,8 +1,29 @@
-mafw-tracker-source (0.1.2009.22-4) unstable; urgency=low
+mafw-tracker-source (0.1.2009.23-1) unstable; urgency=low
 
-  * MAFW tracker source, pre-release 0.2009.22-4
+  * MAFW tracker source, pre-release 0.2009.23-1
+  * Fix a stack overflow in tracker-source unit tests.
+  * Fix childcount and duration when getting metadata from songs.
+  * Add static versions of MAFW_METADATA_KEY_CHILDCOUNT.
+  * Fix unit tests.
+  * Support several childcounts when getting metadata from 
+    'localtagfs::music/*'.
+  * Handle only one unique key in cache instead of an array.
+  * Support several childcounts when browsing through 
+    'localtagfs::music/genres'.
+  * Support several childcounts when browsing through 
+    'localtagfs::music/artists'.
+  * Support several childcounts when browsing through 
+    'localtagfs::music/albums'.
+  * Extend MAFW_METADATA_KEY_CHILDCOUNT to specify at which level should the 
+    count be done.
+  * Add tracker_metadata_get_unique_values_with_aggregates_async to 
+    tracker-mockup.
+  * Get rid of 
+    tracker_metadata_get_unique_values_with_concat_count_and_sum_async
+    function and use tracker_metadata_get_unique_values_with_aggregates_async
+    instead.
 
- -- Juha Kellokoski <veitikka6@gmail.com>  Wed, 27 May 2009 10:30:00 +0300
+ -- Juha Kellokoski <veitikka6@gmail.com>  Fri, 29 May 2009 10:30:00 +0300
 
 mafw-tracker-source (0.1.2009.22-3) unstable; urgency=low
 
