@@ -3,7 +3,7 @@ Section: misc
 Priority: optional
 Maintainer: Juha Kellokoski <veitikka6@gmail.com>
 Build-Depends: debhelper (>= 4.0.0), libglib2.0-dev, libmafw0-dev (>= 0.1),
-               checkmore, libtrackerclient0-dev (>= 0.6.90), dbus, 
+               checkmore, libtrackerclient0-dev (>= 0.6.94), dbus, 
                libhildon-thumbnail-dev (>=3.0.17), libtotem-plparser-dev
 Standards-Version: 3.7.2
 
