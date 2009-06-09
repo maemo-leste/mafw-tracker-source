@@ -126,6 +126,10 @@ static GValue *_get_title(TrackerCache *cache, gint index)
                 }
 
                 uri_title = (gchar *) g_value_get_string(value_uri);
+                if (IS_STRING_EMPTY(uri_title)) {
+                        return value_title;
+                }
+
                 pathname = g_filename_from_uri(uri_title, NULL, NULL);
 
                 /* Get filename */
