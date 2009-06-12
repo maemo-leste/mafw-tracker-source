@@ -1,3 +1,17 @@
+mafw-tracker-source (0.1.2009.25-1) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.25-1
+
+ -- Juha Kellokoski <veitikka6@gmail.com>  Fri, 12 Jun 2009 11:00:00 +0300
+
+mafw-tracker-source (0.1.2009.24-3) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.24-3
+  * Fixes: NB#120793 - segmentation fault when video container items are imported by object id
+  * Fixes: NB#121428 - Tracker source dbus wrapper crashes when multiple clips are added from tracker source to p-roxy playlist
+
+ -- Juha Kellokoski <veitikka6@gmail.com>  Wed, 10 Jun 2009 11:00:00 +0300
+
 mafw-tracker-source (0.1.2009.24-2) unstable; urgency=low
 
   * MAFW tracker source, pre-release 0.2009.24-2
