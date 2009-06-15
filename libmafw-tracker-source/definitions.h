@@ -185,6 +185,8 @@
 struct _MafwTrackerSourcePrivate {
         /* A List of pending browse operations */
         GList *pending_browse_ops;
+        /* Last value of update progress */
+        gint last_progress;
 };
 
 #endif				/* _MAFW_TRACKER_SOURCE_DEFINITIONS_H_ */

@@ -127,11 +127,18 @@ static void _index_state_changed_handler(DBusGProxy *proxy,
                                          gboolean is_indexing_enabled,
                                          gpointer user_data)
 {
-        if (strcmp(state, "Idle") == 0 ||
-            strcmp(state, "Shutdown") == 0) {
-                g_signal_emit_by_name(user_data, "updating", 100);
-        } else {
-                g_signal_emit_by_name(user_data, "updating", 0);
+        MafwTrackerSource *source;
+
+        source = MAFW_TRACKER_SOURCE(user_data);
+
+        if (source->priv->last_progress != 100 &&
+            strcmp(state, "Idle") == 0) {
+                source->priv->last_progress = 100;
+                g_signal_emit_by_name(source, "updating", 100);
+        } else if (source->priv->last_progress == 100 &&
+                   strcmp(state, "Indexing") == 0) {
+                source->priv->last_progress = 0;
+                g_signal_emit_by_name(source, "updating", 0);
         }
 }
 
@@ -144,9 +151,18 @@ static void _progress_changed_handler (DBusGProxy  *proxy,
                                        gdouble seconds_elapsed,
                                        gpointer user_data)
 {
+        MafwTrackerSource *source;
+        gint progress;
+
+        source = MAFW_TRACKER_SOURCE(user_data);
+
         /* Reserve 100% when index finishes */
-        g_signal_emit_by_name(user_data, "updating",
-                              CLAMP(100*items_done/items_total, 0, 99));
+        progress = CLAMP(100*items_done/items_total, 0, 99);
+
+        if (source->priv->last_progress != progress) {
+                source->priv->last_progress = progress;
+                g_signal_emit_by_name(source, "updating", progress);
+        }
 }
 
 

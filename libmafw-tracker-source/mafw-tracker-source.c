@@ -272,6 +272,9 @@ static void mafw_tracker_source_init(MafwTrackerSource * source_tracker)
 
         /* Initialize list of pending browse operations */
         source_tracker->priv->pending_browse_ops = NULL;
+
+        /* Initialize last progress; assume that tracker isn't indexing */
+        source_tracker->priv->last_progress = 100;
 }
 
 /**
