@@ -135,6 +135,21 @@ static void _index_state_changed_handler(DBusGProxy *proxy,
         }
 }
 
+static void _progress_changed_handler (DBusGProxy  *proxy,
+                                       const gchar *service,
+                                       const gchar *uri,
+                                       gint items_done,
+                                       gint items_remaining,
+                                       gint items_total,
+                                       gdouble seconds_elapsed,
+                                       gpointer user_data)
+{
+        /* Reserve 100% when index finishes */
+        g_signal_emit_by_name(user_data, "updating",
+                              CLAMP(100*items_done/items_total, 0, 99));
+}
+
+
 static GList *_build_objectids_from_pathname(TrackerCache *cache)
 {
         GList *objectid_list = NULL;
@@ -443,6 +458,16 @@ void  ti_init_watch (GObject *source)
                 G_TYPE_BOOLEAN,
                 G_TYPE_BOOLEAN,
                 G_TYPE_INVALID);
+        dbus_g_object_register_marshaller (
+                mafw_tracker_source_marshal_VOID__STRING_STRING_INT_INT_INT_DOUBLE,
+                G_TYPE_NONE,
+                G_TYPE_STRING,
+                G_TYPE_STRING,
+                G_TYPE_INT,
+                G_TYPE_INT,
+                G_TYPE_INT,
+                G_TYPE_DOUBLE,
+                G_TYPE_INVALID);
 
 	dbus_g_proxy_add_signal (proxy,
 				 "ServiceStatisticsUpdated",
@@ -458,12 +483,24 @@ void  ti_init_watch (GObject *source)
                                  G_TYPE_BOOLEAN,
                                  G_TYPE_BOOLEAN,
                                  G_TYPE_INVALID);
+        dbus_g_proxy_add_signal (proxy,
+                                 "IndexProgress",
+                                 G_TYPE_STRING,
+                                 G_TYPE_STRING,
+                                 G_TYPE_INT,
+                                 G_TYPE_INT,
+                                 G_TYPE_INT,
+                                 G_TYPE_DOUBLE,
+                                 G_TYPE_INVALID);
 
 	dbus_g_proxy_connect_signal (proxy, "ServiceStatisticsUpdated",
 				     G_CALLBACK(_stats_changed_handler),
 				     source, NULL);
         dbus_g_proxy_connect_signal (proxy, "IndexStateChange",
                                      G_CALLBACK (_index_state_changed_handler),
+                                     source, NULL);
+        dbus_g_proxy_connect_signal (proxy, "IndexProgress",
+                                     G_CALLBACK(_progress_changed_handler),
                                      source, NULL);
 }
 
