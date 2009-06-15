@@ -5,9 +5,19 @@
 #
 # Copyright (C) 2007, 2008, 2009 Nokia. All rights reserved.
 
+mafw-tracker-source-marshal.h: mafw-tracker-source-marshal.list
+	$(GLIB_GENMARSHAL) $< --prefix=mafw_tracker_source_marshal --header > $@
+
+mafw-tracker-source-marshal.c: mafw-tracker-source-marshal.list
+	$(GLIB_GENMARSHAL) $< --prefix=mafw_tracker_source_marshal --body > $@
+
 lib_LTLIBRARIES			= mafw-tracker-source.la
 
-mafw_tracker_source_la_SOURCES	= mafw-tracker-source-browse.c \
+BUILT_SOURCES = mafw-tracker-source-marshal.h \
+		mafw-tracker-source-marshal.c
+
+mafw_tracker_source_la_SOURCES	= mafw-tracker-source-marshal-main.c \
+				  mafw-tracker-source-browse.c \
 				  mafw-tracker-source-metadata.c \
 				  mafw-tracker-source.c \
 				  tracker-iface.c \

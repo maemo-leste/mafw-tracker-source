@@ -37,6 +37,7 @@
 #include "tracker-iface.h"
 #include "tracker-cache.h"
 #include "mafw-tracker-source.h"
+#include "mafw-tracker-source-marshal.h"
 #include "util.h"
 #include "album-art.h"
 #include "key-mapping.h"
@@ -114,6 +115,24 @@ static void _stats_changed_handler(DBusGProxy *proxy,
 					      VIDEOS_OBJECT_ID);
 		}
 	}
+}
+
+static void _index_state_changed_handler(DBusGProxy *proxy,
+                                         const gchar *state,
+                                         gboolean initial_index,
+                                         gboolean in_merge,
+                                         gboolean is_paused_manually,
+                                         gboolean is_paused_for_bat,
+                                         gboolean is_paused_for_io,
+                                         gboolean is_indexing_enabled,
+                                         gpointer user_data)
+{
+        if (strcmp(state, "Idle") == 0 ||
+            strcmp(state, "Shutdown") == 0) {
+                g_signal_emit_by_name(user_data, "updating", 100);
+        } else {
+                g_signal_emit_by_name(user_data, "updating", 0);
+        }
 }
 
 static GList *_build_objectids_from_pathname(TrackerCache *cache)
@@ -413,13 +432,39 @@ void  ti_init_watch (GObject *source)
 
 	collection_type = dbus_g_type_get_collection("GPtrArray",
 						      G_TYPE_STRV);
+	dbus_g_object_register_marshaller (
+                mafw_tracker_source_marshal_VOID__STRING_BOOLEAN_BOOLEAN_BOOLEAN_BOOLEAN_BOOLEAN_BOOLEAN,
+                G_TYPE_NONE,
+                G_TYPE_STRING,
+                G_TYPE_BOOLEAN,
+                G_TYPE_BOOLEAN,
+                G_TYPE_BOOLEAN,
+                G_TYPE_BOOLEAN,
+                G_TYPE_BOOLEAN,
+                G_TYPE_BOOLEAN,
+                G_TYPE_INVALID);
+
 	dbus_g_proxy_add_signal (proxy,
 				 "ServiceStatisticsUpdated",
 				 collection_type,
 				 G_TYPE_INVALID);
+        dbus_g_proxy_add_signal (proxy,
+                                 "IndexStateChange",
+                                 G_TYPE_STRING,
+                                 G_TYPE_BOOLEAN,
+                                 G_TYPE_BOOLEAN,
+                                 G_TYPE_BOOLEAN,
+                                 G_TYPE_BOOLEAN,
+                                 G_TYPE_BOOLEAN,
+                                 G_TYPE_BOOLEAN,
+                                 G_TYPE_INVALID);
+
 	dbus_g_proxy_connect_signal (proxy, "ServiceStatisticsUpdated",
 				     G_CALLBACK(_stats_changed_handler),
 				     source, NULL);
+        dbus_g_proxy_connect_signal (proxy, "IndexStateChange",
+                                     G_CALLBACK (_index_state_changed_handler),
+                                     source, NULL);
 }
 
 void ti_deinit()
