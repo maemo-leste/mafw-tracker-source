@@ -252,6 +252,8 @@ static void mafw_tracker_source_class_init(MafwTrackerSourceClass * klass)
 
 	source_class->browse = mafw_tracker_source_browse;
         source_class->cancel_browse = mafw_tracker_source_cancel_browse;
+        source_class->get_update_progress =
+                mafw_tracker_source_get_update_progress;
 	source_class->get_metadata = mafw_tracker_source_get_metadata;
 	source_class->get_metadatas = mafw_tracker_source_get_metadatas;
 	source_class->destroy_object = mafw_tracker_source_destroy_object;
@@ -298,7 +300,7 @@ MafwSource *mafw_tracker_source_new(void)
 				     "uuid", MAFW_TRACKER_SOURCE_UUID,
 				     "name", MAFW_TRACKER_SOURCE_NAME,
 				     NULL));
-		
+
 		/* Connect to notifications about changes on the filesystem */
 		ti_init_watch(G_OBJECT(source));
 	}
@@ -385,4 +387,11 @@ void mafw_tracker_source_destroy_object(MafwSource *self,
 		g_free(artist);
 
 	return;
+}
+
+gint mafw_tracker_source_get_update_progress(MafwSource *self)
+{
+        g_return_val_if_fail(MAFW_IS_TRACKER_SOURCE(self), 100);
+
+        return MAFW_TRACKER_SOURCE(self)->priv->last_progress;
 }
