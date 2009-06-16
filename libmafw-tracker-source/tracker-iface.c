@@ -157,7 +157,11 @@ static void _progress_changed_handler (DBusGProxy  *proxy,
         source = MAFW_TRACKER_SOURCE(user_data);
 
         /* Reserve 100% when index finishes */
-        progress = CLAMP(100*items_done/items_total, 0, 99);
+	if (items_total > 0) {
+		progress = CLAMP(100*items_done/items_total, 0, 99);
+	} else {
+		progress = 99;
+	}
 
         if (source->priv->last_progress != progress) {
                 source->priv->last_progress = progress;
