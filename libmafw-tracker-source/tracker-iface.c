@@ -160,7 +160,7 @@ static void _progress_changed_handler (DBusGProxy  *proxy,
 	if (items_total > 0) {
 		progress = CLAMP(100*items_done/items_total, 0, 99);
 	} else {
-		progress = 99;
+		progress = 0;
 	}
 
         if (source->priv->last_progress != progress) {
