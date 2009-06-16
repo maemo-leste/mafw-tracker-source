@@ -115,7 +115,7 @@
 #define TRACKER_AKEY_TITLE            "Audio:Title"
 #define TRACKER_AKEY_TRACK            "Audio:TrackNo"
 #define TRACKER_AKEY_YEAR             "Audio:ReleaseDate"
-#define TRACKER_FKEY_ADDED            "File:Modified"
+#define TRACKER_FKEY_ADDED            "File:Added"
 #define TRACKER_FKEY_COPYRIGHT        "File:Copyright"
 #define TRACKER_FKEY_FILENAME         "File:Name"
 #define TRACKER_FKEY_FILESIZE         "File:Size"
