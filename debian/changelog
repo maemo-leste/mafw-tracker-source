@@ -1,3 +1,20 @@
+mafw-tracker-source (0.1.2009.25-3) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.25-3
+
+ -- Juha Kellokoski <veitikka6@gmail.com>  Mon, 15 Jun 2009 14:00:00 +0300
+
+mafw-tracker-source (0.1.2009.25-2) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.25-2
+  * Fixes: NB#102987 - Play-count is not incremented after 1
+  * Fixes: NB#103172 - 'Never played' automatic playlist not updated properly
+  * Avoid sending twice the same progress value.
+  * Update progress while tracker is indexing.
+  * Send updating signal when tracker starts/end indexing.
+
+ -- Juha Kellokoski <veitikka6@gmail.com>  Mon, 15 Jun 2009 14:00:00 +0300
+
 mafw-tracker-source (0.1.2009.25-1) unstable; urgency=low
 
   * MAFW tracker source, pre-release 0.2009.25-1
