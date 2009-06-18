@@ -142,10 +142,10 @@ static void _get_metadata_tracker_cb(GHashTable *result,
 
         /* Save error */
         if (error) {
+               /* This error, if emitted with send_error is freed after the callback
+                  chain, so we have to make a copy when we add it to the closure */
                 if (!mc->common->error) {
-                        mc->common->error = error;
-                } else {
-                        g_error_free(error);
+                        mc->common->error = g_error_copy(error);
                 }
         }
 
@@ -175,7 +175,9 @@ static void _get_metadatas_tracker_cb(GList *results,
         /* Save error */
         if (error) {
                 if (!mc->common->error) {
-                        mc->common->error = error;
+			/* TODO: Check if copying this error causes leaks in
+			 some parts of the code. If that's the case fix them. */
+                        mc->common->error =  g_error_copy(error);
                 } else {
                         g_error_free(error);
                 }
@@ -336,7 +338,9 @@ static void _get_metadatas_tracker_from_playlist_cb(GList *results,
         /* Save error */
         if (error) {
                 if (!mc->common->error) {
-                        mc->common->error = error;
+			/* TODO: Check if copying this error causes leaks in
+			 some parts of the code. If that's the case fix them. */
+                        mc->common->error = g_error_copy(error);
                 } else {
                         g_error_free(error);
                 }
@@ -356,6 +360,10 @@ static void _get_metadatas_tracker_from_playlist_cb(GList *results,
                         nmc->metadata_value = current_result->data;
                         nmc->common = mc->common;
 
+			/* If there aren't more playlists (remaining == 0), this
+			   will send the results after calculating the duration
+			   of the playlist. So, don't call emit_metadatas_results
+			   in this case. */
                         mafw_tracker_source_get_playlist_duration(
                                 nmc->common->source,
                                 nmc->object_id,
@@ -367,15 +375,15 @@ static void _get_metadatas_tracker_from_playlist_cb(GList *results,
                                 current_obj->data,
                                 g_hash_table_ref(current_result->data));
                         mc->common->remaining--;
+
+			/* If there aren't more playlists, send results. */
+			if (mc->common->remaining == 0) {
+				_emit_metadatas_results(mc->common);
+			}
                 }
 
                 current_obj = current_obj->next;
                 current_result = current_result->next;
-        }
-
-        /* If there aren't more elements, send results */
-        if (mc->common->remaining == 0) {
-                _emit_metadatas_results(mc->common);
         }
 
         /* Free closure */
