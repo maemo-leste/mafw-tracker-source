@@ -150,7 +150,8 @@ static void _get_metadata_tracker_cb(GHashTable *result,
         }
 
         /* Save result */
-        g_hash_table_insert(mc->common->metadatas,
+	if (result)
+        	g_hash_table_insert(mc->common->metadatas,
                             mc->object_id,
                             g_hash_table_ref(result));
         mc->common->remaining--;
