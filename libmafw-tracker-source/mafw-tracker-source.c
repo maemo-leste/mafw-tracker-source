@@ -362,7 +362,7 @@ void mafw_tracker_source_destroy_object(MafwSource *self,
 				  MAFW_SOURCE_LIST(MAFW_METADATA_KEY_URI));
 
 		ti_get_songs(genre, artist, album, dc->metadata_keys, NULL,
-			     NULL, FALSE, 0, 0,	_destroy_object_tracker_cb, dc);
+			     NULL, 0, 0, _destroy_object_tracker_cb, dc);
 	} else {
 		/* Delete other containers is not allowed */
 		error = g_error_new(MAFW_SOURCE_ERROR,

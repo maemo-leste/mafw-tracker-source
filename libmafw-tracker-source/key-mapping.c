@@ -597,6 +597,63 @@ gchar **keymap_mafw_keys_to_tracker_keys(gchar **mafw_keys,
 	return tracker_keys;
 }
 
+gchar **keymap_mafw_sort_keys_to_tracker_keys(gchar **mafw_keys,
+                                              ServiceType service)
+{
+	gchar **tracker_keys;
+	gint i, count;
+        TrackerKey *tracker_key;
+        gchar *key;
+        gchar *sort_type;
+
+	if (mafw_keys == NULL) {
+		return NULL;
+	}
+
+	/* Count the number of keys */
+	for (i=0, count=0; mafw_keys[i] != NULL; i++) {
+                key = mafw_keys[i];
+                /* Skip the sort type (+/-) */
+                if (key[0] == '+' || key[0] == '-') {
+                        key++;
+                }
+                /* Check if the key is translatable to tracker */
+                if (keymap_get_tracker_info(key, service) != NULL) {
+                        count++;
+                }
+	}
+
+	/* Allocate memory for the converted array (include trailing NULL) */
+	tracker_keys = g_new0(gchar *, count + 1);
+
+	/* Now, translate the keys supported in tracker */
+	for (i=0, count=0; mafw_keys[i] != NULL; i++) {
+                key = mafw_keys[i];
+                /* Set the sort type */
+                if (key[0] == '-') {
+                        sort_type = " DESC";
+                        key++;
+                } else {
+                        sort_type = " ASC";
+                        if (key[0] == '+') {
+                                key++;
+                        }
+                }
+                tracker_key = keymap_get_tracker_info(key, service);
+                if (tracker_key) {
+                        tracker_keys[count++] =
+                                g_strconcat (
+                                        keymap_mafw_key_to_tracker_key(
+                                                mafw_keys[i],
+                                                service),
+                                        sort_type,
+                                        NULL);
+                }
+        }
+
+	return tracker_keys;
+}
+
 MetadataKey *keymap_get_metadata(const gchar *mafw_key)
 {
         static InfoKeyTable *table = NULL;

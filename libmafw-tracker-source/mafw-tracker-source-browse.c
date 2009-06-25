@@ -47,8 +47,6 @@ struct _browse_closure {
 	gchar **metadata_keys;
 	/* Recursive query */
 	gboolean recursive;
-	/* Sort descending? */
-	gboolean is_sort_descending;
         /* Sort fields */
         gchar **sort_fields;
 	/* Filter criteria */
@@ -168,36 +166,6 @@ static inline void _remove_pending_browse_operation(MafwTrackerSource *source,
 		g_list_remove(source->priv->pending_browse_ops, bc);
 }
 
-static void
-_free_sortfield_list(gchar **sort_fields)
-{
-        gint i = 0;
-
-        if (!sort_fields)
-                return;
-
-        /* Previously +/- char was ignored; add it before relesing the
-         * list */
-        while(sort_fields[i]) {
-                sort_fields[i]--;
-                i++;
-        }
-
-        g_strfreev(sort_fields);
-}
-
-static gboolean
-_is_sortfield_descending(gchar **sort_fields)
-{
-        if ((!sort_fields) || (!sort_fields[0]))
-                return FALSE;
-
-        /* As we specify a criteria per each, but we only can use a
-         * global criteria to be used in tracker, let's the first
-         * field to determine the whole criteria */
-        return (*(sort_fields[0]-1)) == '-';
-}
-
 static void _browse_closure_free(gpointer data)
 {
 	struct _browse_closure *bc;
@@ -227,7 +195,7 @@ static void _browse_closure_free(gpointer data)
 	g_strfreev(bc->metadata_keys);
 
         /* Free sort fields */
-        _free_sortfield_list(bc->sort_fields);
+        g_strfreev(bc->sort_fields);
 
 	/* Free objectid prefix */
 	g_free(bc->object_id_prefix);
@@ -318,28 +286,6 @@ static void _add_object_id_prefix_to_list(gchar *object_id_prefix,
 		}
 		iter = g_list_next(iter);
 	}
-}
-
-static gchar **
-_build_sortfield_list(const gchar *sort_clause)
-{
-        gchar **sort_fields;
-        gint i = 0;
-
-        if (!sort_clause)
-                return NULL;
-
-        /* Split the string in tokens */
-        sort_fields = g_strsplit(sort_clause, ",", 0);
-
-        /* Every token starts with + or - to indicate an ascending or
-         * descending order. Ignore this char */
-        while (sort_fields[i]) {
-                sort_fields[i]++;
-                i++;
-        }
-
-        return sort_fields;
 }
 
 static void _browse_tracker_cb(MafwResult *clips,
@@ -594,7 +540,6 @@ static void _browse_enqueue_videos_cb(MafwResult *clips,
         ti_get_videos(bc->metadata_keys,
 		      bc->filter_criteria,
 		      bc->sort_fields,
-		      bc->is_sort_descending,
 		      bc->offset,
 		      bc->count,
 		      _browse_tracker_cb,
@@ -884,7 +829,6 @@ static void _browse_songs_branch(const gchar *genre,
                      bc->metadata_keys,
                      bc->filter_criteria,
                      bc->sort_fields,
-                     bc->is_sort_descending,
                      bc->offset,
                      bc->count,
                      _browse_tracker_cb,
@@ -912,7 +856,6 @@ static void _browse_albums_branch(const gchar *album,
                                      bc->metadata_keys,
                                      bc->filter_criteria,
                                      bc->sort_fields,
-                                     bc->is_sort_descending,
                                      bc->offset,
                                      bc->count,
                                      _browse_tracker_cb,
@@ -927,7 +870,6 @@ static void _browse_albums_branch(const gchar *album,
                                       bc->metadata_keys,
                                       bc->filter_criteria,
                                       bc->sort_fields,
-                                      bc->is_sort_descending,
                                       bc->offset,
                                       bc->count,
                                       _browse_tracker_cb,
@@ -953,7 +895,6 @@ static void _browse_artists_branch(const gchar *artist,
                                      bc->metadata_keys,
                                      bc->filter_criteria,
                                      bc->sort_fields,
-                                     bc->is_sort_descending,
                                      bc->offset,
                                      bc->count,
                                      _browse_tracker_cb,
@@ -968,7 +909,6 @@ static void _browse_artists_branch(const gchar *artist,
                                       bc->metadata_keys,
                                       bc->filter_criteria,
                                       bc->sort_fields,
-                                      bc->is_sort_descending,
                                       bc->offset,
                                       bc->count,
                                       _browse_tracker_cb,
@@ -983,7 +923,6 @@ static void _browse_artists_branch(const gchar *artist,
                                        bc->metadata_keys,
                                        bc->filter_criteria,
                                        bc->sort_fields,
-                                       bc->is_sort_descending,
                                        bc->offset,
                                        bc->count,
                                        _browse_tracker_cb,
@@ -1010,7 +949,6 @@ static void _browse_genres_branch(const gchar *genre,
                                      bc->metadata_keys,
                                      bc->filter_criteria,
                                      bc->sort_fields,
-                                     bc->is_sort_descending,
                                      bc->offset,
                                      bc->count,
                                      _browse_tracker_cb,
@@ -1025,7 +963,6 @@ static void _browse_genres_branch(const gchar *genre,
                                       bc->metadata_keys,
                                       bc->filter_criteria,
                                       bc->sort_fields,
-                                      bc->is_sort_descending,
                                       bc->offset,
                                       bc->count,
                                       _browse_tracker_cb,
@@ -1040,7 +977,6 @@ static void _browse_genres_branch(const gchar *genre,
                                        bc->metadata_keys,
                                        bc->filter_criteria,
                                        bc->sort_fields,
-                                       bc->is_sort_descending,
                                        bc->offset,
                                        bc->count,
                                        _browse_tracker_cb,
@@ -1054,7 +990,6 @@ static void _browse_genres_branch(const gchar *genre,
                         ti_get_genres(bc->metadata_keys,
                                       bc->filter_criteria,
                                       bc->sort_fields,
-                                      bc->is_sort_descending,
                                       bc->offset,
                                       bc->count,
                                       _browse_tracker_cb,
@@ -1075,7 +1010,6 @@ static void _browse_root(struct _browse_closure *bc)
                              bc->metadata_keys,
                              bc->filter_criteria,
                              bc->sort_fields,
-                             bc->is_sort_descending,
                              bc->offset,
                              bc->count,
                              _browse_enqueue_videos_cb,
@@ -1119,7 +1053,6 @@ static void _browse_videos_branch(struct _browse_closure *bc)
         ti_get_videos(bc->metadata_keys,
                       bc->filter_criteria,
                       bc->sort_fields,
-                      bc->is_sort_descending,
                       bc->offset,
                       bc->count,
                       _browse_tracker_cb,
@@ -1317,8 +1250,8 @@ mafw_tracker_source_browse(MafwSource *self,
 	bc->source = self;
 	bc->object_id = g_strdup(object_id);
 	bc->metadata_keys = g_strdupv((gchar **) meta_keys);
-	bc->sort_fields = _build_sortfield_list(sort_criteria);
-	bc->is_sort_descending = _is_sortfield_descending(bc->sort_fields);
+	bc->sort_fields = sort_criteria?
+                g_strsplit(sort_criteria, ",", 0): NULL;
 	bc->filter_criteria = ti_create_filter(filter);
 	bc->offset = skip_count;
 	bc->count = item_count;

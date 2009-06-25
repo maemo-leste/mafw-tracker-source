@@ -533,7 +533,6 @@ void ti_deinit()
 void ti_get_videos(gchar **keys,
 		   const gchar *rdf_filter,
 		   gchar **sort_fields,
-		   gboolean is_descending,
 		   guint offset,
 		   guint count,
 		   MafwTrackerSongsResultCB callback,
@@ -574,8 +573,8 @@ void ti_get_videos(gchar **keys,
 
 	if (sort_fields != NULL) {
 		tracker_sort_keys =
-			keymap_mafw_keys_to_tracker_keys(sort_fields,
-							 SERVICE_VIDEOS);
+			keymap_mafw_sort_keys_to_tracker_keys(sort_fields,
+                                                              SERVICE_VIDEOS);
 	} else {
 		tracker_sort_keys =
 			util_create_sort_keys_array(2,
@@ -593,7 +592,7 @@ void ti_get_videos(gchar **keys,
                                    offset, count,
                                    FALSE,   /* Sort by service */
                                    tracker_sort_keys, /* Sort fields */
-                                   is_descending, /* sort descending? */
+                                   FALSE, /* sort descending? */
                                    _tracker_query_cb,
                                    mc);
 
@@ -611,7 +610,6 @@ void ti_get_songs(const gchar *genre,
                   gchar **keys,
                   const gchar *user_filter,
                   gchar **sort_fields,
-                  gboolean is_descending,
                   guint offset,
                   guint count,
                   MafwTrackerSongsResultCB callback,
@@ -679,8 +677,9 @@ void ti_get_songs(const gchar *genre,
 	tracker_keys = keymap_mafw_keys_to_tracker_keys(keys_to_query,
 							SERVICE_MUSIC);
         g_strfreev(keys_to_query);
-        tracker_sort_keys = keymap_mafw_keys_to_tracker_keys(use_sort_fields,
-							     SERVICE_MUSIC);
+        tracker_sort_keys =
+                keymap_mafw_sort_keys_to_tracker_keys(use_sort_fields,
+                                                      SERVICE_MUSIC);
         rdf_filter = util_create_filter_from_category(genre, artist,
 						      album, user_filter);
 
@@ -694,7 +693,7 @@ void ti_get_songs(const gchar *genre,
                                    offset, count,
                                    FALSE,   /* Sort by service */
                                    tracker_sort_keys, /* Sort fields */
-                                   is_descending, /* sort descending? */
+                                   FALSE, /* sort descending? */
                                    _tracker_query_cb,
                                    mc);
 
@@ -714,7 +713,6 @@ void ti_get_artists(const gchar *genre,
                     gchar **keys,
 		    const gchar *rdf_filter,
 		    gchar **sort_fields,
-		    gboolean is_descending,
 		    guint offset,
 		    guint count,
 		    MafwTrackerSongsResultCB callback,
@@ -830,7 +828,6 @@ void ti_get_artists(const gchar *genre,
 void ti_get_genres(gchar **keys,
 		   const gchar *rdf_filter,
 		   gchar **sort_fields,
-		   gboolean is_descending,
 		   guint offset,
 		   guint count,
 		   MafwTrackerSongsResultCB callback,
@@ -976,7 +973,6 @@ void ti_get_albums(const gchar *genre,
                    gchar **keys,
                    const gchar *rdf_filter,
                    gchar **sort_fields,
-                   gboolean is_descending,
                    guint offset,
                    guint count,
                    MafwTrackerSongsResultCB callback,
@@ -1583,12 +1579,11 @@ void ti_get_playlist_entries(GList *pathnames,
 
 	rdf_filter = g_strdup_printf (RDF_QUERY_BY_FILE_SET, path_list);
         ti_get_songs(NULL, NULL, NULL,
-			      keys,
-			      rdf_filter,
-			      NULL,
-			      FALSE,
-			      0, -1,
-			      callback, user_data);
+                     keys,
+                     rdf_filter,
+                     NULL,
+                     0, -1,
+                     callback, user_data);
 	g_free(rdf_filter);
 	g_free(path_list);
         g_free(string_sizes);
