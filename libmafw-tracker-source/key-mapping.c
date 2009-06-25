@@ -294,6 +294,13 @@ InfoKeyTable *keymap_get_info_key_table(void)
                                     tracker_key);
 
                 tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_FKEY_MODIFIED;
+                tracker_key->value_type = G_TYPE_DATE;
+                g_hash_table_insert(table->common_keys,
+                                    MAFW_METADATA_KEY_MODIFIED,
+                                    tracker_key);
+
+                tracker_key = g_new0(TrackerKey, 1);
                 tracker_key->tracker_key = TRACKER_FKEY_FULLNAME;
                 tracker_key->value_type = G_TYPE_STRING;
                 g_hash_table_insert(table->common_keys,
@@ -441,6 +448,12 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 metadata_key->value_type = G_TYPE_LONG;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_ADDED,
+                                    metadata_key);
+
+                metadata_key = g_new0(MetadataKey, 1);
+                metadata_key->value_type = G_TYPE_LONG;
+                g_hash_table_insert(table->metadata_keys,
+                                    MAFW_METADATA_KEY_MODIFIED,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);

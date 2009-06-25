@@ -61,6 +61,7 @@
                 MAFW_METADATA_KEY_DESCRIPTION,                          \
                 MAFW_METADATA_KEY_ENCODING,				\
 		MAFW_METADATA_KEY_ADDED,				\
+                MAFW_METADATA_KEY_MODIFIED,                             \
                 MAFW_METADATA_KEY_THUMBNAIL_URI,                        \
                 MAFW_METADATA_KEY_THUMBNAIL_SMALL_URI,			\
                 MAFW_METADATA_KEY_THUMBNAIL_MEDIUM_URI,                 \
@@ -116,6 +117,7 @@
 #define TRACKER_AKEY_TRACK            "Audio:TrackNo"
 #define TRACKER_AKEY_YEAR             "Audio:ReleaseDate"
 #define TRACKER_FKEY_ADDED            "File:Added"
+#define TRACKER_FKEY_MODIFIED         "File:Modified"
 #define TRACKER_FKEY_COPYRIGHT        "File:Copyright"
 #define TRACKER_FKEY_FILENAME         "File:Name"
 #define TRACKER_FKEY_FILESIZE         "File:Size"
