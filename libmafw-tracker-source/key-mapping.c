@@ -644,7 +644,7 @@ gchar **keymap_mafw_sort_keys_to_tracker_keys(gchar **mafw_keys,
                         tracker_keys[count++] =
                                 g_strconcat (
                                         keymap_mafw_key_to_tracker_key(
-                                                mafw_keys[i],
+                                                key,
                                                 service),
                                         sort_type,
                                         NULL);
