@@ -95,7 +95,10 @@ guint mafw_tracker_source_browse(MafwSource * self,
 gboolean mafw_tracker_source_cancel_browse(MafwSource * self,
                                            guint browse_id,
                                            GError **error);
-gint mafw_tracker_source_get_update_progress(MafwSource * self);
+gint mafw_tracker_source_get_update_progress(MafwSource * self,
+                                             gint *processed_items,
+                                             gint *remaining_items,
+                                             gint *remaining_time);
 void mafw_tracker_source_get_metadata(MafwSource * self,
                                       const gchar * object_id,
                                       const gchar * const * metadata_keys,

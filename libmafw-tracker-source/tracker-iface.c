@@ -133,12 +133,25 @@ static void _index_state_changed_handler(DBusGProxy *proxy,
 
         if (source->priv->last_progress != 100 &&
             strcmp(state, "Idle") == 0) {
+                /* Indexing has finished */
                 source->priv->last_progress = 100;
-                g_signal_emit_by_name(source, "updating", 100);
+                source->priv->remaining_items = 0;
+                source->priv->remaining_time = 0;
+                g_signal_emit_by_name(source, "updating", 100,
+                                      source->priv->processed_items,
+                                      source->priv->remaining_items,
+                                      source->priv->remaining_time);
         } else if (source->priv->last_progress == 100 &&
                    strcmp(state, "Indexing") == 0) {
+                /* Tracker has began to index */
                 source->priv->last_progress = 0;
-                g_signal_emit_by_name(source, "updating", 0);
+                source->priv->processed_items = 0;
+                source->priv->remaining_items = -1;
+                source->priv->remaining_items = -1;
+                g_signal_emit_by_name(source, "updating", 0,
+                                      source->priv->processed_items,
+                                      source->priv->remaining_items,
+                                      source->priv->remaining_time);
         }
 }
 
@@ -153,6 +166,7 @@ static void _progress_changed_handler (DBusGProxy  *proxy,
 {
         MafwTrackerSource *source;
         gint progress;
+        gint time_remaining;
 
         source = MAFW_TRACKER_SOURCE(user_data);
 
@@ -163,9 +177,24 @@ static void _progress_changed_handler (DBusGProxy  *proxy,
 		progress = 0;
 	}
 
-        if (source->priv->last_progress != progress) {
+        if (items_done > 0) {
+                time_remaining =
+                        items_remaining * (seconds_elapsed / items_done);
+        } else {
+                time_remaining = -1;
+        }
+
+
+        if (source->priv->last_progress != progress ||
+            source->priv->processed_items != items_done ||
+            source->priv->remaining_items != items_remaining ||
+            source->priv->remaining_time != time_remaining) {
                 source->priv->last_progress = progress;
-                g_signal_emit_by_name(source, "updating", progress);
+                source->priv->processed_items = items_done;
+                source->priv->remaining_items = items_remaining;
+                source->priv->remaining_time = time_remaining;
+                g_signal_emit_by_name(source, "updating", progress, items_done,
+                                      items_remaining, time_remaining);
         }
 }
 

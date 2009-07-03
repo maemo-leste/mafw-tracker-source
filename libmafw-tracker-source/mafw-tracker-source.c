@@ -389,9 +389,27 @@ void mafw_tracker_source_destroy_object(MafwSource *self,
 	return;
 }
 
-gint mafw_tracker_source_get_update_progress(MafwSource *self)
+gint mafw_tracker_source_get_update_progress(MafwSource *self,
+                                             gint *processed_items,
+                                             gint *remaining_items,
+                                             gint *remaining_time)
 {
         g_return_val_if_fail(MAFW_IS_TRACKER_SOURCE(self), 100);
+
+        if (processed_items) {
+                *processed_items =
+                        MAFW_TRACKER_SOURCE(self)->priv->processed_items;
+        }
+
+        if (remaining_items) {
+                *remaining_items =
+                        MAFW_TRACKER_SOURCE(self)->priv->remaining_items;
+        }
+
+        if (remaining_time) {
+                *remaining_time =
+                        MAFW_TRACKER_SOURCE(self)->priv->remaining_time;
+        }
 
         return MAFW_TRACKER_SOURCE(self)->priv->last_progress;
 }
