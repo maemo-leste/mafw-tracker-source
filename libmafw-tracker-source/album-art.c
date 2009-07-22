@@ -35,7 +35,7 @@
 /* ------------------------- Public API ------------------------- */
 
 gchar *albumart_get_thumbnail_uri(const gchar *orig_file_uri,
-                                   enum thumbnail_size size)
+				  enum thumbnail_size size)
 {
         gchar *file_uri;
         GFile *file;
@@ -65,7 +65,7 @@ gchar *albumart_get_album_art_uri(const gchar *album)
 	gchar *album_key;
         GFile *file;
 
-	if (util_tracker_value_is_unknown(album) || strlen(album) == 1) {
+	if (util_tracker_value_is_unknown(album)) {
                 return NULL;
 	} else {
 		album_key = g_strdup(album);
