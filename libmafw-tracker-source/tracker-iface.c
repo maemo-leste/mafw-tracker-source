@@ -113,6 +113,10 @@ static void _stats_changed_handler(DBusGProxy *proxy,
 			g_signal_emit_by_name(source,
 					      "container-changed",
 					      VIDEOS_OBJECT_ID);
+		} else if (strcmp(service_type, "Playlists") == 0) {
+			g_signal_emit_by_name(source,
+					      "container-changed",
+					      PLAYLISTS_OBJECT_ID);
 		}
 	}
 }

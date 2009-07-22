@@ -182,6 +182,7 @@
 /* Some object identifiers */
 #define VIDEOS_OBJECT_ID     MAFW_TRACKER_SOURCE_UUID "::videos"
 #define MUSIC_OBJECT_ID      MAFW_TRACKER_SOURCE_UUID "::music"
+#define PLAYLISTS_OBJECT_ID  MAFW_TRACKER_SOURCE_UUID "::music/playlists"
 
 /* Private data of MAFW_TRACKER_SOURCE */
 struct _MafwTrackerSourcePrivate {
