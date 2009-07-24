@@ -1,8 +1,13 @@
+mafw-tracker-source (0.1.2009.30-3) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.30-3
+
+ -- Juha Kellokoski <veitikka6@gmail.com>  Wed, 22 Jul 2009 14:00:00 +0300
+
 mafw-tracker-source (0.1.2009.30-2) unstable; urgency=low
 
   * MAFW tracker source, pre-release 0.2009.30-2
   * Fixes: NB#125125 - Album art thumbnails is not shown for the files which have single characters in album and artist fields
-  * Fixes: NB#129321 - Main view:Playlist count not updated when the device has no songs
   * Support album art thumbnails for clips which album has a single character.
   * Emit container-changed signal for playlists container.
 
