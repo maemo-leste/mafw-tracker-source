@@ -380,6 +380,13 @@ static gchar **_uris_to_filenames(gchar **uris)
         return filenames;
 }
 
+static gboolean _run_tracker_metadata_cb(gpointer data)
+{
+        _tracker_metadata_cb(NULL, NULL, data);
+
+        return FALSE;
+}
+
 static void _do_tracker_get_metadata(gchar **uris,
 				     gchar **keys,
 				     enum TrackerObjectType tracker_obj_type,
@@ -435,7 +442,7 @@ static void _do_tracker_get_metadata(gchar **uris,
                         mc);
                 g_strfreev(pathnames);
         } else {
-                _tracker_metadata_cb(NULL, NULL, mc);
+                g_idle_add(_run_tracker_metadata_cb, mc);
         }
 	g_strfreev(tracker_keys);
 }
@@ -1203,6 +1210,15 @@ static void _get_stats_cb(GPtrArray *result, GError *error, gpointer user_data)
         g_free(mc);
 }
 
+static gboolean _run_tracker_metadata_from_container_cb(gpointer data)
+{
+        GPtrArray *results = g_ptr_array_sized_new(0);
+
+        _tracker_metadata_from_container_cb(results, NULL, data);
+
+        return FALSE;
+}
+
 static void _do_tracker_get_metadata_from_service(
         gchar **keys,
         const gchar *title,
@@ -1294,18 +1310,22 @@ static void _do_tracker_get_metadata_from_service(
 
         g_strfreev(tracker_keys);
 
-        tracker_metadata_get_unique_values_with_aggregates_async(
-                tc,
-                service,
-                unique_keys,
-                NULL,
-                aggregate_types,
-                aggregate_keys,
-                FALSE,
-                0,
-                -1,
-                _tracker_metadata_from_container_cb,
-                mc);
+        if (aggregate_keys[0]) {
+                tracker_metadata_get_unique_values_with_aggregates_async(
+                        tc,
+                        service,
+                        unique_keys,
+                        NULL,
+                        aggregate_types,
+                        aggregate_keys,
+                        FALSE,
+                        0,
+                        -1,
+                        _tracker_metadata_from_container_cb,
+                        mc);
+        } else {
+                g_idle_add(_run_tracker_metadata_from_container_cb, mc);
+        }
 
         g_strfreev(unique_keys);
 }
@@ -1514,18 +1534,22 @@ void ti_get_metadata_from_category(const gchar *genre,
 
         g_strfreev(tracker_keys);
 
-        tracker_metadata_get_unique_values_with_aggregates_async(
-                tc,
-                SERVICE_MUSIC,
-                tracker_ukeys,
-                filter,
-                aggregate_types,
-                aggregate_keys,
-                FALSE,
-                0,
-                -1,
-                _tracker_metadata_from_container_cb,
-                mc);
+        if (aggregate_keys[0]) {
+                tracker_metadata_get_unique_values_with_aggregates_async(
+                        tc,
+                        SERVICE_MUSIC,
+                        tracker_ukeys,
+                        filter,
+                        aggregate_types,
+                        aggregate_keys,
+                        FALSE,
+                        0,
+                        -1,
+                        _tracker_metadata_from_container_cb,
+                        mc);
+        } else {
+                g_idle_add(_run_tracker_metadata_from_container_cb, mc);
+        }
 
         g_free(filter);
         g_free(tracker_ukeys[0]);
