@@ -307,6 +307,14 @@ InfoKeyTable *keymap_get_info_key_table(void)
                                     MAFW_METADATA_KEY_URI,
                                     tracker_key);
 
+                /* Special key (not available in MAFW) */
+                tracker_key = g_new0(TrackerKey, 1);
+                tracker_key->tracker_key = TRACKER_FKEY_PATH;
+                tracker_key->value_type = G_TYPE_STRING;
+                g_hash_table_insert(table->common_keys,
+                                    TRACKER_FKEY_PATH,
+                                    tracker_key);
+
                 /* Insert metadata assocciated with each key */
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_INT;
@@ -492,6 +500,12 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 metadata_key->value_type = G_TYPE_BOOLEAN;
                 g_hash_table_insert(table->metadata_keys,
                                     TRACKER_PKEY_VALID_DURATION,
+                                    metadata_key);
+
+                metadata_key = g_new0(MetadataKey, 1);
+                metadata_key->value_type = G_TYPE_STRING;
+                g_hash_table_insert(table->metadata_keys,
+                                    TRACKER_FKEY_PATH,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);

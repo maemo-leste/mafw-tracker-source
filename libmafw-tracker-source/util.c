@@ -296,6 +296,36 @@ gboolean util_mafw_filter_to_rdf(const MafwFilter *filter,
 	if (MAFW_FILTER_IS_SIMPLE(filter)) {
 		gchar *close_tag;
 		gchar *start_tag;
+
+                /* Special case: uri must be split in path + filename */
+                if (strcmp(filter->key, MAFW_METADATA_KEY_URI) == 0 &&
+                    g_str_has_prefix(filter->value, "file://") &&
+                    filter->type == mafw_f_eq) {
+                        gboolean success;
+                        gchar *pathname;
+                        gchar *dirname;
+                        gchar *filename;
+                        MafwFilter *new_filter;
+
+                        pathname =
+                                g_filename_from_uri(filter->value, NULL, NULL);
+                        dirname = g_path_get_dirname(pathname);
+                        filename = g_path_get_basename(pathname);
+
+                        new_filter = MAFW_FILTER_AND(
+                                MAFW_FILTER_EQ(TRACKER_FKEY_PATH, dirname),
+                                MAFW_FILTER_EQ(MAFW_METADATA_KEY_FILENAME,
+                                               filename));
+                        success = util_mafw_filter_to_rdf(new_filter, p);
+
+                        mafw_filter_free(new_filter);
+                        g_free(pathname);
+                        g_free(dirname);
+                        g_free(filename);
+
+                        return success;
+                }
+
 		switch (filter->type) {
 		case mafw_f_eq:
 			start_tag = g_strdup("<rdfq:equals>");

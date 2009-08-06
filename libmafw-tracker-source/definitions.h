@@ -123,6 +123,7 @@
 #define TRACKER_FKEY_FILESIZE         "File:Size"
 #define TRACKER_FKEY_FULLNAME         "File:NameDelimited"
 #define TRACKER_FKEY_MIME             "File:Mime"
+#define TRACKER_FKEY_PATH             "File:Path"
 #define TRACKER_PKEY_COUNT            "Playlist:Songs"
 #define TRACKER_PKEY_DURATION         "Playlist:Duration"
 #define TRACKER_PKEY_VALID_DURATION   "Playlist:ValidDuration"
