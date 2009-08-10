@@ -1,3 +1,15 @@
+mafw-tracker-source (0.1.2009.33-3) unstable; urgency=low
+
+  * Version increased.
+
+ -- Mika Tapojärvi <mika.tapojarvi@sse.fi>  Mon, 10 Aug 2009 23:01:10 +0300
+
+mafw-tracker-source (0.1.2009.33-2) unstable; urgency=low
+
+  * Partially fixes NB#119318: Fixes filters by URI.
+
+ -- Mika Tapojärvi <mika.tapojarvi@sse.fi>  Mon, 10 Aug 2009 12:27:51 +0300
+
 mafw-tracker-source (0.1.2009.30-3) unstable; urgency=low
 
   * MAFW tracker source, pre-release 0.2009.30-3
