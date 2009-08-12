@@ -252,7 +252,7 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 /* Special key (not available in MAFW) */
                 tracker_key = g_new0(TrackerKey, 1);
                 tracker_key->tracker_key = TRACKER_PKEY_VALID_DURATION;
-                tracker_key->value_type = G_TYPE_BOOLEAN;
+                tracker_key->value_type = G_TYPE_INT;
                 g_hash_table_insert(table->playlist_keys,
                                     TRACKER_PKEY_VALID_DURATION,
                                     tracker_key);
