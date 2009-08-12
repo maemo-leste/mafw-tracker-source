@@ -880,7 +880,7 @@ gboolean util_calculate_playlist_duration_is_needed(GHashTable *pls_metadata)
 			pls_metadata,
 			TRACKER_PKEY_VALID_DURATION);
 
-		if ((gval) && (g_value_get_int(gval) == 0)) {
+		if ((gval) && (g_value_get_boolean(gval) == FALSE)) {
 			/* The duration hasn't been calculated before,
 			   so do it now. */
 			calculate = TRUE;
