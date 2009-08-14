@@ -383,6 +383,7 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_INT;
                 metadata_key->special = SPECIAL_KEY_DURATION;
+		metadata_key->writable = TRUE;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_DURATION,
                                     metadata_key);
