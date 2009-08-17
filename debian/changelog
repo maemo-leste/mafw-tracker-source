@@ -1,8 +1,26 @@
+mafw-tracker-source (0.1.2009.34-4) unstable; urgency=low
+
+  * Version increased
+
+ -- Mika Tapojärvi <mika.tapojarvi@sse.fi>  Mon, 17 Aug 2009 22:34:06 +0300
+
+mafw-tracker-source (0.1.2009.34-3) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.34-3
+  * Tracker duration metadata key made writable
+
+ -- Mika Tapojärvi <mika.tapojarvi@sse.fi>  Mon, 17 Aug 2009 22:24:11 +0300
+
 mafw-tracker-source (0.1.2009.33-3) unstable; urgency=low
 
-  * Version increased.
+  * Reverting wrong key-mapping type 
+    (Tracker does manipulate Playlist:ValidDuration as an
+    integer even though MAFW handles it as a boolean).
+  * Properly handle Playlist:ValidDuration (type boolean). This helps
+    with improving performance of playlist queries (duration).
+  * Patch By Antía Puentes Felpeto.
 
- -- Mika Tapojärvi <mika.tapojarvi@sse.fi>  Mon, 10 Aug 2009 23:01:10 +0300
+ -- Mika Tapojärvi <mika.tapojarvi@sse.fi>  Thu, 13 Aug 2009 17:14:50 +0300
 
 mafw-tracker-source (0.1.2009.33-2) unstable; urgency=low
 
