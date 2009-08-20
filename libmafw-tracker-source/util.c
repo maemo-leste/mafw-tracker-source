@@ -305,20 +305,28 @@ gboolean util_mafw_filter_to_rdf(const MafwFilter *filter,
                         gchar *pathname;
                         gchar *dirname;
                         gchar *filename;
-                        MafwFilter *new_filter;
+                        MafwFilter *filter_by_dirname;
+                        MafwFilter *filter_by_filename;
+                        MafwFilter *joined_filter;
 
                         pathname =
                                 g_filename_from_uri(filter->value, NULL, NULL);
                         dirname = g_path_get_dirname(pathname);
                         filename = g_path_get_basename(pathname);
 
-                        new_filter = MAFW_FILTER_AND(
-                                MAFW_FILTER_EQ(TRACKER_FKEY_PATH, dirname),
+                        filter_by_dirname = MAFW_FILTER_EQ(TRACKER_FKEY_PATH,
+                                                           dirname);
+                        filter_by_filename =
                                 MAFW_FILTER_EQ(MAFW_METADATA_KEY_FILENAME,
-                                               filename));
-                        success = util_mafw_filter_to_rdf(new_filter, p);
+                                               filename);
+                        joined_filter = MAFW_FILTER_AND(filter_by_dirname,
+                                                        filter_by_filename);
 
-                        mafw_filter_free(new_filter);
+                        success = util_mafw_filter_to_rdf(joined_filter, p);
+
+                        mafw_filter_free(joined_filter);
+                        mafw_filter_free(filter_by_dirname);
+                        mafw_filter_free(filter_by_filename);
                         g_free(pathname);
                         g_free(dirname);
                         g_free(filename);
