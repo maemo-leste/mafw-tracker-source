@@ -1,3 +1,22 @@
+mafw-tracker-source (0.1.2009.35-3) unstable; urgency=low
+
+  * Version increased.
+
+ -- Mika Tapojärvi <ext-mika.tapojarvi@nokia.com>  Fri, 21 Aug 2009 20:33:29 +0300
+
+mafw-tracker-source (0.1.2009.35-2) unstable; urgency=low
+
+  * First MAFW Sales RC.
+
+ -- Mika Tapojärvi <mika.tapojarvi@sse.fi>  Fri, 21 Aug 2009 16:44:32 +0300
+
+mafw-tracker-source (0.1.2009.35-1) unstable; urgency=low
+
+  * MAFW tracker source, pre-release 0.2009.35-1
+  * Fixes: NB#134084 - RESOURCE_LEAK from libmafw-tracker-source
+
+ -- Mika Tapojärvi <mika.tapojarvi@sse.fi>  Thu, 20 Aug 2009 17:50:14 +0300
+
 mafw-tracker-source (0.1.2009.34-4) unstable; urgency=low
 
   * Version increased
