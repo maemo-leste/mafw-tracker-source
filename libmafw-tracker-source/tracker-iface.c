@@ -356,6 +356,7 @@ static void _tracker_metadata_cb(GPtrArray *results,
                 tracker_cache_values_add_results(mc->cache, results);
                 metadata_list = tracker_cache_build_metadata(mc->cache);
                 mc->mult_callback(metadata_list, NULL, mc->user_data);
+                g_list_foreach(metadata_list, (GFunc) g_hash_table_unref, NULL);
                 g_list_free(metadata_list);
         } else {
                 g_warning("Error while getting metadata: %s\n",
