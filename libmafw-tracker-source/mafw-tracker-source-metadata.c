@@ -358,7 +358,7 @@ static void _get_metadatas_tracker_from_playlist_cb(GList *results,
                         /* Create a new closure to store data */
                         nmc = g_new0(struct _metadatas_closure, 1);
                         nmc->object_id = current_obj->data;
-                        nmc->metadata_value = current_result->data;
+                        nmc->metadata_value = g_hash_table_ref(current_result->data);
                         nmc->common = mc->common;
 
 			/* If there aren't more playlists (remaining == 0), this
