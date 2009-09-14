@@ -1,10 +1,18 @@
+mafw-tracker-source (0.1.2009.37-2) unstable; urgency=low
+
+  * MAFW Sales RC8.
+  * Fixed crash when computing a playlist file
+    duration for the first time. Patch provided by Sandor Pinter.
+  * If track number is not known use title when sorting
+    album songs.
+
+ -- Juha Kellokoski <veitikka6@gmail.com>  Fri, 11 Sep 2009 14:00:00 +0300
+
 mafw-tracker-source (0.1.2009.37-1) unstable; urgency=low
 
-  * MAFW tracker source, pre-release 0.2009.37-1
-  * Fixes: NB#134817 - [PR1.1 proposal] <MemLeak> mafw-tracker-source-0.1.2009.34/libmafw-tracker-source/ tracker-iface.c
-  * Fixes: NB#134084 - <coverity> RESOURCE_LEAK from libmafw-tracker-source
+  * MAFW Sales RC6.
 
- -- Juha Kellokoski <veitikka6@gmail.com>  Fri, 04 Sep 2009 12:00:00 +0300
+ -- Juha Kellokoski <veitikka6@gmail.com>  Thu, 10 Sep 2009 12:30:00 +0300
 
 mafw-tracker-source (0.1.2009.35-3) unstable; urgency=low
 
@@ -21,7 +29,6 @@ mafw-tracker-source (0.1.2009.35-2) unstable; urgency=low
 mafw-tracker-source (0.1.2009.35-1) unstable; urgency=low
 
   * MAFW tracker source, pre-release 0.2009.35-1
-  * Fixes: NB#134084 - RESOURCE_LEAK from libmafw-tracker-source
 
  -- Mika Tapojärvi <mika.tapojarvi@sse.fi>  Thu, 20 Aug 2009 17:50:14 +0300
 
