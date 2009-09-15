@@ -345,7 +345,18 @@ static void _get_metadatas_tracker_from_playlist_cb(GList *results,
                 } else {
                         g_error_free(error);
                 }
+
+		/* Emit, there aren't any results. */
+		_emit_metadatas_results(mc->common);
+
+		/* Free closure */
+		g_list_foreach(mc->object_ids, (GFunc) g_free, NULL);
+		g_list_free(mc->object_ids);
+		g_free(mc);
+
+		return;
         }
+
 
         /* For each result, check if we need to calculate the duration
          * exhaustively. If not, save the result*/
@@ -388,6 +399,8 @@ static void _get_metadatas_tracker_from_playlist_cb(GList *results,
         }
 
         /* Free closure */
+	/* The elements of the object_ids list were added to the metadatas
+	   results and will be released when freeing the common closure. */
         g_list_free(mc->object_ids);
         g_free(mc);
 }
