@@ -968,6 +968,7 @@ void ti_get_genres(gchar **keys,
 }
 
 void ti_get_playlists(gchar **keys,
+		      const gchar *user_filter,
 		      gchar **sort_fields,
 		      guint offset,
 		      guint count,
@@ -975,6 +976,7 @@ void ti_get_playlists(gchar **keys,
 		      gpointer user_data)
 {
 	struct _mafw_query_closure *mc;
+	gchar *rdf_filter = NULL;
         gchar **use_sort_fields;
         gchar **tracker_sort_keys;
 	gchar **tracker_keys;
@@ -1008,13 +1010,15 @@ void ti_get_playlists(gchar **keys,
         tracker_sort_keys =
                 keymap_mafw_sort_keys_to_tracker_keys(use_sort_fields,
                                                       SERVICE_MUSIC);
+        rdf_filter = util_build_complex_rdf_filter(NULL, user_filter);
+
 	/* Execute query */
         tracker_search_query_async(tc, -1,
                                    SERVICE_PLAYLISTS,
                                    tracker_keys,
                                    NULL,   /* Search text */
                                    NULL,   /* Keywords */
-                                   NULL,
+                                   rdf_filter,
                                    offset, count,
                                    FALSE,   /* Sort by service */
                                    tracker_sort_keys, /* Sort fields */
@@ -1026,6 +1030,7 @@ void ti_get_playlists(gchar **keys,
                 g_free(use_sort_fields);
         }
 
+	g_free(rdf_filter);
         g_strfreev(tracker_keys);
         g_strfreev(tracker_sort_keys);
 }

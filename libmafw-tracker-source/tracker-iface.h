@@ -103,6 +103,7 @@ void ti_get_genres(gchar **keys,
 		   gpointer user_data);
 
 void ti_get_playlists(gchar **keys,
+		      const gchar *user_filter,
 		      gchar **sort_fields,
 		      guint offset,
 		      guint count,
