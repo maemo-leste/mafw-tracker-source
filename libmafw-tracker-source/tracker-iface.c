@@ -968,14 +968,25 @@ void ti_get_genres(gchar **keys,
 }
 
 void ti_get_playlists(gchar **keys,
+		      gchar **sort_fields,
 		      guint offset,
 		      guint count,
 		      MafwTrackerSongsResultCB callback,
 		      gpointer user_data)
 {
 	struct _mafw_query_closure *mc;
+        gchar **use_sort_fields;
+        gchar **tracker_sort_keys;
 	gchar **tracker_keys;
         gchar **keys_to_query;
+
+        /* Select default sort fields */
+        if (!sort_fields) {
+		use_sort_fields = g_new0(gchar *, 2);
+		use_sort_fields[0] = MAFW_METADATA_KEY_FILENAME;
+        } else {
+                use_sort_fields = sort_fields;
+        }
 
 	/* Prepare mafw closure struct */
 	mc = g_new0(struct _mafw_query_closure, 1);
@@ -994,6 +1005,9 @@ void ti_get_playlists(gchar **keys,
 	tracker_keys = keymap_mafw_keys_to_tracker_keys(keys_to_query,
 							SERVICE_PLAYLISTS);
         g_strfreev(keys_to_query);
+        tracker_sort_keys =
+                keymap_mafw_sort_keys_to_tracker_keys(use_sort_fields,
+                                                      SERVICE_MUSIC);
 	/* Execute query */
         tracker_search_query_async(tc, -1,
                                    SERVICE_PLAYLISTS,
@@ -1003,12 +1017,17 @@ void ti_get_playlists(gchar **keys,
                                    NULL,
                                    offset, count,
                                    FALSE,   /* Sort by service */
-                                   NULL, /* Sort fields */
+                                   tracker_sort_keys, /* Sort fields */
                                    FALSE, /* sort descending? */
                                    _tracker_query_cb,
                                    mc);
 
+        if (use_sort_fields != sort_fields) {
+                g_free(use_sort_fields);
+        }
+
         g_strfreev(tracker_keys);
+        g_strfreev(tracker_sort_keys);
 }
 
 void ti_get_albums(const gchar *genre,

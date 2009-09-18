@@ -1169,6 +1169,7 @@ static gboolean _browse_playlists_branch(const gchar *playlist,
 		}
 
 		ti_get_playlists(bc->metadata_keys,
+				 bc->sort_fields,
 				 bc->offset,
 				 bc->count,
 				 _browse_playlists_tracker_cb,
