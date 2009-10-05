@@ -1,3 +1,11 @@
+mafw-tracker-source (0.1.2009.40-1) unstable; urgency=low
+
+  * Version and changelog updated for pre-release 0.2009.40-1
+  * PR_1_1_baseline copied from trunk.
+  * Added support for filters when retrieving playlists from tracker
+
+ -- Mika Tapojärvi <mika.tapojarvi@sse.fi>  Sun, 04 Oct 2009 15:51:35 +0300
+
 mafw-tracker-source (0.1.2009.39-1) unstable; urgency=low
 
   * MAFW tracker source, pre-release 0.2009.39-1
