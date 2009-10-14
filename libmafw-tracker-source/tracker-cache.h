@@ -142,7 +142,7 @@ GValue *tracker_cache_value_get(TrackerCache *cache,
                                 const gchar *key,
                                 gint index);
 
-GList *tracker_cache_build_metadata(TrackerCache *cache);
+GList *tracker_cache_build_metadata(TrackerCache *cache, const gchar **path_list);
 
 GHashTable *tracker_cache_build_metadata_aggregated(TrackerCache *cache,
                                                     gboolean count_childcount);

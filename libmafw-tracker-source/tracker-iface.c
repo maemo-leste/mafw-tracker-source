@@ -74,6 +74,8 @@ struct _mafw_metadata_closure {
         enum TrackerObjectType tracker_type;
         /* Cache to store keys and values */
         TrackerCache *cache;
+	/* List of paths to the asked items */
+	gchar **path_list;
 };
 
 /* ---------------------------- Globals -------------------------- */
@@ -270,7 +272,7 @@ static void _tracker_query_cb(GPtrArray *tracker_result,
                 mafw_result = g_new0(MafwResult, 1);
                 tracker_cache_values_add_results(mc->cache, tracker_result);
                 mafw_result->metadata_values =
-                        tracker_cache_build_metadata(mc->cache);
+                        tracker_cache_build_metadata(mc->cache, NULL);
                 mafw_result->ids =
                         _build_objectids_from_pathname(mc->cache);
 
@@ -298,7 +300,7 @@ static void _tracker_unique_values_cb(GPtrArray *tracker_result,
                 mafw_result = g_new0(MafwResult, 1);
                 tracker_cache_values_add_results(mc->cache, tracker_result);
                 mafw_result->metadata_values =
-                        tracker_cache_build_metadata(mc->cache);
+                        tracker_cache_build_metadata(mc->cache, NULL);
                 mafw_result->ids = _build_objectids_from_unique_key(mc->cache);
 
                 /* Invoke callback */
@@ -354,7 +356,8 @@ static void _tracker_metadata_cb(GPtrArray *results,
 
         if (!error) {
                 tracker_cache_values_add_results(mc->cache, results);
-                metadata_list = tracker_cache_build_metadata(mc->cache);
+                metadata_list = tracker_cache_build_metadata(mc->cache,
+					(const gchar**)mc->path_list);
                 mc->mult_callback(metadata_list, NULL, mc->user_data);
                 g_list_foreach(metadata_list, (GFunc) g_hash_table_unref, NULL);
                 g_list_free(metadata_list);
@@ -365,6 +368,7 @@ static void _tracker_metadata_cb(GPtrArray *results,
         }
 
         tracker_cache_free(mc->cache);
+	g_strfreev(mc->path_list);
 	g_free(mc);
 }
 
@@ -434,6 +438,7 @@ static void _do_tracker_get_metadata(gchar **uris,
 
         if (g_strv_length(tracker_keys) > 0) {
                 pathnames = _uris_to_filenames(uris);
+		mc->path_list = pathnames;
                 tracker_metadata_get_multiple_async(
                         tc,
                         service_type,
@@ -441,7 +446,6 @@ static void _do_tracker_get_metadata(gchar **uris,
                         (const gchar **)tracker_keys,
                         _tracker_metadata_cb,
                         mc);
-                g_strfreev(pathnames);
         } else {
                 g_idle_add(_run_tracker_metadata_cb, mc);
         }
