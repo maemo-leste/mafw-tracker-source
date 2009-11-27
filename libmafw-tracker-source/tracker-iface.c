@@ -1678,7 +1678,7 @@ void ti_get_playlist_entries(GList *pathnames,
 }
 
 gchar **
-ti_set_metadata(const gchar *uri, GHashTable *metadata, gboolean *updated)
+ti_set_metadata(const gchar *uri, GHashTable *metadata, CategoryType category, gboolean *updated)
 {
         GList *keys = NULL;
         GList *running_key;
@@ -1712,23 +1712,17 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, gboolean *updated)
         keys_array = g_new0(gchar *, count_keys+1);
         values_array = g_new0(gchar *, count_keys+1);
 
-        /* Currently, either audio or video
-         * keys are changed, but not both at the same time. So assume
-         * audio keys unless none of them is found */
-        running_key = g_list_first(keys);
-        service = SERVICE_VIDEOS;
-        while (running_key) {
-                mafw_key = (gchar *) running_key->data;
-                /* If key is in service music */
-                if (g_hash_table_lookup(t->music_keys, mafw_key) != NULL) {
-                        service = SERVICE_MUSIC;
-                        break;
-                }
-		running_key = g_list_next(running_key);
-        }
+	if (category == CATEGORY_VIDEO)
+	{
+		service = SERVICE_VIDEOS;	
+	}
+	else
+	{
+		service = SERVICE_MUSIC;
+	}
 
         /* Convert lists to arrays */
-        running_key = g_list_first(keys);
+        running_key = keys;
         i_key = 0;
         u_key = 0;
         while (running_key) {
@@ -1775,7 +1769,7 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, gboolean *updated)
                 if (updatable) {
                         keys_array[i_key] =
 				keymap_mafw_key_to_tracker_key(mafw_key,
-							       SERVICE_MUSIC);
+							       service);
                         i_key++;
                 } else {
                         if (!unsupported_array) {

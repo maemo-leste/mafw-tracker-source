@@ -26,6 +26,7 @@
 #define __MAFW_TRACKER_IFACE_H__
 
 #include <libmafw/mafw.h>
+#include "util.h"
 
 typedef struct {
 	GList *ids;
@@ -158,7 +159,8 @@ void ti_get_playlist_entries(GList *uris,
 void ti_set_playlist_duration(const gchar *uri, guint duration);
 
 gchar **ti_set_metadata(const gchar *uri, 
-			GHashTable *metadata, 
+			GHashTable *metadata,
+			CategoryType category,
 			gboolean *updated);
 
 #endif

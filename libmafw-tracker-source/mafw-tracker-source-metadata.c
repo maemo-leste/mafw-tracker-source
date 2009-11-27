@@ -84,6 +84,7 @@ struct _update_metadata_closure {
         gpointer user_data;
         /* The clip to be updated */
         gchar *clip;
+	CategoryType category;
 };
 
 typedef gboolean (*_GetMetadataFunc)(struct _metadatas_closure *mc,
@@ -539,7 +540,7 @@ static gboolean _update_metadata_idle(gpointer data)
         umc = (struct _update_metadata_closure *) data;
 
         non_updated_keys = ti_set_metadata(umc->clip, umc->metadata,
-					   &updated);
+					   umc->category, &updated);
 
         if (!non_updated_keys) {
                 error = NULL;
@@ -919,6 +920,7 @@ mafw_tracker_source_set_metadata(MafwSource *self,
                 _update_metadata_data->cb = cb;
                 _update_metadata_data->user_data = user_data;
                 _update_metadata_data->clip = clip;
+		_update_metadata_data->category = category;
 
                 /* Block hashtable while not finishing */
                 g_hash_table_ref(metadata);
