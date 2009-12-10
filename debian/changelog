@@ -1,9 +1,14 @@
+mafw-tracker-source (0.2.2009.50-2) unstable; urgency=low
+
+  * Rebuild for 2009.50-2.
+
+ -- Mika Tapojärvi <mika.tapojarvi@sse.fi>  Thu, 10 Dec 2009 19:17:19 +0200
+
 mafw-tracker-source (0.2.2009.50-1) unstable; urgency=low
 
   * Version and changelog updated for pre-release 0.2009.50-1
-  * Fixes: NB#138399
 
- -- Mika Tapojärvi <ext-mika.tapojarvi@nokia.com>  Tue, 08 Dec 2009 09:23:58 +0200
+ -- Mika Tapojärvi <mika.tapojarvi@sse.fi>  Tue, 08 Dec 2009 09:23:58 +0200
 
 mafw-tracker-source (0.2.2009.49-1) unstable; urgency=low
 
