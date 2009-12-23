@@ -106,6 +106,8 @@ binary-arch: build install
 	dh_testroot
 	dh_installdocs
 	dh_install --sourcedir=debian/tmp -v
+	install debian/mafw-tracker-source.mafw.xsession \
+		debian/mafw-tracker-source/etc/X11/Xsession.post/34mafw-tracker-source
 	dh_installman
 	dh_link
 	dh_strip --dbg-package=mafw-tracker-source
