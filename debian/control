@@ -1,7 +1,7 @@
 Source: mafw-tracker-source
 Section: misc
 Priority: optional
-Maintainer: Juha Kellokoski <veitikka6@gmail.com>
+Maintainer: Mika Tapojarvi <mika.tapojarvi@sse.fi>
 Build-Depends: debhelper (>= 4.0.0), libglib2.0-dev, libmafw0-dev (>= 0.1),
                checkmore, libtrackerclient0-dev (>= 0.6.95), dbus,
                libhildon-thumbnail-dev (>=3.0.17), libtotem-plparser-dev
