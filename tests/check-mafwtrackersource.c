@@ -300,8 +300,8 @@ static void fx_setup_dummy_tracker_source(void)
 
 	g_tracker_source = MAFW_SOURCE(g_object_ref(G_OBJECT(sources->data)));
 
-	fail_if(!MAFW_IS_TRACKER_SOURCE(g_tracker_source),
-		"Could not create tracker source instance");
+	ck_assert_msg(MAFW_IS_TRACKER_SOURCE(g_tracker_source),
+		      "Could not create tracker source instance");
 }
 
 static void fx_teardown_dummy_tracker_source(void)
@@ -378,12 +378,13 @@ START_TEST(test_browse_root)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE, "No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
 	/* We should receive two subcategories (music, video) */
-	fail_if(g_list_length(g_browse_results) != 2,
-		"Browse of root category returned %d items instead of 2",
-		g_list_length(g_browse_results));
+	ck_assert_msg(g_list_length(g_browse_results) == 2,
+		      "Browse of root category returned %d items instead of 2",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
         g_main_loop_unref(loop);
@@ -417,14 +418,14 @@ START_TEST(test_browse_music)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received for");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received for");
 
 	/* We should receive five subcategories (artists, albums,
 	 * songs, genres, playlists)*/
-	fail_if(g_list_length(g_browse_results) != 5,
-		"Browse of music category returned %d items instead of 5",
-		g_list_length(g_browse_results));
+	ck_assert_msg(g_list_length(g_browse_results) == 5,
+		      "Browse of music category returned %d items instead of 5",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
         g_main_loop_unref(loop);
@@ -458,13 +459,13 @@ START_TEST(test_browse_music_artists)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-        /* We should receive 6 artists */
-        fail_if(g_list_length(g_browse_results) != 6,
-                "Browse of artists category returned %d items instead of 6",
-                g_list_length(g_browse_results));
+	/* We should receive 6 artists */
+	ck_assert_msg(g_list_length(g_browse_results) == 6,
+		      "Browse of artists category returned %d items instead of 6",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -497,13 +498,13 @@ START_TEST(test_browse_music_artists_artist1)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-        /* We should receive 2 albums */
-        fail_if(g_list_length(g_browse_results) != 2,
-                "Browse of 'Artist 1' returned %d items instead of 2",
-                g_list_length(g_browse_results));
+	/* We should receive 2 albums */
+	ck_assert_msg(g_list_length(g_browse_results) == 2,
+		      "Browse of 'Artist 1' returned %d items instead of 2",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -536,13 +537,13 @@ START_TEST(test_browse_music_artists_unknown)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-        /* We should receive 2 albums */
-        fail_if(g_list_length(g_browse_results) != 2,
-                "Browse of 'Unknown' returned %d items instead of 2",
-                g_list_length(g_browse_results));
+	/* We should receive 2 albums */
+	ck_assert_msg(g_list_length(g_browse_results) == 2,
+		      "Browse of 'Unknown' returned %d items instead of 2",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -568,13 +569,13 @@ START_TEST(test_browse_music_artists_unknown_unknown)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-        /* We should receive 2 clips */
-        fail_if(g_list_length(g_browse_results) != 2,
-                "Browse of 'Unknown' returned %d items instead of 2",
-                g_list_length(g_browse_results));
+	/* We should receive 2 clips */
+	ck_assert_msg(g_list_length(g_browse_results) == 2,
+		      "Browse of 'Unknown' returned %d items instead of 2",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -600,13 +601,13 @@ START_TEST(test_browse_music_artists_artist1_album3)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-        /* We should receive 4 clips */
-        fail_if(g_list_length(g_browse_results) != 4,
-                "Browse of 'Album 3' returned %d items instead of 4",
-                g_list_length(g_browse_results));
+	/* We should receive 4 clips */
+	ck_assert_msg(g_list_length(g_browse_results) == 4,
+		      "Browse of 'Album 3' returned %d items instead of 4",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -639,13 +640,13 @@ START_TEST(test_browse_music_albums)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-        /* We should receive 6 albums */
-        fail_if(g_list_length(g_browse_results) != 7,
-                "Browse of artists category returned %d items instead of 7",
-                g_list_length(g_browse_results));
+	/* We should receive 7 albums */
+	ck_assert_msg(g_list_length(g_browse_results) == 7,
+		      "Browse of artists category returned %d items instead of 7",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -678,13 +679,13 @@ START_TEST(test_browse_music_albums_album4)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
         /* We should receive 3 clips */
-        fail_if(g_list_length(g_browse_results) != 3,
-                "Browse of 'Album 4' category returned %d items instead of 3",
-                g_list_length(g_browse_results));
+	ck_assert_msg(g_list_length(g_browse_results) == 3,
+		      "Browse of 'Album 4' category returned %d items instead of 3",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -717,13 +718,13 @@ START_TEST(test_browse_music_genres)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-        /* We should receive 4 genres */
-        fail_if(g_list_length(g_browse_results) != 4,
-                "Browse of artists category returned %d items instead of 4",
-                g_list_length(g_browse_results));
+	/* We should receive 4 genres */
+	ck_assert_msg(g_list_length(g_browse_results) == 4,
+		      "Browse of artists category returned %d items instead of 4",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -756,13 +757,13 @@ START_TEST(test_browse_music_genres_genre2)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-        /* We should receive 4 artists */
-        fail_if(g_list_length(g_browse_results) != 4,
-                "Browse of artists category returned %d items instead of 4",
-                g_list_length(g_browse_results));
+	/* We should receive 4 artists */
+	ck_assert_msg(g_list_length(g_browse_results) == 4,
+		      "Browse of artists category returned %d items instead of 4",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -795,13 +796,13 @@ START_TEST(test_browse_music_genres_unknown)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
         /* We should receive 3 artists */
-        fail_if(g_list_length(g_browse_results) != 3,
-                "Browse of artists category returned %d items instead of 3",
-                g_list_length(g_browse_results));
+	ck_assert_msg(g_list_length(g_browse_results) == 3,
+		      "Browse of artists category returned %d items instead of 3",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -834,13 +835,13 @@ START_TEST(test_browse_music_genres_genre2_artist2)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-        /* We should receive 1 album */
-        fail_if(g_list_length(g_browse_results) != 1,
-                "Browse of artists category returned %d items instead of 1",
-                g_list_length(g_browse_results));
+	/* We should receive 1 album */
+	ck_assert_msg(g_list_length(g_browse_results) == 1,
+		      "Browse of artists category returned %d items instead of 1",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -873,13 +874,13 @@ START_TEST(test_browse_music_genres_genre2_artist2_album2)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-        /* We should receive 1 clip */
-        fail_if(g_list_length(g_browse_results) != 1,
-                "Browse of artists category returned %d items instead of 1",
-                g_list_length(g_browse_results));
+	/* We should receive 1 clip */
+	ck_assert_msg(g_list_length(g_browse_results) == 1,
+		      "Browse of artists category returned %d items instead of 1",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -912,13 +913,13 @@ START_TEST(test_browse_music_songs)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
         /* We should receive 14 songs */
-        fail_if(g_list_length(g_browse_results) != 14,
-                "Browse of songs category returned %d items instead of 14",
-                g_list_length(g_browse_results));
+	ck_assert_msg(g_list_length(g_browse_results) == 14,
+		      "Browse of songs category returned %d items instead of 14",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -950,13 +951,13 @@ START_TEST(test_browse_music_playlists)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
         /* We should receive 2 playlists */
-        fail_if(g_list_length(g_browse_results) != 2,
-                "Browse of playlists category returned %d items instead of 2",
-                g_list_length(g_browse_results));
+	ck_assert_msg(g_list_length(g_browse_results) == 2,
+		      "Browse of playlists category returned %d items instead of 2",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -989,13 +990,13 @@ START_TEST(test_browse_music_playlists_playlist1)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
         /* We should receive 4 entries */
-        fail_if(g_list_length(g_browse_results) != 4,
-                "Browse of recently-added playlist category returned %d items instead of '4'",
-                g_list_length(g_browse_results));
+	ck_assert_msg(g_list_length(g_browse_results) == 4,
+		      "Browse of recently-added playlist category returned %d items instead of '4'",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -1035,12 +1036,12 @@ START_TEST(test_browse_count)
                 while (g_main_context_pending(context))
                         g_main_context_iteration(context, TRUE);
 
-                fail_if(g_browse_called == FALSE,
-                        "No browse_result signal received");
+		ck_assert_msg(g_browse_called != FALSE,
+			      "No browse_result signal received");
 
-                fail_if(g_list_length(g_browse_results) != expected_count[i],
-                        "Browse of artists category returned %d items instead of %d",
-                        g_list_length(g_browse_results), expected_count[i]);
+		ck_assert_msg(g_list_length(g_browse_results) == expected_count[i],
+			      "Browse of artists category returned %d items instead of %d",
+			      g_list_length(g_browse_results), expected_count[i]);
 
                 clear_browse_results();
         }
@@ -1054,12 +1055,12 @@ START_TEST(test_browse_count)
         while (g_main_context_pending(context))
                 g_main_context_iteration(context, TRUE);
 
-        fail_if(g_browse_called == FALSE,
-                "No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-        fail_if(g_list_length(g_browse_results) != 14,
-                "Browse of artists category returned %d items instead of 14",
-                g_list_length(g_browse_results));
+	ck_assert_msg(g_list_length(g_browse_results) == 14,
+		      "Browse of artists category returned %d items instead of 14",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 
@@ -1098,12 +1099,12 @@ START_TEST(test_browse_offset)
                 while (g_main_context_pending(context))
                         g_main_context_iteration(context, TRUE);
 
-                fail_if(g_browse_called == FALSE,
-                        "No browse_result signal received");
+		ck_assert_msg(g_browse_called != FALSE,
+			      "No browse_result signal received");
 
-                fail_if(g_list_length(g_browse_results) != expected_count[i],
-                        "Browse of artists category returned %d items instead of %d",
-                        g_list_length(g_browse_results), expected_count[i]);
+		ck_assert_msg(g_list_length(g_browse_results) == expected_count[i],
+			      "Browse of artists category returned %d items instead of %d",
+			      g_list_length(g_browse_results), expected_count[i]);
 
                 clear_browse_results();
         }
@@ -1137,8 +1138,8 @@ START_TEST(test_browse_invalid)
         while (g_main_context_pending(context))
                 g_main_context_iteration(context, TRUE);
 
-        fail_if(g_browse_error == FALSE,
-	        "Browsing malformed objectid did not set error in browse callback");
+	ck_assert_msg(g_browse_error != FALSE,
+		      "Browsing malformed objectid did not set error in browse callback");
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -1169,13 +1170,13 @@ START_TEST(test_browse_videos)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
         /* We should receive  videos */
-        fail_if(g_list_length(g_browse_results) != 2,
-                "Browse of video category returned %d items instead of '2'",
-                g_list_length(g_browse_results));
+	ck_assert_msg(g_list_length(g_browse_results) == 2,
+		      "Browse of video category returned %d items instead of '2'",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -1210,24 +1211,24 @@ START_TEST(test_browse_cancel)
 	while (g_main_context_pending(context) && g_list_length(g_browse_results) < 4)
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE,
-		"No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
         /* Now cancel the browse */
-        fail_if (!mafw_source_cancel_browse (g_tracker_source, browse_id, NULL),
-                 "Canceling a browse doesn't work");
+	ck_assert_msg(mafw_source_cancel_browse (g_tracker_source, browse_id, NULL),
+		       "Canceling a browse doesn't work");
 
         /* No elements should be received any more */
         while (g_main_context_pending(context))
                 g_main_context_iteration(context, TRUE);
 
-        fail_if(g_list_length(g_browse_results) != 4,
-                "Canceled browse of music category returned %d items more",
-                g_list_length(g_browse_results));
+	ck_assert_msg(g_list_length(g_browse_results) == 4,
+		      "Canceled browse of music category returned %d items more",
+		      g_list_length(g_browse_results));
 
         /* Cancelling again should return an error */
-        fail_if (mafw_source_cancel_browse (g_tracker_source, browse_id, NULL),
-                 "Canceling twice doesn't return an error");
+	ck_assert_msg(mafw_source_cancel_browse (g_tracker_source, browse_id, NULL) == 0,
+		      "Canceling twice doesn't return an error");
 
 	clear_browse_results();
 	g_main_loop_unref(loop);
@@ -1261,12 +1262,12 @@ START_TEST(test_browse_recursive)
         while (g_main_context_pending(context))
                 g_main_context_iteration(context, TRUE);
 
-        fail_if(g_browse_called == FALSE,
-                "No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-        fail_if(g_list_length(g_browse_results) != 14,
-                "Recursive browse returned %d items instead of %d",
-                g_list_length(g_browse_results), 14);
+	ck_assert_msg(g_list_length(g_browse_results) == 14,
+		      "Recursive browse returned %d items instead of %d",
+		      g_list_length(g_browse_results), 14);
 
         clear_browse_results();
 
@@ -1279,12 +1280,12 @@ START_TEST(test_browse_recursive)
         while (g_main_context_pending(context))
                 g_main_context_iteration(context, TRUE);
 
-        fail_if(g_browse_called == FALSE,
-                "No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-        fail_if(g_list_length(g_browse_results) != 5,
-                "Recursive browse returned %d items instead of %d",
-                g_list_length(g_browse_results), 5);
+	ck_assert_msg(g_list_length(g_browse_results) == 5,
+		      "Recursive browse returned %d items instead of %d",
+		      g_list_length(g_browse_results), 5);
 
         clear_browse_results();
 
@@ -1298,8 +1299,8 @@ START_TEST(test_browse_recursive)
         while (g_main_context_pending(context))
                 g_main_context_iteration(context, TRUE);
 
-        fail_if(g_browse_error == FALSE,
-                "Browsed a non-browseable clip did not set an error in the browse callback");
+	ck_assert_msg(g_browse_error != FALSE,
+		      "Browsed a non-browseable clip did not set an error in the browse callback");
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -1336,12 +1337,12 @@ START_TEST(test_browse_filter)
         while (g_main_context_pending(context))
                 g_main_context_iteration(context, TRUE);
 
-        fail_if(g_browse_called == FALSE,
-                "No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-        fail_if(g_list_length(g_browse_results) != 4,
-                "Recursive browsing returned %d instead of 4",
-                g_list_length(g_browse_results));
+	ck_assert_msg(g_list_length(g_browse_results) == 4,
+		      "Recursive browsing returned %d instead of 4",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 
@@ -1358,12 +1359,12 @@ START_TEST(test_browse_filter)
         while (g_main_context_pending(context))
                 g_main_context_iteration(context, TRUE);
 
-        fail_if(g_browse_called == FALSE,
-                "No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-        fail_if(g_list_length(g_browse_results) != 1,
-                "Recursive browsing returned %d instead of 1",
-                g_list_length(g_browse_results));
+	ck_assert_msg(g_list_length(g_browse_results) == 1,
+		      "Recursive browsing returned %d instead of 1",
+		      g_list_length(g_browse_results));
 
         clear_browse_results();
 	g_main_loop_unref(loop);
@@ -1407,12 +1408,13 @@ START_TEST(test_browse_sort)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE, "No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-	fail_if(g_list_length(g_browse_results) != 4,
-		"Browsing of music/songs category filtering by \"%s\" "
-		"category returned %d items instead of %d",
-		filter, g_list_length(g_browse_results), 4);
+	ck_assert_msg(g_list_length(g_browse_results) == 4,
+		      "Browsing of music/songs category filtering by \"%s\" "
+		      "category returned %d items instead of %d",
+		      filter, g_list_length(g_browse_results), 4);
 
 	g_free(filter);
 	g_free(sort_criteria);
@@ -1440,12 +1442,13 @@ START_TEST(test_browse_sort)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE, "No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-	fail_if(g_list_length(g_browse_results) != 4,
-		"Browsing of music/songs category filtering by \"%s\" "
-		"category returned %d items instead of %d",
-		filter, g_list_length(g_browse_results), 4);
+	ck_assert_msg(g_list_length(g_browse_results) == 4,
+		      "Browsing of music/songs category filtering by \"%s\" "
+		      "category returned %d items instead of %d",
+		      filter, g_list_length(g_browse_results), 4);
 
 	g_free(filter);
 	g_free(sort_criteria);
@@ -1460,10 +1463,10 @@ START_TEST(test_browse_sort)
 				metadata_values, MAFW_METADATA_KEY_TITLE)));
 
 	/* First item should be the same as previously retrieved last item */
-	fail_if(strcmp(last_item_1, first_item_2) != 0,
-		"Sorting behaviour is not working");
-	fail_if(strcmp(last_item_2, first_item_1) != 0,
-		"Sorting behaviour is not working");
+	ck_assert_msg(strcmp(last_item_1, first_item_2) == 0,
+		      "Sorting behaviour is not working");
+	ck_assert_msg(strcmp(last_item_2, first_item_1) == 0,
+		      "Sorting behaviour is not working");
 
 	g_free(first_item_1);
 	g_free(last_item_1);
@@ -1484,12 +1487,13 @@ START_TEST(test_browse_sort)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE, "No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE,
+		      "No browse_result signal received");
 
-	fail_if(g_list_length(g_browse_results) != 4,
-		"Browsing of music/songs category filtering by \"%s\" "
-		"category returned %d items instead of %d",
-		filter, g_list_length(g_browse_results), 4);
+	ck_assert_msg(g_list_length(g_browse_results) == 4,
+		      "Browsing of music/songs category filtering by \"%s\" "
+		      "category returned %d items instead of %d",
+		      filter, g_list_length(g_browse_results), 4);
 
 	g_free(filter);
 	g_free(sort_criteria);
@@ -1518,12 +1522,12 @@ START_TEST(test_browse_sort)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_browse_called == FALSE, "No browse_result signal received");
+	ck_assert_msg(g_browse_called != FALSE, "No browse_result signal received");
 
-	fail_if(g_list_length(g_browse_results) != 4,
-		"Browsing of music/songs category filtering by \"%s\" "
-		"category returned %d items instead of %d",
-		filter, g_list_length(g_browse_results), 4);
+	ck_assert_msg(g_list_length(g_browse_results) == 4,
+		      "Browsing of music/songs category filtering by \"%s\" "
+		      "category returned %d items instead of %d",
+		      filter, g_list_length(g_browse_results), 4);
 
 	g_free(filter);
 	g_free(sort_criteria);
@@ -1538,12 +1542,12 @@ START_TEST(test_browse_sort)
 				metadata_values, MAFW_METADATA_KEY_TITLE)));
 
 	/* First item should be the same as previously retrieved last item */
-	fail_if(strcmp(last_item_1, first_item_2) != 0,
-		"Sorting behaviour is not working when using more "
-		"than one field");
-	fail_if(strcmp(last_item_2, first_item_1) != 0,
-		"Sorting behaviour is not working when using more "
-		"than one field");
+	ck_assert_msg(strcmp(last_item_1, first_item_2) == 0,
+		      "Sorting behaviour is not working when using more "
+		      "than one field");
+	ck_assert_msg(strcmp(last_item_2, first_item_1) == 0,
+		      "Sorting behaviour is not working when using more "
+		      "than one field");
 
 	g_free(first_item_1);
 	g_free(last_item_1);
@@ -1625,12 +1629,12 @@ START_TEST(test_get_metadata_clip)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_metadata_called == FALSE,
-		"No metadata_result signal received");
+	ck_assert_msg(g_metadata_called != FALSE,
+		      "No metadata_result signal received");
 
-	fail_if(g_list_length(g_metadata_results) != 1,
-		"Query metadata of 1 items returned %d results",
-		g_list_length(g_metadata_results));
+	ck_assert_msg(g_list_length(g_metadata_results) == 1,
+		      "Query metadata of 1 items returned %d results",
+		      g_list_length(g_metadata_results));
 
 	item_metadata = g_metadata_results;
 
@@ -1639,36 +1643,36 @@ START_TEST(test_get_metadata_clip)
 			    (item_metadata->data))->objectid);
 	metadata = (((MetadataResult *) (item_metadata->data))->metadata);
 
-	fail_if(metadata == NULL,
-		"Did not receive metadata for item '%s'", clip_id);
+	ck_assert_msg(metadata != NULL,
+		      "Did not receive metadata for item '%s'", clip_id);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_MIME);
 	mime = mval ? g_value_get_string(mval) : NULL;
-	fail_if(mime == NULL || strcmp(mime, "audio/x-mp3"),
-		"Mime type for '%s' is '%s' instead of expected 'audio/x-mp3'",
-		clip_id, mime);
+	ck_assert_msg(mime != NULL && !strcmp(mime, "audio/x-mp3"),
+		      "Mime type for '%s' is '%s' instead of expected 'audio/x-mp3'",
+		      clip_id, mime);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_ARTIST);
 	artist = mval ? g_value_get_string(mval) : NULL;
-	fail_if(artist == NULL || strcmp(artist, "Artist 1"),
-		"Artist for '%s' is '%s' instead of expected 'Artist 1'",
-		clip_id, artist);
+	ck_assert_msg(artist != NULL && !strcmp(artist, "Artist 1"),
+		      "Artist for '%s' is '%s' instead of expected 'Artist 1'",
+		      clip_id, artist);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_ALBUM);
 	album = mval ? g_value_get_string(mval) : NULL;
-	fail_if(album == NULL || strcmp(album, "Album 1"),
-		"Album for '%s' is '%s' instead of expected 'Album 1'",
-		clip_id, album);
+	ck_assert_msg(album != NULL && !strcmp(album, "Album 1"),
+		      "Album for '%s' is '%s' instead of expected 'Album 1'",
+		      clip_id, album);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_TITLE);
 	title = mval ? g_value_get_string(mval) : NULL;
-	fail_if(title == NULL || strcmp(title, "Title 1"),
-		"Title for '%s' is '%s' instead of expected 'Title 1'",
-		clip_id, title);
+	ck_assert_msg(title != NULL && !strcmp(title, "Title 1"),
+		      "Title for '%s' is '%s' instead of expected 'Title 1'",
+		      clip_id, title);
 
         /* Album art is never returned in this unit test, as the
          * requested file actually doesn't exist */
@@ -1718,12 +1722,12 @@ START_TEST(test_get_metadata_video)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_metadata_called == FALSE,
-		"No metadata_result signal received");
+	ck_assert_msg(g_metadata_called != FALSE,
+		      "No metadata_result signal received");
 
-	fail_if(g_list_length(g_metadata_results) != 1,
-		"Query metadata of 1 items returned %d results",
-		g_list_length(g_metadata_results));
+	ck_assert_msg(g_list_length(g_metadata_results) == 1,
+		      "Query metadata of 1 items returned %d results",
+		      g_list_length(g_metadata_results));
 
 	item_metadata = g_metadata_results;
 
@@ -1732,22 +1736,22 @@ START_TEST(test_get_metadata_video)
 			    (item_metadata->data))->objectid);
 	metadata = (((MetadataResult *) (item_metadata->data))->metadata);
 
-	fail_if(metadata == NULL,
-		"Did not receive metadata for item '%s'", clip_id);
+	ck_assert_msg(metadata != NULL,
+		      "Did not receive metadata for item '%s'", clip_id);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_MIME);
 	mime = mval ? g_value_get_string(mval) : NULL;
-	fail_if(mime == NULL || strcmp(mime, "video/x-msvideo"),
-		"Mime type for '%s' is '%s' instead of expected 'video/x-msvideo'",
-		clip_id, mime);
+	ck_assert_msg(mime != NULL && !strcmp(mime, "video/x-msvideo"),
+		      "Mime type for '%s' is '%s' instead of expected 'video/x-msvideo'",
+		      clip_id, mime);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_TITLE);
 	title = mval ? g_value_get_string(mval) : NULL;
-	fail_if(title == NULL || strcmp(title, "Video 1"),
-		"Title for '%s' is '%s' instead of expected 'Video 1'",
-		clip_id, title);
+	ck_assert_msg(title != NULL && !strcmp(title, "Video 1"),
+		      "Title for '%s' is '%s' instead of expected 'Video 1'",
+		      clip_id, title);
 
 	g_free(clip_id);
 
@@ -1798,12 +1802,12 @@ START_TEST(test_get_metadata_artist_album_clip)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_metadata_called == FALSE,
-		"No metadata_result signal received");
+	ck_assert_msg(g_metadata_called != FALSE,
+		      "No metadata_result signal received");
 
-	fail_if(g_list_length(g_metadata_results) != 1,
-		"Query metadata of 1 items returned %d results",
-		g_list_length(g_metadata_results));
+	ck_assert_msg(g_list_length(g_metadata_results) == 1,
+		      "Query metadata of 1 items returned %d results",
+		      g_list_length(g_metadata_results));
 
 	item_metadata = g_metadata_results;
 
@@ -1812,36 +1816,36 @@ START_TEST(test_get_metadata_artist_album_clip)
 			    (item_metadata->data))->objectid);
 	metadata = (((MetadataResult *) (item_metadata->data))->metadata);
 
-	fail_if(metadata == NULL,
-		"Did not receive metadata for item '%s'", clip_id);
+	ck_assert_msg(metadata != NULL,
+		      "Did not receive metadata for item '%s'", clip_id);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_MIME);
 	mime = mval ? g_value_get_string(mval) : NULL;
-	fail_if(mime == NULL || strcmp(mime, "audio/x-mp3"),
-		"Mime type for '%s' is '%s' instead of expected 'audio/x-mp3'",
-		clip_id, mime);
+	ck_assert_msg(mime != NULL && !strcmp(mime, "audio/x-mp3"),
+		      "Mime type for '%s' is '%s' instead of expected 'audio/x-mp3'",
+		      clip_id, mime);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_ARTIST);
 	artist = mval ? g_value_get_string(mval) : NULL;
-	fail_if(artist == NULL || strcmp(artist, "Artist 1"),
-		"Artist for '%s' is '%s' instead of expected 'Artist 1'",
-		clip_id, artist);
+	ck_assert_msg(artist != NULL && !strcmp(artist, "Artist 1"),
+		      "Artist for '%s' is '%s' instead of expected 'Artist 1'",
+		      clip_id, artist);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_ALBUM);
 	album = mval ? g_value_get_string(mval) : NULL;
-	fail_if(album == NULL || strcmp(album, "Album 1"),
-		"Album for '%s' is '%s' instead of expected 'Album 1'",
-		clip_id, album);
+	ck_assert_msg(album != NULL && !strcmp(album, "Album 1"),
+		      "Album for '%s' is '%s' instead of expected 'Album 1'",
+		      clip_id, album);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_TITLE);
 	title = mval ? g_value_get_string(mval) : NULL;
-	fail_if(title == NULL || strcmp(title, "Title 1"),
-		"Title for '%s' is '%s' instead of expected 'Title 1'",
-		clip_id, title);
+	ck_assert_msg(title != NULL && !strcmp(title, "Title 1"),
+		      "Title for '%s' is '%s' instead of expected 'Title 1'",
+		      clip_id, title);
 
 	g_free(clip_id);
 
@@ -1894,12 +1898,12 @@ START_TEST(test_get_metadata_genre_artist_album_clip)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_metadata_called == FALSE,
-		"No metadata_result signal received");
+	ck_assert_msg(g_metadata_called != FALSE,
+		      "No metadata_result signal received");
 
-	fail_if(g_list_length(g_metadata_results) != 1,
-		"Query metadata of 1 items returned %d results",
-		g_list_length(g_metadata_results));
+	ck_assert_msg(g_list_length(g_metadata_results) == 1,
+		      "Query metadata of 1 items returned %d results",
+		      g_list_length(g_metadata_results));
 
 	item_metadata = g_metadata_results;
 
@@ -1908,43 +1912,43 @@ START_TEST(test_get_metadata_genre_artist_album_clip)
 			    (item_metadata->data))->objectid);
 	metadata = (((MetadataResult *) (item_metadata->data))->metadata);
 
-	fail_if(metadata == NULL,
-		"Did not receive metadata for item '%s'", clip_id);
+	ck_assert_msg(metadata != NULL,
+		      "Did not receive metadata for item '%s'", clip_id);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_MIME);
 	mime = mval ? g_value_get_string(mval) : NULL;
-	fail_if(mime == NULL || strcmp(mime, "audio/x-mp3"),
-		"Mime type for '%s' is '%s' instead of expected 'audio/x-mp3'",
-		clip_id, mime);
+	ck_assert_msg(mime != NULL && !strcmp(mime, "audio/x-mp3"),
+		      "Mime type for '%s' is '%s' instead of expected 'audio/x-mp3'",
+		      clip_id, mime);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_ARTIST);
 	artist = mval ? g_value_get_string(mval) : NULL;
-	fail_if(artist == NULL || strcmp(artist, "Artist 1"),
-		"Artist for '%s' is '%s' instead of expected 'Artist 1'",
-		clip_id, artist);
+	ck_assert_msg(artist != NULL && !strcmp(artist, "Artist 1"),
+		      "Artist for '%s' is '%s' instead of expected 'Artist 1'",
+		      clip_id, artist);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_ALBUM);
 	album = mval ? g_value_get_string(mval) : NULL;
-	fail_if(album == NULL || strcmp(album, "Album 1"),
-		"Album for '%s' is '%s' instead of expected 'Album 1'",
-		clip_id, album);
+	ck_assert_msg(album != NULL && !strcmp(album, "Album 1"),
+		      "Album for '%s' is '%s' instead of expected 'Album 1'",
+		      clip_id, album);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_GENRE);
 	genre = mval ? g_value_get_string(mval) : NULL;
-	fail_if(genre == NULL || strcmp(genre, "Genre 1"),
-		"Genre for '%s' is '%s' instead of expected 'Genre 1'",
-		clip_id, genre);
+	ck_assert_msg(genre != NULL && !strcmp(genre, "Genre 1"),
+		      "Genre for '%s' is '%s' instead of expected 'Genre 1'",
+		      clip_id, genre);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_TITLE);
 	title = mval ? g_value_get_string(mval) : NULL;
-	fail_if(title == NULL || strcmp(title, "Title 1"),
-		"Title for '%s' is '%s' instead of expected 'Title 1'",
-		clip_id, title);
+	ck_assert_msg(title != NULL && !strcmp(title, "Title 1"),
+		      "Title for '%s' is '%s' instead of expected 'Title 1'",
+		      clip_id, title);
 
 	g_free(clip_id);
 
@@ -1992,12 +1996,12 @@ START_TEST(test_get_metadata_playlist)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_metadata_called == FALSE,
-		"No metadata_result signal received");
+	ck_assert_msg(g_metadata_called != FALSE,
+		      "No metadata_result signal received");
 
-	fail_if(g_list_length(g_metadata_results) != 1,
-		"Query metadata of 1 items returned %d results",
-		g_list_length(g_metadata_results));
+	ck_assert_msg(g_list_length(g_metadata_results) == 1,
+		      "Query metadata of 1 items returned %d results",
+		      g_list_length(g_metadata_results));
 
 	item_metadata = g_metadata_results;
 
@@ -2006,28 +2010,28 @@ START_TEST(test_get_metadata_playlist)
 			    (item_metadata->data))->objectid);
 	metadata = (((MetadataResult *) (item_metadata->data))->metadata);
 
-	fail_if(metadata == NULL,
-		"Did not receive metadata for item '%s'", clip_id);
+	ck_assert_msg(metadata != NULL,
+		      "Did not receive metadata for item '%s'", clip_id);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_MIME);
 	mime = mval ? g_value_get_string(mval) : NULL;
-	fail_if(mime == NULL || strcmp(mime, "x-mafw/container"),
-		"Mime type for '%s' is '%s' instead of expected 'x-mafw/container'",
-		clip_id, mime);
+	ck_assert_msg(mime != NULL && !strcmp(mime, "x-mafw/container"),
+		      "Mime type for '%s' is '%s' instead of expected 'x-mafw/container'",
+		      clip_id, mime);
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_DURATION);
 	duration = mval ? g_value_get_int(mval) : 0;
-	fail_if(duration != 76,
-		"Duration for '%s' is '%i' instead of expected '76'",
-		clip_id, duration);
+	ck_assert_msg(duration == 76,
+		      "Duration for '%s' is '%i' instead of expected '76'",
+		      clip_id, duration);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_CHILDCOUNT_1);
 	childcount = mval ? g_value_get_int(mval) : 0;
-	fail_if(childcount != 4,
-		"Childcount for '%s' is '%i' instead of expected '4'",
-		clip_id, childcount);
+	ck_assert_msg(childcount == 4,
+		      "Childcount for '%s' is '%i' instead of expected '4'",
+		      clip_id, childcount);
 
 	g_free(clip_id);
 
@@ -2078,12 +2082,12 @@ START_TEST(test_get_metadata_album_clip)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_metadata_called == FALSE,
-		"No metadata_result signal received");
+	ck_assert_msg(g_metadata_called != FALSE,
+		      "No metadata_result signal received");
 
-	fail_if(g_list_length(g_metadata_results) != 1,
-		"Query metadata of 1 items returned %d results",
-		g_list_length(g_metadata_results));
+	ck_assert_msg(g_list_length(g_metadata_results) == 1,
+		      "Query metadata of 1 items returned %d results",
+		      g_list_length(g_metadata_results));
 
 	item_metadata = g_metadata_results;
 
@@ -2092,36 +2096,36 @@ START_TEST(test_get_metadata_album_clip)
 			    (item_metadata->data))->objectid);
 	metadata = (((MetadataResult *) (item_metadata->data))->metadata);
 
-	fail_if(metadata == NULL,
-		"Did not receive metadata for item '%s'", clip_id);
+	ck_assert_msg(metadata != NULL,
+		      "Did not receive metadata for item '%s'", clip_id);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_MIME);
 	mime = mval ? g_value_get_string(mval) : NULL;
-	fail_if(mime == NULL || strcmp(mime, "audio/x-mp3"),
-		"Mime type for '%s' is '%s' instead of expected 'audio/x-mp3'",
-		clip_id, mime);
+	ck_assert_msg(mime != NULL && !strcmp(mime, "audio/x-mp3"),
+		      "Mime type for '%s' is '%s' instead of expected 'audio/x-mp3'",
+		      clip_id, mime);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_ARTIST);
 	artist = mval ? g_value_get_string(mval) : NULL;
-	fail_if(artist == NULL || strcmp(artist, "Artist 1"),
-		"Artist for '%s' is '%s' instead of expected 'Artist 1'",
-		clip_id, artist);
+	ck_assert_msg(artist != NULL && !strcmp(artist, "Artist 1"),
+		      "Artist for '%s' is '%s' instead of expected 'Artist 1'",
+		      clip_id, artist);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_ALBUM);
 	album = mval ? g_value_get_string(mval) : NULL;
-	fail_if(album == NULL || strcmp(album, "Album 1"),
-		"Album for '%s' is '%s' instead of expected 'Album 1'",
-		clip_id, album);
+	ck_assert_msg(album != NULL && !strcmp(album, "Album 1"),
+		      "Album for '%s' is '%s' instead of expected 'Album 1'",
+		      clip_id, album);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_TITLE);
 	title = mval ? g_value_get_string(mval) : NULL;
-	fail_if(title == NULL || strcmp(title, "Title 1"),
-		"Title for '%s' is '%s' instead of expected 'Title 1'",
-		clip_id, title);
+	ck_assert_msg(title != NULL && !strcmp(title, "Title 1"),
+		      "Title for '%s' is '%s' instead of expected 'Title 1'",
+		      clip_id, title);
 
 	g_free(clip_id);
 
@@ -2161,9 +2165,9 @@ START_TEST(test_get_metadata_invalid)
 	while (g_main_context_pending(context))
                 g_main_context_iteration(context, TRUE);
 
-	fail_if(g_metadata_results != NULL,
-		"Query of metadata of non existing objectid "
-                "returned non NULL metadata");
+	ck_assert_msg(g_metadata_results == NULL,
+		      "Query of metadata of non existing objectid "
+		      "returned non NULL metadata");
 
 	g_free(clip_id);
 
@@ -2212,12 +2216,12 @@ START_TEST(test_get_metadata_albums)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_metadata_called == FALSE,
-		"No metadata_result signal received");
+	ck_assert_msg(g_metadata_called != FALSE,
+		      "No metadata_result signal received");
 
-	fail_if(g_list_length(g_metadata_results) != 1,
-		"Query metadata of a category returned %d results",
-		g_list_length(g_metadata_results));
+	ck_assert_msg(g_list_length(g_metadata_results) == 1,
+		      "Query metadata of a category returned %d results",
+		      g_list_length(g_metadata_results));
 
 	item_metadata = g_metadata_results;
 
@@ -2226,37 +2230,37 @@ START_TEST(test_get_metadata_albums)
 				(item_metadata->data))->objectid);
 	metadata = (((MetadataResult *) (item_metadata->data))->metadata);
 
-	fail_if(metadata == NULL,
-		"Did not receive metadata for item '%s'", category_id);
+	ck_assert_msg(metadata != NULL,
+		      "Did not receive metadata for item '%s'", category_id);
 
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_TITLE);
 	title = mval ? g_value_get_string(mval) : NULL;
-	fail_if(title == NULL || strcmp(title, "Albums"),
-		"Title for '%s' is '%s' instead of expected 'Albums'",
-		category_id, title);
+	ck_assert_msg(title != NULL && !strcmp(title, "Albums"),
+		      "Title for '%s' is '%s' instead of expected 'Albums'",
+		      category_id, title);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_MIME);
 	mime = mval ? g_value_get_string(mval) : NULL;
-	fail_if(mime == NULL || strcmp(mime, "x-mafw/container"),
+	ck_assert_msg(mime != NULL && !strcmp(mime, "x-mafw/container"),
 		"Mime type for '%s' is '%s' instead of expected ''",
 		category_id, mime);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_DURATION);
 	duration = mval ? g_value_get_int(mval) : 0;
-	fail_if(duration != 612,
-		"Duration for '%s' is '%i' instead of expected '612'",
-		category_id, duration);
+	ck_assert_msg(duration == 612,
+		      "Duration for '%s' is '%i' instead of expected '612'",
+		      category_id, duration);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_CHILDCOUNT_1);
 	childcount = mval ? g_value_get_int(mval) : 0;
-	fail_if(childcount != 9,
-		"Childcount for '%s' is '%i' instead of expected '9'",
-		category_id, childcount);
+	ck_assert_msg(childcount == 9,
+		      "Childcount for '%s' is '%i' instead of expected '9'",
+		      category_id, childcount);
 
 	g_free(category_id);
 
@@ -2305,12 +2309,12 @@ START_TEST(test_get_metadata_music)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_metadata_called == FALSE,
-		"No metadata_result signal received");
+	ck_assert_msg(g_metadata_called != FALSE,
+		      "No metadata_result signal received");
 
-	fail_if(g_list_length(g_metadata_results) != 1,
-		"Query metadata of a category returned %d results",
-		g_list_length(g_metadata_results));
+	ck_assert_msg(g_list_length(g_metadata_results) == 1,
+		      "Query metadata of a category returned %d results",
+		      g_list_length(g_metadata_results));
 
 	item_metadata = g_metadata_results;
 
@@ -2319,37 +2323,37 @@ START_TEST(test_get_metadata_music)
 				(item_metadata->data))->objectid);
 	metadata = (((MetadataResult *) (item_metadata->data))->metadata);
 
-	fail_if(metadata == NULL,
-		"Did not receive metadata for item '%s'", category_id);
+	ck_assert_msg(metadata != NULL,
+		      "Did not receive metadata for item '%s'", category_id);
 
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_TITLE);
 	title = mval ? g_value_get_string(mval) : NULL;
-	fail_if(title == NULL || strcmp(title, "Music"),
-		"Title for '%s' is '%s' instead of expected 'Music'",
-		category_id, title);
+	ck_assert_msg(title != NULL && !strcmp(title, "Music"),
+		      "Title for '%s' is '%s' instead of expected 'Music'",
+		      category_id, title);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_MIME);
 	mime = mval ? g_value_get_string(mval) : NULL;
-	fail_if(mime == NULL || strcmp(mime, "x-mafw/container"),
-		"Mime type for '%s' is '%s' instead of expected ''",
-		category_id, mime);
+	ck_assert_msg(mime != NULL && !strcmp(mime, "x-mafw/container"),
+		      "Mime type for '%s' is '%s' instead of expected ''",
+		      category_id, mime);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_DURATION);
 	duration = mval ? g_value_get_int(mval) : 0;
-	fail_if(duration != 612,
-		"Duration for '%s' is '%i' instead of expected '612'",
-		category_id, duration);
+	ck_assert_msg(duration == 612,
+		      "Duration for '%s' is '%i' instead of expected '612'",
+		      category_id, duration);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_CHILDCOUNT_1);
 	childcount = mval ? g_value_get_int(mval) : 0;
-	fail_if(childcount != 5,
-		"Childcount for '%s' is '%i' instead of expected '5'",
-		category_id, childcount);
+	ck_assert_msg(childcount == 5,
+		      "Childcount for '%s' is '%i' instead of expected '5'",
+		      category_id, childcount);
 
 	g_free(category_id);
 
@@ -2399,12 +2403,12 @@ START_TEST(test_get_metadata_videos)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_metadata_called == FALSE,
-		"No metadata_result signal received");
+	ck_assert_msg(g_metadata_called != FALSE,
+		      "No metadata_result signal received");
 
-	fail_if(g_list_length(g_metadata_results) != 1,
-		"Query metadata of a category returned %d results",
-		g_list_length(g_metadata_results));
+	ck_assert_msg(g_list_length(g_metadata_results) == 1,
+		      "Query metadata of a category returned %d results",
+		      g_list_length(g_metadata_results));
 
 	item_metadata = g_metadata_results;
 
@@ -2413,37 +2417,37 @@ START_TEST(test_get_metadata_videos)
 				(item_metadata->data))->objectid);
 	metadata = (((MetadataResult *) (item_metadata->data))->metadata);
 
-	fail_if(metadata == NULL,
-		"Did not receive metadata for item '%s'", category_id);
+	ck_assert_msg(metadata != NULL,
+		      "Did not receive metadata for item '%s'", category_id);
 
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_TITLE);
 	title = mval ? g_value_get_string(mval) : NULL;
-	fail_if(title == NULL || strcmp(title, "Videos"),
-		"Title for '%s' is '%s' instead of expected 'Videos'",
-		category_id, title);
+	ck_assert_msg(title != NULL && !strcmp(title, "Videos"),
+		      "Title for '%s' is '%s' instead of expected 'Videos'",
+		      category_id, title);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_MIME);
 	mime = mval ? g_value_get_string(mval) : NULL;
-	fail_if(mime == NULL || strcmp(mime, "x-mafw/container"),
-		"Mime type for '%s' is '%s' instead of expected ''",
-		category_id, mime);
+	ck_assert_msg(mime != NULL && !strcmp(mime, "x-mafw/container"),
+		      "Mime type for '%s' is '%s' instead of expected ''",
+		      category_id, mime);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_DURATION);
 	duration = mval ? g_value_get_int(mval) : 0;
-	fail_if(duration != 53,
-		"Duration for '%s' is '%i' instead of expected '53'",
-		category_id, duration);
+	ck_assert_msg(duration == 53,
+		      "Duration for '%s' is '%i' instead of expected '53'",
+		      category_id, duration);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_CHILDCOUNT_1);
 	childcount = mval ? g_value_get_int(mval) : 0;
-	fail_if(childcount != 2,
-		"Childcount for '%s' is '%i' instead of expected '2'",
-		category_id, childcount);
+	ck_assert_msg(childcount == 2,
+		      "Childcount for '%s' is '%i' instead of expected '2'",
+		      category_id, childcount);
 
 	g_free(category_id);
 
@@ -2492,12 +2496,12 @@ START_TEST(test_get_metadata_root)
 	while (g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_metadata_called == FALSE,
-		"No metadata_result signal received");
+	ck_assert_msg(g_metadata_called != FALSE,
+		      "No metadata_result signal received");
 
-	fail_if(g_list_length(g_metadata_results) != 1,
-		"Query metadata of a category returned %d results",
-		g_list_length(g_metadata_results));
+	ck_assert_msg(g_list_length(g_metadata_results) == 1,
+		      "Query metadata of a category returned %d results",
+		      g_list_length(g_metadata_results));
 
 	item_metadata = g_metadata_results;
 
@@ -2506,37 +2510,36 @@ START_TEST(test_get_metadata_root)
 				(item_metadata->data))->objectid);
 	metadata = (((MetadataResult *) (item_metadata->data))->metadata);
 
-	fail_if(metadata == NULL,
-		"Did not receive metadata for item '%s'", category_id);
-
+	ck_assert_msg(metadata != NULL,
+		      "Did not receive metadata for item '%s'", category_id);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_TITLE);
 	title = mval ? g_value_get_string(mval) : NULL;
-	fail_if(title == NULL || strcmp(title, "Root"),
-		"Title for '%s' is '%s' instead of expected 'Root'",
-		category_id, title);
+	ck_assert_msg(title != NULL && !strcmp(title, "Root"),
+		      "Title for '%s' is '%s' instead of expected 'Root'",
+		      category_id, title);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_MIME);
 	mime = mval ? g_value_get_string(mval) : NULL;
-	fail_if(mime == NULL || strcmp(mime, "x-mafw/container"),
-		"Mime type for '%s' is '%s' instead of expected ''",
-		category_id, mime);
+	ck_assert_msg(mime != NULL && !strcmp(mime, "x-mafw/container"),
+		      "Mime type for '%s' is '%s' instead of expected ''",
+		      category_id, mime);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_DURATION);
 	duration = mval ? g_value_get_int(mval) : 0;
-	fail_if(duration != 665,
-		"Duration for '%s' is '%i' instead of expected '665'",
-		category_id, duration);
+	ck_assert_msg(duration == 665,
+		      "Duration for '%s' is '%i' instead of expected '665'",
+		      category_id, duration);
 
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_CHILDCOUNT_1);
 	childcount = mval ? g_value_get_int(mval) : 0;
-	fail_if(childcount != 2,
-		"Childcount for '%s' is '%i' instead of expected '2'",
-		category_id, childcount);
+	ck_assert_msg(childcount == 2,
+		      "Childcount for '%s' is '%i' instead of expected '2'",
+		      category_id, childcount);
 
 	g_free(category_id);
 
@@ -2607,14 +2610,14 @@ START_TEST(test_get_metadatas_none)
         while (g_main_context_pending(context))
                 g_main_context_iteration(context, TRUE);
 
-        fail_if(g_metadatas_called == FALSE,
-                "No metadatas_result signal received");
+	ck_assert_msg(g_metadatas_called != FALSE,
+		      "No metadatas_result signal received");
 
-        fail_if(g_metadatas_error == FALSE,
-                "No error was obtained");
+	ck_assert_msg(g_metadatas_error != FALSE,
+		      "No error was obtained");
 
-        fail_if(g_list_length(g_metadata_results) != 0,
-                "Getting metadata from none returns some result");
+	ck_assert_msg(g_list_length(g_metadata_results) == 0,
+		      "Getting metadata from none returns some result");
 
         g_strfreev(object_ids);
         clear_metadatas_results();
@@ -2662,15 +2665,15 @@ START_TEST(test_get_metadatas_several)
         while (g_main_context_pending(context))
                 g_main_context_iteration(context, TRUE);
 
-        fail_if(g_metadatas_called == FALSE,
-                "No metadatas_result signal received");
+	ck_assert_msg(g_metadatas_called != FALSE,
+		      "No metadatas_result signal received");
 
-        fail_if(g_metadatas_error == TRUE,
-                "An error was obtained");
+	ck_assert_msg(g_metadatas_error != TRUE,
+		      "An error was obtained");
 
-        fail_if(g_list_length(g_metadata_results) != 3,
-                "Query metadatas of 3 elements returned %d results",
-                g_list_length(g_metadata_results));
+	ck_assert_msg(g_list_length(g_metadata_results) == 3,
+		      "Query metadatas of 3 elements returned %d results",
+		      g_list_length(g_metadata_results));
 
         g_strfreev(object_ids);
         clear_metadatas_results();
@@ -2739,17 +2742,17 @@ START_TEST(test_set_metadata_audio)
 	while(g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_set_metadata_called == FALSE,
-		"No set metadata signal received");
+	ck_assert_msg(g_set_metadata_called != FALSE,
+		      "No set metadata signal received");
 
-	fail_if(g_set_metadata_params_err == TRUE,
-		"Error in the parameters from the tracker call");
+	ck_assert_msg(g_set_metadata_params_err != TRUE,
+		      "Error in the parameters from the tracker call");
 
-	fail_if(g_set_metadata_error == TRUE,
-		"Error received during set metadata operation");
+	ck_assert_msg(g_set_metadata_error != TRUE,
+		      "Error received during set metadata operation");
 
-	fail_if(g_set_metadata_failed_keys != NULL,
-		"Set metadata operation failed");
+	ck_assert_msg(g_set_metadata_failed_keys == NULL,
+		      "Set metadata operation failed");
 
 	clear_set_metadata_results();
 	g_main_loop_unref(loop);
@@ -2790,17 +2793,17 @@ START_TEST(test_set_metadata_video)
 	while(g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_set_metadata_called == FALSE,
-		"No set metadata signal received");
+	ck_assert_msg(g_set_metadata_called != FALSE,
+		      "No set metadata signal received");
 
-	fail_if(g_set_metadata_params_err == TRUE,
-		"Error in the parameters from the tracker call");
+	ck_assert_msg(g_set_metadata_params_err != TRUE,
+		      "Error in the parameters from the tracker call");
 
-	fail_if(g_set_metadata_error == TRUE,
-		"Error received during set metadata operation");
+	ck_assert_msg(g_set_metadata_error != TRUE,
+		      "Error received during set metadata operation");
 
-	fail_if(g_set_metadata_failed_keys != NULL,
-		"Set metadata operation failed");
+	ck_assert_msg(g_set_metadata_failed_keys == NULL,
+		      "Set metadata operation failed");
 
 	clear_set_metadata_results();
 	g_main_loop_unref(loop);
@@ -2838,21 +2841,21 @@ START_TEST(test_set_metadata_invalid)
 	while(g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_set_metadata_called == FALSE,
-		"No set metadata signal received");
+	ck_assert_msg(g_set_metadata_called != FALSE,
+		      "No set metadata signal received");
 
-	fail_if(g_set_metadata_params_err == TRUE,
-		"Error in the parameters from the tracker call");
+	ck_assert_msg(g_set_metadata_params_err != TRUE,
+		      "Error in the parameters from the tracker call");
 
-	fail_if(g_set_metadata_error != TRUE,
-		"Error not received when trying to modify a non-writable "
-		"metadata");
+	ck_assert_msg(g_set_metadata_error == TRUE,
+		      "Error not received when trying to modify a non-writable "
+		      "metadata");
 
-	fail_if(g_set_metadata_failed_keys == NULL,
-		"Metadata failed keys should contain the keys that couldn't be "
-		"updated");
-	fail_if(g_list_length(g_set_metadata_failed_keys) != 1,
-		"The number of failed keys reported is incorrect");
+	ck_assert_msg(g_set_metadata_failed_keys != NULL,
+		      "Metadata failed keys should contain the keys that couldn't be "
+		      "updated");
+	ck_assert_msg(g_list_length(g_set_metadata_failed_keys) == 1,
+		      "The number of failed keys reported is incorrect");
 
 	clear_set_metadata_results();
 
@@ -2883,22 +2886,22 @@ START_TEST(test_set_metadata_invalid)
 	while(g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_set_metadata_called == FALSE,
-		"No set metadata signal received");
+	ck_assert_msg(g_set_metadata_called != FALSE,
+		      "No set metadata signal received");
 
-	fail_if(g_set_metadata_params_err == TRUE,
-		"Error in the parameters from the tracker call");
+	ck_assert_msg(g_set_metadata_params_err != TRUE,
+		      "Error in the parameters from the tracker call");
 
-	fail_if(g_set_metadata_error != TRUE,
-		"Error not received when trying to modify audio and video "
-		"metadata at the same time");
+	ck_assert_msg(g_set_metadata_error == TRUE,
+		      "Error not received when trying to modify audio and video "
+		      "metadata at the same time");
 
-	fail_if(g_set_metadata_failed_keys == NULL,
-		"Metadata failed keys should contain the keys that couldn't be "
-		"updated");
+	ck_assert_msg(g_set_metadata_failed_keys != NULL,
+		      "Metadata failed keys should contain the keys that couldn't be "
+		      "updated");
 
-	fail_if(g_list_length(g_set_metadata_failed_keys) != 2,
-		"The number of failed keys reported is incorrect");
+	ck_assert_msg(g_list_length(g_set_metadata_failed_keys) == 2,
+		      "The number of failed keys reported is incorrect");
 
 	clear_set_metadata_results();
 
@@ -2922,22 +2925,21 @@ START_TEST(test_set_metadata_invalid)
 	while(g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_set_metadata_called == FALSE,
-		"No set metadata signal received");
+	ck_assert_msg(g_set_metadata_called != FALSE,
+		      "No set metadata signal received");
 
-	fail_if(g_set_metadata_params_err == TRUE,
-		"Error in the parameters from the tracker call");
+	ck_assert_msg(g_set_metadata_params_err != TRUE,
+		      "Error in the parameters from the tracker call");
 
-	fail_if(g_set_metadata_error != TRUE,
-		"Error not received when trying to modify metadata from a non-existing file");
+	ck_assert_msg(g_set_metadata_error == TRUE,
+		      "Error not received when trying to modify metadata from a non-existing file");
 
-	fail_if(g_set_metadata_failed_keys == NULL,
-		"Metadata failed keys should contain the keys that couldn't be"
-		"updated");
+	ck_assert_msg(g_set_metadata_failed_keys != NULL,
+		      "Metadata failed keys should contain the keys that couldn't be"
+		      "updated");
 
-	fail_if(g_list_length(g_set_metadata_failed_keys) != 1,
-		"The number of failed keys reported is incorrect");
-
+	ck_assert_msg(g_list_length(g_set_metadata_failed_keys) == 1,
+		      "The number of failed keys reported is incorrect");
 
 	clear_set_metadata_results();
 
@@ -2961,21 +2963,21 @@ START_TEST(test_set_metadata_invalid)
 	while(g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_set_metadata_called == FALSE,
-		"No set metadata signal received");
+	ck_assert_msg(g_set_metadata_called != FALSE,
+		      "No set metadata signal received");
 
-	fail_if(g_set_metadata_params_err == TRUE,
-		"Error in the parameters from the tracker call");
+	ck_assert_msg(g_set_metadata_params_err != TRUE,
+		      "Error in the parameters from the tracker call");
 
-	fail_if(g_set_metadata_error != TRUE,
-		"Error not received when trying to modify metadata from a non-existing file");
+	ck_assert_msg(g_set_metadata_error == TRUE,
+		      "Error not received when trying to modify metadata from a non-existing file");
 
-	fail_if(g_set_metadata_failed_keys == NULL,
-		"Metadata failed keys should contain the keys that couldn't be"
-		"updated");
+	ck_assert_msg(g_set_metadata_failed_keys != NULL,
+		      "Metadata failed keys should contain the keys that couldn't be"
+		      "updated");
 
-	fail_if(g_list_length(g_set_metadata_failed_keys) != 1,
-		"The number of failed keys reported is incorrect");
+	ck_assert_msg(g_list_length(g_set_metadata_failed_keys) == 1,
+		      "The number of failed keys reported is incorrect");
 
 
 	clear_set_metadata_results();
@@ -3016,20 +3018,20 @@ START_TEST(test_destroy_item)
 	while(g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_destroy_called == FALSE,
-		"No destroy signal received");
+	ck_assert_msg(g_destroy_called != FALSE,
+		      "No destroy signal received");
 
-	fail_if(g_destroy_error == TRUE,
-		"Error received in destroy object callback");
+	ck_assert_msg(g_destroy_error != TRUE,
+		      "Error received in destroy object callback");
 
-	fail_if(g_destroy_results == NULL,
-		"Destroy object operation failed");
+	ck_assert_msg(g_destroy_results != NULL,
+		      "Destroy object operation failed");
 
-	fail_if((g_list_length(g_destroy_results) != 1) ||
-		g_ascii_strcasecmp(
-			(gchar *) g_list_nth_data(g_destroy_results, 0),
-			"/home/user/MyDocs/clip2.mp3"),
-		 "Unexpected results in destroy object operation");
+	ck_assert_msg((g_list_length(g_destroy_results) == 1) &&
+		      !g_ascii_strcasecmp(
+			      (gchar *) g_list_nth_data(g_destroy_results, 0),
+			      "/home/user/MyDocs/clip2.mp3"),
+		      "Unexpected results in destroy object operation");
 
 	clear_destroy_results();
 	g_main_loop_unref(loop);
@@ -3056,20 +3058,20 @@ START_TEST(test_destroy_playlist)
 	while(g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_destroy_called == FALSE,
-		"No destroy signal received");
+	ck_assert_msg(g_destroy_called != FALSE,
+		      "No destroy signal received");
 
-	fail_if(g_destroy_error == TRUE,
-		"Error received in destroy object callback");
+	ck_assert_msg(g_destroy_error != TRUE,
+		      "Error received in destroy object callback");
 
-	fail_if(g_destroy_results == NULL,
-		"Destroy object operation failed");
+	ck_assert_msg(g_destroy_results != NULL,
+		      "Destroy object operation failed");
 
-	fail_if((g_list_length(g_destroy_results) != 1) ||
-		g_ascii_strcasecmp(
-			(gchar *) g_list_nth_data(g_destroy_results, 0),
-			"/home/user/MyDocs/playlist1.pls"),
-		 "Unexpected results in destroy object operation");
+	ck_assert_msg((g_list_length(g_destroy_results) == 1) &&
+		      !g_ascii_strcasecmp(
+			      (gchar *) g_list_nth_data(g_destroy_results, 0),
+			      "/home/user/MyDocs/playlist1.pls"),
+		      "Unexpected results in destroy object operation");
 
 	clear_destroy_results();
 	g_main_loop_unref(loop);
@@ -3096,26 +3098,26 @@ START_TEST(test_destroy_container)
 	while(g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_destroy_called == FALSE,
-		"No destroy signal received");
+	ck_assert_msg(g_destroy_called != FALSE,
+		      "No destroy signal received");
 
-       	fail_if(g_destroy_error == TRUE,
-		"Error received in destroy object callback");
+	ck_assert_msg(g_destroy_error != TRUE,
+		      "Error received in destroy object callback");
 
-	fail_if((g_list_length(g_destroy_results) != 5) ||
-		g_ascii_strcasecmp(
+	ck_assert_msg((g_list_length(g_destroy_results) == 5) &&
+		!g_ascii_strcasecmp(
 			(gchar *) g_list_nth_data(g_destroy_results, 0),
-			"/home/user/MyDocs/clip1.mp3") ||
-		g_ascii_strcasecmp(
+			"/home/user/MyDocs/clip1.mp3") &&
+		!g_ascii_strcasecmp(
 			 (gchar *) g_list_nth_data(g_destroy_results, 1),
-			 "/home/user/MyDocs/clip3.mp3") ||
-		g_ascii_strcasecmp(
+			 "/home/user/MyDocs/clip3.mp3") &&
+		!g_ascii_strcasecmp(
 			(gchar *) g_list_nth_data(g_destroy_results, 2),
-			"/home/user/MyDocs/clip4.mp3") ||
-		g_ascii_strcasecmp(
+			"/home/user/MyDocs/clip4.mp3") &&
+		!g_ascii_strcasecmp(
 			(gchar *) g_list_nth_data(g_destroy_results, 3),
-			"/home/user/MyDocs/clip5.wma") ||
-		g_ascii_strcasecmp(
+			"/home/user/MyDocs/clip5.wma") &&
+		!g_ascii_strcasecmp(
 			(gchar *) g_list_nth_data(g_destroy_results, 4),
 			"/home/user/MyDocs/clip6.wma"),
 		"Unexpected results in destroy object operation");
@@ -3145,14 +3147,14 @@ START_TEST(test_destroy_invalid_category)
 	while(g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_destroy_called == FALSE,
-		"No destroy signal received");
+	ck_assert_msg(g_destroy_called != FALSE,
+		      "No destroy signal received");
 
-	fail_if(g_destroy_error != TRUE,
-		"Error not received when trying to destroy an invalid category");
+	ck_assert_msg(g_destroy_error == TRUE,
+		      "Error not received when trying to destroy an invalid category");
 
-	fail_if(g_destroy_results != NULL,
-		"Objects destroyed when that is not expected");
+	ck_assert_msg(g_destroy_results == NULL,
+		      "Objects destroyed when that is not expected");
 
 	clear_destroy_results();
 
@@ -3168,14 +3170,14 @@ START_TEST(test_destroy_invalid_category)
 	while(g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_destroy_called == FALSE,
-		"No destroy signal received");
+	ck_assert_msg(g_destroy_called != FALSE,
+		      "No destroy signal received");
 
-	fail_if(g_destroy_error != TRUE,
-		"Error not received when trying to destroy a malformed objectid");
+	ck_assert_msg(g_destroy_error == TRUE,
+		      "Error not received when trying to destroy a malformed objectid");
 
-	fail_if(g_destroy_results != NULL,
-		"Objects destroyed when that is not expected");
+	ck_assert_msg(g_destroy_results == NULL,
+		      "Objects destroyed when that is not expected");
 
 	clear_destroy_results();
 
@@ -3203,14 +3205,14 @@ START_TEST(test_destroy_failed)
 	while(g_main_context_pending(context))
 		g_main_context_iteration(context, TRUE);
 
-	fail_if(g_destroy_called == FALSE,
-		"No destroy signal received");
+	ck_assert_msg(g_destroy_called != FALSE,
+		      "No destroy signal received");
 
-	fail_if(g_destroy_error != TRUE,
-		"Error not received when trying to destroy a non-existent file");
+	ck_assert_msg(g_destroy_error == TRUE,
+		      "Error not received when trying to destroy a non-existent file");
 
-       	fail_if(g_destroy_results != NULL,
-		"Objects destroyed when that is not expected");
+	ck_assert_msg(g_destroy_results == NULL,
+		      "Objects destroyed when that is not expected");
 
 	clear_destroy_results();
 	g_main_loop_unref(loop);
