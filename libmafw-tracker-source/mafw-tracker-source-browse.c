@@ -1260,7 +1260,7 @@ mafw_tracker_source_browse(MafwSource *self,
                            MafwSourceBrowseResultCb browse_cb,
                            gpointer user_data)
 {
-  gint browse_id = 0;
+  gint browse_id = MAFW_SOURCE_INVALID_BROWSE_ID;
   struct _browse_closure *bc = NULL;
   CategoryType category;
   const gchar *const *meta_keys;
@@ -1290,7 +1290,7 @@ mafw_tracker_source_browse(MafwSource *self,
                 MAFW_SOURCE_ERROR_INVALID_OBJECT_ID,
                 "Invalid object id",
                 user_data);
-    return MAFW_SOURCE_INVALID_BROWSE_ID;
+    goto out;
   }
 
   if ((clip != NULL) && (category != CATEGORY_MUSIC_PLAYLISTS))
@@ -1299,7 +1299,7 @@ mafw_tracker_source_browse(MafwSource *self,
                 MAFW_SOURCE_ERROR_INVALID_OBJECT_ID,
                 "object id is not browseable",
                 user_data);
-    return MAFW_SOURCE_INVALID_BROWSE_ID;
+    goto out;
   }
 
   if (metadata_keys == NULL)
@@ -1386,9 +1386,7 @@ mafw_tracker_source_browse(MafwSource *self,
     case CATEGORY_MUSIC_PLAYLISTS:
     {
       if (!_browse_playlists_branch(clip, bc))
-      {
-        return MAFW_SOURCE_INVALID_BROWSE_ID;
-      }
+        browse_id = MAFW_SOURCE_INVALID_BROWSE_ID;
 
       break;
     }
@@ -1400,6 +1398,12 @@ mafw_tracker_source_browse(MafwSource *self,
     }
   }
 
+out:
+  g_free(genre);
+  g_free(artist);
+  g_free(album);
+  g_free(clip);
+  
   return browse_id;
 }
 
