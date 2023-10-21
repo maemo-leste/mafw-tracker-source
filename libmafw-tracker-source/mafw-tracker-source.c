@@ -209,7 +209,7 @@ _get_uri(gpointer metadata, gpointer uris_list)
     uri = g_value_get_string(gval);
 
     if (uri)
-      *uris = g_list_append(*uris, (gchar *)uri);
+      *uris = g_list_append(*uris, g_strdup(uri));
   }
 }
 
@@ -230,8 +230,9 @@ _destroy_object_tracker_cb(MafwResult *clips, GError *error, gpointer user_data)
     g_idle_add_full(G_PRIORITY_DEFAULT_IDLE,
                     (GSourceFunc)_destroy_object_idle, dc,
                     (GDestroyNotify)_destroy_object_closure_free);
-    g_list_foreach(clips->ids, (GFunc)g_free, NULL);
-    g_list_free(clips->ids);
+    g_list_free_full(clips->metadata_values,
+                     (GDestroyNotify)mafw_metadata_release);
+    g_list_free_full(clips->ids, g_free);
     g_free(clips);
   }
   else
