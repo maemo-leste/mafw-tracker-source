@@ -997,7 +997,7 @@ util_build_sparql(TrackerObjectType type,
       if (!strcmp(aggregates[i], AGGREGATED_TYPE_CONCAT))
       {
         gchar *concat = _group_concat(var);
-        
+
         g_string_append_printf(sql_select, " %s",concat);
         g_free(concat);
       }
@@ -1063,8 +1063,6 @@ util_build_meta_sparql(TrackerObjectType type,
     g_string_append_printf(sql_select, " %s", var);
     g_string_append_printf(sql_where, " . OPTIONAL{%s %s}", fields[i], var);
   }
-
-  sql = g_strconcat(sql_select->str, " ", NULL);
 
   if (uris)
   {
