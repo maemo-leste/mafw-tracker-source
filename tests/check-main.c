@@ -22,17 +22,19 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <check.h>
 #include <checkmore.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /* This must be provided by the test suite implementation */
-SRunner *configure_tests(void);
+SRunner *
+configure_tests(void);
 
-int main(void)
+int
+main(void)
 {
-	return checkmore_run(configure_tests(), FALSE);
+  return checkmore_run(configure_tests(), FALSE);
 }
 
 /* vi: set noexpandtab ts=8 sw=8 cino=t0,(0: */
