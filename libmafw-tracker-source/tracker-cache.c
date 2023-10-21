@@ -768,30 +768,38 @@ gchar **
 tracker_cache_keys_get_tracker(TrackerCache *cache)
 {
   gchar **ask_keys;
-  GHashTableIter cache_iter;
+  GHashTableIter iter;
   gchar *key;
   TrackerCacheValue *value;
-  gint offset = 0;
   gint limit = cache->last_tracker_index;
 
   ask_keys = g_new0(gchar *, cache->last_tracker_index + 1);
 
   /* Search tracker keys and add them to the strv */
-  g_hash_table_iter_init(&cache_iter, cache->cache);
+  g_hash_table_iter_init(&iter, cache->cache);
 
-  while (g_hash_table_iter_next(
-           &cache_iter, (gpointer *)&key, (gpointer *)&value))
+  while (g_hash_table_iter_next(&iter, (gpointer *)&key, (gpointer *)&value))
   {
     /* The keys must be between offset and last_tracker_index */
     if ((value->key_type == TRACKER_CACHE_KEY_TYPE_TRACKER) &&
-        (value->tracker_index >= offset) &&
         (value->tracker_index < limit))
     {
-      ask_keys[value->tracker_index - offset] = g_strdup(key);
+      ask_keys[value->tracker_index] = g_strdup(key);
     }
   }
 
   return ask_keys;
+}
+
+void
+tracker_cache_keys_free_tracker(TrackerCache *cache, gchar **tracker_keys)
+{
+  gint i;
+
+  for (i = 0; i < cache->last_tracker_index; i++)
+    g_free(tracker_keys[i]);
+
+  g_free(tracker_keys);
 }
 
 /*

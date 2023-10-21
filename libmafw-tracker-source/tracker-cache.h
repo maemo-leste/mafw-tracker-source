@@ -138,9 +138,12 @@ tracker_cache_key_add_unique(TrackerCache *cache,
 void
 tracker_cache_key_add_concat(TrackerCache *cache,
                              const gchar *concat_key);
-
 gchar **
 tracker_cache_keys_get_tracker(TrackerCache *cache);
+
+void
+tracker_cache_keys_free_tracker(TrackerCache *cache,
+                                gchar **tracker_keys);
 
 gchar **
 tracker_cache_keys_get_user(TrackerCache *cache);

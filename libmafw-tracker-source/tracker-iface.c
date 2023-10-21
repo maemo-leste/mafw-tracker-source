@@ -264,7 +264,7 @@ _build_objectids_from_unique_key(TrackerCache *cache)
     objectid_list = g_list_prepend(objectid_list, unique_value);
   }
 
-  g_strfreev(tracker_keys);
+  tracker_cache_keys_free_tracker(cache, tracker_keys);
   objectid_list = g_list_reverse(objectid_list);
 
   return objectid_list;
@@ -608,7 +608,7 @@ _do_tracker_get_metadata(gchar **uris,
 
   mc->tracker_keys = keymap_mafw_keys_to_tracker_keys(user_keys,
                                                       tracker_obj_type);
-  g_strfreev(user_keys);
+  tracker_cache_keys_free_tracker(mc->cache, user_keys);
   mc->uris = g_strdupv(uris);
 
   if (g_strv_length(mc->tracker_keys) > 0)
@@ -790,7 +790,7 @@ ti_get_videos(gchar **keys,
   keys_to_query = tracker_cache_keys_get_tracker(mc->cache);
   tracker_keys = keymap_mafw_keys_to_tracker_keys(keys_to_query,
                                                   TRACKER_TYPE_VIDEO);
-  g_strfreev(keys_to_query);
+  tracker_cache_keys_free_tracker(mc->cache, keys_to_query);
 
   if (sort_fields != NULL)
   {
@@ -909,7 +909,7 @@ ti_get_songs(const gchar *genre,
   keys_to_query = tracker_cache_keys_get_tracker(mc->cache);
   tracker_keys = keymap_mafw_keys_to_tracker_keys(keys_to_query,
                                                   TRACKER_TYPE_MUSIC);
-  g_strfreev(keys_to_query);
+  tracker_cache_keys_free_tracker(mc->cache, keys_to_query);
   tracker_sort_keys =
     keymap_mafw_sort_keys_to_tracker_keys(use_sort_fields, TRACKER_TYPE_MUSIC);
   sparql_filter = util_create_filter_from_category(
@@ -1045,7 +1045,7 @@ ti_get_artists(const gchar *genre,
     }
   }
 
-  g_strfreev(tracker_keys);
+  tracker_cache_keys_free_tracker(mc->cache, tracker_keys);
 
   _do_tracker_get_unique_values(tracker_unique_keys,
                                 aggregate_keys,
@@ -1144,7 +1144,7 @@ ti_get_genres(gchar **keys,
     }
   }
 
-  g_strfreev(tracker_keys);
+  tracker_cache_keys_free_tracker(mc->cache, tracker_keys);
 
   /* Query tracker */
   _do_tracker_get_unique_values(tracker_unique_keys,
@@ -1202,7 +1202,7 @@ ti_get_playlists(gchar **keys,
   keys_to_query = tracker_cache_keys_get_tracker(mc->cache);
   tracker_keys = keymap_mafw_keys_to_tracker_keys(keys_to_query,
                                                   TRACKER_TYPE_PLAYLIST);
-  g_strfreev(keys_to_query);
+  tracker_cache_keys_free_tracker(mc->cache, keys_to_query);
   tracker_sort_keys =
     keymap_mafw_sort_keys_to_tracker_keys(use_sort_fields, TRACKER_TYPE_MUSIC);
   sparql_filter = util_build_complex_rdf_filter(NULL, user_filter);
@@ -1356,7 +1356,7 @@ ti_get_albums(const gchar *genre,
     }
   }
 
-  g_strfreev(tracker_keys);
+  tracker_cache_keys_free_tracker(mc->cache, tracker_keys);
 
   _do_tracker_get_unique_values(tracker_unique_keys,
                                 aggregate_keys,
@@ -1511,7 +1511,7 @@ _do_tracker_get_metadata_from_service(gchar **keys,
     }
   }
 
-  g_strfreev(tracker_keys);
+  tracker_cache_keys_free_tracker(mc->cache, tracker_keys);
 
   if (aggregate_keys[0])
   {
@@ -1771,7 +1771,7 @@ ti_get_metadata_from_category(const gchar *genre,
     }
   }
 
-  g_strfreev(tracker_keys);
+  tracker_cache_keys_free_tracker(mc->cache, tracker_keys);
 
   if (aggregate_keys[0])
   {
