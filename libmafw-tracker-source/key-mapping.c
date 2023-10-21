@@ -31,11 +31,11 @@
 /* ------------------------- Public API ------------------------- */
 
 gchar *keymap_mafw_key_to_tracker_key(const gchar *mafw_key,
-				      ServiceType service)
+				      TrackerObjectType type)
 {
         TrackerKey *tracker_key;
 
-        tracker_key = keymap_get_tracker_info(mafw_key, service);
+        tracker_key = keymap_get_tracker_info(mafw_key, type);
 
         if (tracker_key) {
                 return g_strdup(tracker_key->tracker_key);
@@ -177,14 +177,12 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 g_hash_table_insert(table->videos_keys,
                                     MAFW_METADATA_KEY_VIDEO_FRAMERATE,
                                     tracker_key);
-
                 tracker_key = g_new0(TrackerKey, 1);
                 tracker_key->tracker_key = TRACKER_VKEY_PAUSED_THUMBNAIL;
                 tracker_key->value_type = G_TYPE_STRING;
                 g_hash_table_insert(table->common_keys,
                                     MAFW_METADATA_KEY_PAUSED_THUMBNAIL_URI,
                                     tracker_key);
-
                 tracker_key = g_new0(TrackerKey, 1);
                 tracker_key->tracker_key = TRACKER_VKEY_PAUSED_POSITION;
                 tracker_key->value_type = G_TYPE_INT;
@@ -247,14 +245,6 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 tracker_key->value_type = G_TYPE_INT;
                 g_hash_table_insert(table->playlist_keys,
                                     MAFW_METADATA_KEY_CHILDCOUNT_4,
-                                    tracker_key);
-
-                /* Special key (not available in MAFW) */
-                tracker_key = g_new0(TrackerKey, 1);
-                tracker_key->tracker_key = TRACKER_PKEY_VALID_DURATION;
-                tracker_key->value_type = G_TYPE_INT;
-                g_hash_table_insert(table->playlist_keys,
-                                    TRACKER_PKEY_VALID_DURATION,
                                     tracker_key);
 
                 /* Insert mapping common for all services */
@@ -433,7 +423,6 @@ InfoKeyTable *keymap_get_info_key_table(void)
 
                 metadata_key = g_new0(MetadataKey, 1);
                 metadata_key->value_type = G_TYPE_STRING;
-                metadata_key->special = SPECIAL_KEY_URI;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_URI,
                                     metadata_key);
@@ -495,12 +484,6 @@ InfoKeyTable *keymap_get_info_key_table(void)
                 metadata_key->value_type = G_TYPE_INT;
                 g_hash_table_insert(table->metadata_keys,
                                     MAFW_METADATA_KEY_RES_Y,
-                                    metadata_key);
-
-                metadata_key = g_new0(MetadataKey, 1);
-                metadata_key->value_type = G_TYPE_BOOLEAN;
-                g_hash_table_insert(table->metadata_keys,
-                                    TRACKER_PKEY_VALID_DURATION,
                                     metadata_key);
 
                 metadata_key = g_new0(MetadataKey, 1);
@@ -578,7 +561,7 @@ InfoKeyTable *keymap_get_info_key_table(void)
 }
 
 gchar **keymap_mafw_keys_to_tracker_keys(gchar **mafw_keys,
-					 ServiceType service)
+					 TrackerObjectType type)
 {
 	gchar **tracker_keys;
 	gint i, count;
@@ -591,7 +574,7 @@ gchar **keymap_mafw_keys_to_tracker_keys(gchar **mafw_keys,
 	/* Count the number of keys */
 	for (i=0, count=0; mafw_keys[i] != NULL; i++) {
                 /* Check if the key is translatable to tracker */
-                if (keymap_get_tracker_info(mafw_keys[i], service) != NULL) {
+                if (keymap_get_tracker_info(mafw_keys[i], type) != NULL) {
                         count++;
                 }
 	}
@@ -601,11 +584,11 @@ gchar **keymap_mafw_keys_to_tracker_keys(gchar **mafw_keys,
 
 	/* Now, translate the keys supported in tracker */
 	for (i=0, count=0; mafw_keys[i] != NULL; i++) {
-                tracker_key = keymap_get_tracker_info(mafw_keys[i], service);
+                tracker_key = keymap_get_tracker_info(mafw_keys[i], type);
                 if (tracker_key) {
                         tracker_keys[count++] =
                                 keymap_mafw_key_to_tracker_key(mafw_keys[i],
-                                                               service);
+                                                               type);
                 }
         }
 
@@ -613,7 +596,7 @@ gchar **keymap_mafw_keys_to_tracker_keys(gchar **mafw_keys,
 }
 
 gchar **keymap_mafw_sort_keys_to_tracker_keys(gchar **mafw_keys,
-                                              ServiceType service)
+                                              TrackerObjectType type)
 {
 	gchar **tracker_keys;
 	gint i, count;
@@ -633,7 +616,7 @@ gchar **keymap_mafw_sort_keys_to_tracker_keys(gchar **mafw_keys,
                         key++;
                 }
                 /* Check if the key is translatable to tracker */
-                if (keymap_get_tracker_info(key, service) != NULL) {
+                if (keymap_get_tracker_info(key, type) != NULL) {
                         count++;
                 }
 	}
@@ -654,13 +637,13 @@ gchar **keymap_mafw_sort_keys_to_tracker_keys(gchar **mafw_keys,
                                 key++;
                         }
                 }
-                tracker_key = keymap_get_tracker_info(key, service);
+                tracker_key = keymap_get_tracker_info(key, type);
                 if (tracker_key) {
                         tracker_keys[count++] =
                                 g_strconcat (
                                         keymap_mafw_key_to_tracker_key(
                                                 key,
-                                                service),
+                                                type),
                                         sort_type,
                                         NULL);
                 }
@@ -681,7 +664,7 @@ MetadataKey *keymap_get_metadata(const gchar *mafw_key)
 }
 
 TrackerKey *keymap_get_tracker_info(const gchar *mafw_key,
-                                    ServiceType service)
+                                    TrackerObjectType type)
 {
         static InfoKeyTable *table = NULL;
         TrackerKey *tracker_key;
@@ -690,12 +673,12 @@ TrackerKey *keymap_get_tracker_info(const gchar *mafw_key,
                 table = keymap_get_info_key_table();
         }
 
-        switch (service) {
-        case SERVICE_VIDEOS:
+        switch (type) {
+        case TRACKER_TYPE_VIDEO:
                 tracker_key = g_hash_table_lookup(table->videos_keys,
                                                   mafw_key);
                 break;
-        case SERVICE_PLAYLISTS:
+        case TRACKER_TYPE_PLAYLIST:
                 tracker_key = g_hash_table_lookup(table->playlist_keys,
                                                   mafw_key);
                 break;
@@ -713,11 +696,11 @@ TrackerKey *keymap_get_tracker_info(const gchar *mafw_key,
 }
 
 GType keymap_get_tracker_type(const gchar *mafw_key,
-                              ServiceType service)
+                              TrackerObjectType type)
 {
         TrackerKey *tracker_key;
 
-        tracker_key = keymap_get_tracker_info(mafw_key, service);
+        tracker_key = keymap_get_tracker_info(mafw_key, type);
 
         if (tracker_key) {
                 return tracker_key->value_type;

@@ -106,79 +106,42 @@
                 MAFW_METADATA_KEY_CHILDCOUNT_4
 
 /* Tracker metadata keys */
-#define TRACKER_AKEY_ALBUM            "Audio:Album"
-#define TRACKER_AKEY_ARTIST           "Audio:Artist"
-#define TRACKER_AKEY_BITRATE          "Audio:Bitrate"
-#define TRACKER_AKEY_DURATION         "Audio:Duration"
-#define TRACKER_AKEY_GENRE            "Audio:Genre"
-#define TRACKER_AKEY_LAST_PLAYED      "Audio:LastPlay"
-#define TRACKER_AKEY_PLAY_COUNT       "Audio:PlayCount"
-#define TRACKER_AKEY_TITLE            "Audio:Title"
-#define TRACKER_AKEY_TRACK            "Audio:TrackNo"
-#define TRACKER_AKEY_YEAR             "Audio:ReleaseDate"
-#define TRACKER_FKEY_ADDED            "File:Added"
-#define TRACKER_FKEY_MODIFIED         "File:Modified"
-#define TRACKER_FKEY_COPYRIGHT        "File:Copyright"
-#define TRACKER_FKEY_FILENAME         "File:Name"
-#define TRACKER_FKEY_FILESIZE         "File:Size"
-#define TRACKER_FKEY_FULLNAME         "File:NameDelimited"
-#define TRACKER_FKEY_MIME             "File:Mime"
-#define TRACKER_FKEY_PATH             "File:Path"
-#define TRACKER_PKEY_COUNT            "Playlist:Songs"
-#define TRACKER_PKEY_DURATION         "Playlist:Duration"
-#define TRACKER_PKEY_VALID_DURATION   "Playlist:ValidDuration"
-#define TRACKER_VKEY_DURATION         "Video:Duration"
-#define TRACKER_VKEY_FRAMERATE        "Video:FrameRate"
-#define TRACKER_VKEY_PAUSED_POSITION  "Video:PausePosition"
-#define TRACKER_VKEY_PAUSED_THUMBNAIL "Video:LastPlayedFrame"
-#define TRACKER_VKEY_RES_X            "Video:Width"
-#define TRACKER_VKEY_RES_Y            "Video:Height"
-#define TRACKER_VKEY_SOURCE           "Video:Source"
-#define TRACKER_VKEY_TITLE            "Video:Title"
+#define TRACKER_AKEY_ALBUM            "?o nmm:musicAlbum/nie:title"
+#define TRACKER_AKEY_ARTIST           "?o nmm:performer/nmm:artistName"
+#define TRACKER_AKEY_TITLE            "?o nie:title"
+#define TRACKER_AKEY_GENRE            "?o nfo:genre"
+#define TRACKER_AKEY_DURATION         "?o nfo:duration"
+#define TRACKER_AKEY_TRACK            "?o nmm:trackNumber"
+#define TRACKER_AKEY_BITRATE          "?o nfo:averageBitrate"
+#define TRACKER_AKEY_LAST_PLAYED      "?o nie:contentAccessed"
+#define TRACKER_AKEY_PLAY_COUNT       "?o nie:usageCounter"
+#define TRACKER_AKEY_YEAR             "?o nie:contentCreated"
 
-#define RDF_QUERY_BEGIN \
-	"<rdfq:Condition>"
+#define TRACKER_VKEY_TITLE            "?o nie:title"
+#define TRACKER_VKEY_DURATION         "?o nfo:duration"
 
-#define RDF_QUERY_END \
-	"</rdfq:Condition>"
+#define TRACKER_VKEY_FRAMERATE        "?o nfo:frameRate"
+#define TRACKER_VKEY_PAUSED_POSITION  "?o nfo:lastPlayedPosition"
+#define TRACKER_VKEY_RES_X            "?o nfo:width"
+#define TRACKER_VKEY_RES_Y            "?o nfo:height"
+#define TRACKER_VKEY_SOURCE           "?o nfo:equipment/nfo:model"
+#define TRACKER_VKEY_PAUSED_THUMBNAIL "?o nfo:depiction"
 
-#define RDF_QUERY_AND_BEGIN \
-        RDF_QUERY_BEGIN                                                 \
-	"  <rdfq:and>"							\
+#define TRACKER_PKEY_COUNT            "?o nfo:entryCounter"
+#define TRACKER_PKEY_DURATION         "?o nfo:listDuration"
 
-#define RDF_QUERY_AND_END \
-	"  </rdfq:and>"							\
-        RDF_QUERY_END
+#define TRACKER_FKEY_FULLNAME         "?o nie:url"
+#define TRACKER_FKEY_MIME             "?o nie:mimeType"
+#define TRACKER_FKEY_ADDED            "?o tracker:added"
+#define TRACKER_FKEY_MODIFIED         "?o nfo:fileLastModified"
+#define TRACKER_FKEY_COPYRIGHT        "?o nie:copyright"
+#define TRACKER_FKEY_FILENAME         "?o nfo:fileName"
+#define TRACKER_FKEY_FILESIZE         "?o nfo:fileSize"
+#define TRACKER_FKEY_PATH             "?o nie:url"
 
-#define RDF_QUERY_BY_ARTIST						\
-	"  <rdfq:equals>"						\
-	"    <rdfq:Property name=\"Audio:Artist\"/>"			\
-	"    <rdf:String>%s</rdf:String>"				\
-	"  </rdfq:equals>"						\
-
-#define RDF_QUERY_BY_ALBUM \
-	"  <rdfq:equals>"						\
-	"    <rdfq:Property name=\"Audio:Album\"/>"			\
-	"    <rdf:String>%s</rdf:String>"				\
-	"  </rdfq:equals>"						\
-
-#define RDF_QUERY_BY_GENRE \
-	"  <rdfq:equals>"						\
-	"    <rdfq:Property name=\"Audio:Genre\"/>"			\
-	"    <rdf:String>%s</rdf:String>"				\
-	"  </rdfq:equals>"						\
-
-#define RDF_QUERY_BY_FILE						\
-	"  <rdfq:equals>"						\
-	"    <rdfq:Property name=\"File:NameDelimited\"/>"		\
-	"    <rdf:String>%s</rdf:String>"				\
-	"  </rdfq:equals>"						\
-
-#define RDF_QUERY_BY_FILE_SET						\
-	"  <rdfq:inSet>"						\
-	"    <rdfq:Property name=\"File:NameDelimited\"/>"		\
-	"    <rdf:String>%s</rdf:String>"				\
-	"  </rdfq:inSet>"						\
+#define SPARQL_QUERY_BY_ARTIST " . ?o nmm:performer / nmm:artistName '%s'"
+#define SPARQL_QUERY_BY_ALBUM " . ?o nmm:musicAlbum / nie:title '%s'"
+#define SPARQL_QUERY_BY_GENRE " . ?o nfo:genre '%s'"
 
 /* Some object identifiers */
 #define VIDEOS_OBJECT_ID     MAFW_TRACKER_SOURCE_UUID "::videos"

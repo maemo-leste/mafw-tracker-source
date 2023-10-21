@@ -27,10 +27,16 @@
 
 #include <glib.h>
 #include <libmafw/mafw.h>
-#include <tracker.h>
+#include <tracker-sparql.h>
 #include "definitions.h"
 
 #define IS_STRING_EMPTY(str) ((str) == NULL || (str)[0] == '\0')
+
+typedef enum  {
+	TRACKER_TYPE_MUSIC,
+	TRACKER_TYPE_VIDEO,
+	TRACKER_TYPE_PLAYLIST
+} TrackerObjectType;
 
 typedef enum {
 	CATEGORY_ROOT,
@@ -44,11 +50,22 @@ typedef enum {
 	CATEGORY_ERROR
 } CategoryType;
 
+#define AGGREGATED_TYPE_CONCAT "GROUP_CONCAT"
+#define AGGREGATED_TYPE_COUNT  "COUNT"
+#define AGGREGATED_TYPE_SUM    "SUM"
+
 void util_gvalue_free(GValue *value);
 gchar *util_str_replace(gchar *str, gchar *old, gchar *new);
 GList *util_itemid_to_path(const gchar *item_id);
 gchar *util_unescape_string(const gchar* original);
-inline gchar *get_data(const GList * list);
+
+/*
+ * Returns the 'data' field of a GList node.
+ */
+inline static gchar *get_data(const GList * list)
+{
+	return (gchar *) list->data;
+}
 
 #ifndef G_DEBUG_DISABLE
 void perf_elapsed_time_checkpoint(gchar *event);
@@ -56,11 +73,10 @@ void perf_elapsed_time_checkpoint(gchar *event);
 
 gchar *util_epoch_to_iso8601(glong epoch);
 glong util_iso8601_to_epoch(const gchar *iso_date);
-gchar *util_escape_rdf_text(const gchar *text);
-gboolean util_mafw_filter_to_rdf(const MafwFilter *filter,
+gboolean util_mafw_filter_to_sparql(const MafwFilter *filter,
 				 GString *p);
 gchar *util_get_tracker_value_for_filter(const gchar *mafw_key,
-                                         ServiceType service,
+                                         TrackerObjectType type,
 					 const gchar *value);
 gboolean util_tracker_value_is_unknown(const gchar *value);
 gchar **util_create_sort_keys_array(gint n, gchar *key1, ...);
@@ -79,10 +95,31 @@ CategoryType util_extract_category_info(const gchar *object_id,
                                         gchar **clip);
 gboolean util_is_duration_requested(const gchar **key_list);
 gboolean util_calculate_playlist_duration_is_needed(GHashTable *pls_metadata);
-gchar** util_add_tracker_data_to_check_pls_duration(gchar **keys);
 void util_remove_tracker_data_to_check_pls_duration(GHashTable *metadata,
 						    gchar **metadata_keys);
 
 gchar** util_list_to_strv(GList *list);
 gchar** util_add_element_to_strv(gchar **array, const gchar *element);
+
+gchar *util_build_sparql(TrackerObjectType type,
+			 gboolean unique,
+			 gchar **fields,
+			 const gchar *condition,
+			 gchar **aggregates,
+			 gchar **aggregate_fields,
+			 guint offset,
+			 guint limit,
+			 gchar **tracker_sort_keys,
+			 gboolean desc);
+
+gchar *util_build_meta_sparql(TrackerObjectType type,
+			      gchar **uris,
+			      gchar **fields, int max_fields);
+
+gchar *util_build_update_sparql(TrackerObjectType type,
+				const gchar *uri,
+				gchar **keys,
+				gchar **values,
+				gboolean select);
+
 #endif

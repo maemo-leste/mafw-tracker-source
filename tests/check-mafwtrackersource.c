@@ -37,10 +37,10 @@
 #define UNKNOWN_ARTIST_VALUE "(Unknown artist)"
 #define UNKNOWN_ALBUM_VALUE  "(Unknown album)"
 #define UNKNOWN_GENRE_VALUE  "(Unknown genre)"
-#define SERVICE_MUSIC_STR "Music"
 
 SRunner *configure_tests(void);
 static void create_temporal_playlist (gchar *path, gint n_items);
+static void create_tracker_database();
 
 /* ---------------------------------------------------- */
 /*                      GLOBALS                         */
@@ -59,6 +59,7 @@ static gboolean g_set_metadata_called = FALSE;
 static gboolean g_set_metadata_error = FALSE;
 static gboolean g_set_metadata_params_err = FALSE;
 static GList *g_browse_results = NULL;
+static int g_browse_results_len = 0;
 static GList *g_metadata_results = NULL;
 static GList *g_destroy_results = NULL;
 static GList *g_set_metadata_failed_keys = NULL;
@@ -76,102 +77,8 @@ typedef struct {
 	GHashTable *metadata;
 } MetadataResult;
 
-typedef void TrackerClient;
-
-typedef enum {
-        SERVICE_MUSIC = 4,
-        SERVICE_VIDEOS = 5,
-        SERVICE_PLAYLISTS = 19
-} ServiceType;
-
-typedef void (*TrackerGPtrArrayReply) (GPtrArray *result, GError *error, gpointer user_data);
-typedef void (*TrackerArrayReply) (char **result, GError *error, gpointer user_data);
-
 SRunner * configure_tests(void);
 
-void tracker_disconnect(TrackerClient *client);
-
-TrackerClient *
-tracker_connect(gboolean enable_warnings);
-
-void
-tracker_metadata_get_async(TrackerClient *client,
-                           ServiceType service,
-                           const char *id,
-                           char **keys,
-                           TrackerArrayReply callback,
-                           gpointer user_data);
-
-void
-tracker_metadata_get_multiple_async(TrackerClient *client,
-                                    ServiceType service,
-                                    const char **ids,
-                                    const char **keys,
-                                    TrackerGPtrArrayReply callback,
-                                    gpointer user_data);
-
-static char **
-_get_metadata(gint index,
-              char **keys);
-
-void
-tracker_search_query_async (TrackerClient *client,
-                            int live_query_id,
-                            ServiceType service,
-                            char **fields,
-                            const char *search_text,
-                            const char *keywords,
-                            const char *query,
-                            int offset, int max_hits,
-                            gboolean sort_by_service,
-                            char **sort_fields,
-                            gboolean sort_descending,
-                            TrackerGPtrArrayReply callback,
-                            gpointer user_data);
-
-void
-tracker_metadata_get_unique_values_async(TrackerClient *client,
-                                         ServiceType service,
-                                         char **meta_types,
-                                         const char *query,
-                                         gboolean descending,
-                                         int offset,
-                                         int max_hits,
-                                         TrackerGPtrArrayReply callback,
-                                         gpointer user_data);
-
-void
-tracker_metadata_get_unique_values_with_concat_count_and_sum_async(TrackerClient *client,
-                                                                   ServiceType service,
-                                                                   char **meta_types,
-                                                                   const char *query,
-                                                                   char *concat,
-                                                                   char *count,
-                                                                   char *sum,
-                                                                   gboolean descending,
-                                                                   int offset,
-                                                                   int max_hits,
-                                                                   TrackerGPtrArrayReply callback,
-                                                                   gpointer user_data);
-void
-tracker_metadata_get_unique_values_with_aggregates_async(TrackerClient *client,
-                                                         ServiceType service,
-                                                         char **meta_types,
-                                                         const char *query,
-                                                         char **aggregates,
-                                                         char **aggregate_fields,
-                                                         gboolean descending,
-                                                         int offset,
-                                                         int max_hits,
-                                                         TrackerGPtrArrayReply callback,
-                                                         gpointer user_data);
-void
-tracker_metadata_set(TrackerClient *client,
-		     ServiceType service,
-		     const char *id,
-		     char **keys,
-		     char **values,
-		     GError **error);
 
 /* ---------------------------------------------------- */
 /*                   HELPER FUNCTIONS                   */
@@ -326,9 +233,14 @@ browse_result_cb(MafwSource * source, guint browse_id, gint remaining,
 	g_browse_called = TRUE;
 
         if (error) {
+		g_print("%s", error->message);
+		g_main_loop_quit(user_data);
                 g_browse_error = TRUE;
                 return;
         }
+
+        if (!remaining)
+                g_main_loop_quit(user_data);
 
 	/* We assume that 'mime' is the first metadata! */
 	mime = metadata && (value = mafw_metadata_first(metadata,
@@ -348,6 +260,11 @@ browse_result_cb(MafwSource * source, guint browse_id, gint remaining,
 			g_hash_table_ref(metadata);
 
 		g_browse_results = g_list_append(g_browse_results, result);
+
+                if (g_browse_results_len &&
+                    g_list_length(g_browse_results) == g_browse_results_len) {
+                        g_main_loop_quit(user_data);
+                }
 	}
 }
 
@@ -356,11 +273,9 @@ START_TEST(test_browse_root)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_root";
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -373,10 +288,9 @@ START_TEST(test_browse_root)
 	/* Browse root category */
 	mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::", FALSE,
 			   NULL, NULL, metadata, 0, 50,
-			   browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -396,11 +310,9 @@ START_TEST(test_browse_music)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_music";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -413,10 +325,9 @@ START_TEST(test_browse_music)
 	/* Browse music category */
 	mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music",
 			   FALSE, NULL, NULL, metadata, 0, 50,
-			   browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received for");
@@ -437,11 +348,9 @@ START_TEST(test_browse_music_artists)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_music_artists";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -454,10 +363,9 @@ START_TEST(test_browse_music_artists)
 	/* Browse artists category */
 	mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/artists",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -477,11 +385,9 @@ START_TEST(test_browse_music_artists_artist1)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_music_artists_artist1";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -493,10 +399,9 @@ START_TEST(test_browse_music_artists_artist1)
 	g_print("> Browse 'Artist 1' artist...\n");
 	mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/artists/Artist%201",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -516,11 +421,9 @@ START_TEST(test_browse_music_artists_unknown)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_music_artists_unknown";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -532,10 +435,9 @@ START_TEST(test_browse_music_artists_unknown)
 	g_print("> Browse 'Unknown' artist...\n");
 	mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/artists/",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -555,19 +457,16 @@ START_TEST(test_browse_music_artists_unknown_unknown)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_music_artists_unknown_unknown";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	g_print("> Browse album 'Unknown'...\n");
 	mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/artists//",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -587,19 +486,16 @@ START_TEST(test_browse_music_artists_artist1_album3)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_music_artists_artist1_album3";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	g_print("> Browse album 'Album 3'...\n");
 	mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/artists/Artist%201/Album%203",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -619,11 +515,9 @@ START_TEST(test_browse_music_albums)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_music_albums";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -635,10 +529,9 @@ START_TEST(test_browse_music_albums)
 	g_print("> Browse albums category...\n");
 	mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/albums",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -658,11 +551,9 @@ START_TEST(test_browse_music_albums_album4)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_music_albums_album4";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -672,12 +563,12 @@ START_TEST(test_browse_music_albums_album4)
 		MAFW_METADATA_KEY_TITLE);
 
 	g_print("> Browse 'Album 4' category...\n");
-	mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/albums/Album%204%20-%20Artist%204",
+        mafw_source_browse(g_tracker_source,
+                           MAFW_TRACKER_SOURCE_UUID "::music/albums/Album%204",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -697,11 +588,9 @@ START_TEST(test_browse_music_genres)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_music_genres";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -711,12 +600,12 @@ START_TEST(test_browse_music_genres)
 		MAFW_METADATA_KEY_TITLE);
 
 	g_print("> Browse genres category...\n");
-	mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/genres",
+        mafw_source_browse(g_tracker_source,
+                           MAFW_TRACKER_SOURCE_UUID "::music/genres",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -736,11 +625,9 @@ START_TEST(test_browse_music_genres_genre2)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_music_genres_genre2";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -750,12 +637,12 @@ START_TEST(test_browse_music_genres_genre2)
 		MAFW_METADATA_KEY_TITLE);
 
 	g_print("> Browse 'Genre 2' category...\n");
-	mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/genres/Genre%202",
+        mafw_source_browse(g_tracker_source,
+                           MAFW_TRACKER_SOURCE_UUID "::music/genres/Genre%202",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -775,11 +662,9 @@ START_TEST(test_browse_music_genres_unknown)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_music_genres_unknown";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -789,12 +674,12 @@ START_TEST(test_browse_music_genres_unknown)
 		MAFW_METADATA_KEY_TITLE);
 
 	g_print("> Browse 'Unknown' category...\n");
-	mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/genres/",
+        mafw_source_browse(g_tracker_source,
+                           MAFW_TRACKER_SOURCE_UUID "::music/genres/",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -814,11 +699,9 @@ START_TEST(test_browse_music_genres_genre2_artist2)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_music_genres_genre2_artist2";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -828,12 +711,12 @@ START_TEST(test_browse_music_genres_genre2_artist2)
 		MAFW_METADATA_KEY_TITLE);
 
 	g_print("> Browse 'Artist 2' category...\n");
-	mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/genres/Genre%202/Artist%202",
+        mafw_source_browse(g_tracker_source,
+                           MAFW_TRACKER_SOURCE_UUID "::music/genres/Genre%202/Artist%202",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -853,11 +736,9 @@ START_TEST(test_browse_music_genres_genre2_artist2_album2)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_music_genres_genre2_artist2_album2";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -867,12 +748,12 @@ START_TEST(test_browse_music_genres_genre2_artist2_album2)
 		MAFW_METADATA_KEY_TITLE);
 
 	g_print("> Browse 'Album 2' category...\n");
-	mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/genres/Genre%202/Artist%202/Album%202",
+        mafw_source_browse(g_tracker_source,
+                           MAFW_TRACKER_SOURCE_UUID "::music/genres/Genre%202/Artist%202/Album%202",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -892,11 +773,9 @@ START_TEST(test_browse_music_songs)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_music_songs";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -906,12 +785,12 @@ START_TEST(test_browse_music_songs)
 		MAFW_METADATA_KEY_TITLE);
 
 	g_print("> Browse songs category...\n");
-	mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/songs",
+        mafw_source_browse(g_tracker_source,
+                           MAFW_TRACKER_SOURCE_UUID "::music/songs",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -931,11 +810,9 @@ START_TEST(test_browse_music_playlists)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_music_playlists";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -946,10 +823,9 @@ START_TEST(test_browse_music_playlists)
 	mafw_source_browse(g_tracker_source,
 			    MAFW_TRACKER_SOURCE_UUID "::music/playlists",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -969,11 +845,9 @@ START_TEST(test_browse_music_playlists_playlist1)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_music_playlists_playlist1";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -985,10 +859,11 @@ START_TEST(test_browse_music_playlists_playlist1)
 	mafw_source_browse(g_tracker_source,
 			    MAFW_TRACKER_SOURCE_UUID "::music/playlists/%2Ftmp%2Fplaylist1.pls",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
+
+        g_main_loop_run(loop);
+
 	unlink("/tmp/playlist1.pls");
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -1008,14 +883,12 @@ START_TEST(test_browse_count)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
         gint i;
 
         gint count_cases[] = {13, 14, 15};
         gint expected_count[] = {13, 14, 14};
 
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -1031,10 +904,9 @@ START_TEST(test_browse_count)
                 RUNNING_CASE = "test_browse_count";
                 mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/songs",
                                     FALSE, NULL, NULL, metadata, 0, count_cases[i],
-                                    browse_result_cb, NULL);
+                                   browse_result_cb, loop);
 
-                while (g_main_context_pending(context))
-                        g_main_context_iteration(context, TRUE);
+                g_main_loop_run(loop);
 
 		ck_assert_msg(g_browse_called != FALSE,
 			      "No browse_result signal received");
@@ -1050,10 +922,9 @@ START_TEST(test_browse_count)
         RUNNING_CASE = "test_browse_count";
         mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/songs",
                             FALSE, NULL, NULL, metadata, 0, MAFW_SOURCE_BROWSE_ALL,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-        while (g_main_context_pending(context))
-                g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -1073,14 +944,12 @@ START_TEST(test_browse_offset)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
         gint i;
 
         gint offset_cases[] = {0, 13, 14, 15};
         gint expected_count[] = {14, 1, 0, 0};
 
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -1094,10 +963,9 @@ START_TEST(test_browse_offset)
                 RUNNING_CASE = "test_browse_offset";
                 mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/songs",
                                     FALSE, NULL, NULL, metadata, offset_cases[i], 50,
-                                    browse_result_cb, NULL);
+                                   browse_result_cb, loop);
 
-                while (g_main_context_pending(context))
-                        g_main_context_iteration(context, TRUE);
+                g_main_loop_run(loop);
 
 		ck_assert_msg(g_browse_called != FALSE,
 			      "No browse_result signal received");
@@ -1108,6 +976,7 @@ START_TEST(test_browse_offset)
 
                 clear_browse_results();
         }
+
 	g_main_loop_unref(loop);
 }
 END_TEST
@@ -1117,10 +986,8 @@ START_TEST(test_browse_invalid)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -1133,10 +1000,9 @@ START_TEST(test_browse_invalid)
         RUNNING_CASE = "test_browse_invalid";
         mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/ssongs",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-        while (g_main_context_pending(context))
-                g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_error != FALSE,
 		      "Browsing malformed objectid did not set error in browse callback");
@@ -1151,11 +1017,9 @@ START_TEST(test_browse_videos)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_browse_videos";
         loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -1165,10 +1029,9 @@ START_TEST(test_browse_videos)
 	g_print("> Browse songs category...\n");
 	mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::videos",
                             FALSE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -1205,16 +1068,21 @@ START_TEST(test_browse_cancel)
         /* Retrieve clips */
 	browse_id = mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/songs",
                                         FALSE, NULL, NULL, metadata, 0, 50,
-                                        browse_result_cb, NULL);
+                                       browse_result_cb, loop);
 
         /* Wait to receive the first 4 elements */
-	while (g_main_context_pending(context) && g_list_length(g_browse_results) < 4)
-		g_main_context_iteration(context, TRUE);
+        g_browse_results_len = 4;
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
 
+        ck_assert_msg(g_list_length(g_browse_results) == 4,
+                      "Browse cancle returned %d items instead of '4'",
+                      g_list_length(g_browse_results));
+
         /* Now cancel the browse */
+        g_browse_results_len = 0;
 	ck_assert_msg(mafw_source_cancel_browse (g_tracker_source, browse_id, NULL),
 		       "Canceling a browse doesn't work");
 
@@ -1240,10 +1108,8 @@ START_TEST(test_browse_recursive)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -1257,10 +1123,9 @@ START_TEST(test_browse_recursive)
         mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID
                             "::music/songs",
                             TRUE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-        while (g_main_context_pending(context))
-                g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -1275,10 +1140,9 @@ START_TEST(test_browse_recursive)
         mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID
                             "::music/artists/Artist%201",
                             TRUE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-        while (g_main_context_pending(context))
-                g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -1294,10 +1158,9 @@ START_TEST(test_browse_recursive)
         mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID
                             "::music/albums/Album%201/%2Fhome%2Fuser%2FMyDocs%2FSomeSong.mp3",
                             TRUE, NULL, NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 
-        while (g_main_context_pending(context))
-                g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_error != FALSE,
 		      "Browsed a non-browseable clip did not set an error in the browse callback");
@@ -1312,11 +1175,9 @@ START_TEST(test_browse_filter)
 {
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 	MafwFilter *filter = NULL;
 
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata = MAFW_SOURCE_LIST(
@@ -1331,11 +1192,10 @@ START_TEST(test_browse_filter)
         mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/songs",
                             TRUE, filter,
                             NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 	mafw_filter_free(filter);
 
-        while (g_main_context_pending(context))
-                g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -1346,6 +1206,26 @@ START_TEST(test_browse_filter)
 
         clear_browse_results();
 
+        /* Test a NOT filter */
+        RUNNING_CASE = "test_browse_filter_not";
+        filter = mafw_filter_parse("(!(" MAFW_METADATA_KEY_ALBUM "=Album 3))");
+        mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/songs",
+                           TRUE, filter,
+                           NULL, metadata, 0, 50,
+                           browse_result_cb, loop);
+        mafw_filter_free(filter);
+
+        g_main_loop_run(loop);
+
+        ck_assert_msg(g_browse_called != FALSE,
+                      "No browse_result signal received");
+
+        ck_assert_msg(g_list_length(g_browse_results) == 10,
+                      "Recursive browsing returned %d instead of 10",
+                      g_list_length(g_browse_results));
+
+        clear_browse_results();
+
         /* Test an AND filter */
         RUNNING_CASE = "test_browse_filter_and";
 	filter = mafw_filter_parse("(&(" MAFW_METADATA_KEY_ALBUM "=Album 3)("
@@ -1353,11 +1233,10 @@ START_TEST(test_browse_filter)
         mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/albums",
                             TRUE, filter,
                             NULL, metadata, 0, 50,
-                            browse_result_cb, NULL);
+                           browse_result_cb, loop);
 	mafw_filter_free(filter);
 
-        while (g_main_context_pending(context))
-                g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_browse_called != FALSE,
 		      "No browse_result signal received");
@@ -1367,6 +1246,29 @@ START_TEST(test_browse_filter)
 		      g_list_length(g_browse_results));
 
         clear_browse_results();
+
+        /* Test an OR filter */
+        RUNNING_CASE = "test_browse_filter_or";
+        filter = mafw_filter_parse("(|(" MAFW_METADATA_KEY_ALBUM "=Album 2)("
+                                   MAFW_METADATA_KEY_ALBUM "=Album 3))");
+        mafw_source_browse(g_tracker_source, MAFW_TRACKER_SOURCE_UUID "::music/albums",
+                           TRUE, filter,
+                           NULL, metadata, 0, 50,
+                           browse_result_cb, loop);
+        mafw_filter_free(filter);
+
+        g_main_loop_run(loop);
+
+        ck_assert_msg(g_browse_called != FALSE,
+                      "No browse_result signal received");
+
+        ck_assert_msg(g_list_length(g_browse_results) == 5,
+                      "Recursive browsing returned %d instead of 5",
+                      g_list_length(g_browse_results));
+
+        clear_browse_results();
+
+
 	g_main_loop_unref(loop);
 }
 END_TEST
@@ -1377,7 +1279,7 @@ START_TEST(test_browse_sort)
 	const gchar *const *metadata = NULL;
 	GMainLoop *loop = NULL;
 	GMainContext *context = NULL;
-	gchar *filter = NULL;
+        MafwFilter *filter = NULL;
 	gchar *sort_criteria = NULL;
 	gchar *first_item_1 = NULL;
 	gchar *last_item_1 = NULL;
@@ -1398,7 +1300,7 @@ START_TEST(test_browse_sort)
 	/* browse Album 3 results sorting by title */
 	clear_browse_results();
 	sort_criteria = g_strdup("+" MAFW_METADATA_KEY_TITLE);
-	filter = g_strdup("(" MAFW_METADATA_KEY_ALBUM "=Album 3)");
+        filter = mafw_filter_parse("(" MAFW_METADATA_KEY_ALBUM "=Album 3)");
 	mafw_source_browse(g_tracker_source,
 			   MAFW_TRACKER_SOURCE_UUID "::music/songs",
 			   FALSE, filter, sort_criteria, metadata,
@@ -1414,9 +1316,10 @@ START_TEST(test_browse_sort)
 	ck_assert_msg(g_list_length(g_browse_results) == 4,
 		      "Browsing of music/songs category filtering by \"%s\" "
 		      "category returned %d items instead of %d",
-		      filter, g_list_length(g_browse_results), 4);
+                      mafw_filter_to_string(filter),
+                      g_list_length(g_browse_results), 4);
 
-	g_free(filter);
+        mafw_filter_free(filter);
 	g_free(sort_criteria);
 
 	/* Get the first and last items */
@@ -1432,7 +1335,7 @@ START_TEST(test_browse_sort)
 	/* Now, do reverse sorting and compare results */
 	clear_browse_results();
 	sort_criteria = g_strdup("-" MAFW_METADATA_KEY_TITLE);
-	filter = g_strdup("(" MAFW_METADATA_KEY_ALBUM "=Album 3)");
+        filter = mafw_filter_parse("(" MAFW_METADATA_KEY_ALBUM "=Album 3)");
 	mafw_source_browse(g_tracker_source,
 			   MAFW_TRACKER_SOURCE_UUID "::music/songs",
 			   FALSE, filter, sort_criteria, metadata,
@@ -1448,9 +1351,10 @@ START_TEST(test_browse_sort)
 	ck_assert_msg(g_list_length(g_browse_results) == 4,
 		      "Browsing of music/songs category filtering by \"%s\" "
 		      "category returned %d items instead of %d",
-		      filter, g_list_length(g_browse_results), 4);
+                      mafw_filter_to_string(filter),
+                      g_list_length(g_browse_results), 4);
 
-	g_free(filter);
+        mafw_filter_free(filter);
 	g_free(sort_criteria);
 
 	metadata_values = ((BrowseResult *)
@@ -1477,7 +1381,7 @@ START_TEST(test_browse_sort)
 	clear_browse_results();
 	sort_criteria = g_strdup("+" MAFW_METADATA_KEY_GENRE ",+"
 				 MAFW_METADATA_KEY_TITLE);
-	filter = g_strdup("(" MAFW_METADATA_KEY_ALBUM "=Album 3)");
+        filter = mafw_filter_parse("(" MAFW_METADATA_KEY_ALBUM "=Album 3)");
 	mafw_source_browse(g_tracker_source,
 			   MAFW_TRACKER_SOURCE_UUID "::music/songs",
 			   FALSE, filter, sort_criteria, metadata,
@@ -1493,9 +1397,9 @@ START_TEST(test_browse_sort)
 	ck_assert_msg(g_list_length(g_browse_results) == 4,
 		      "Browsing of music/songs category filtering by \"%s\" "
 		      "category returned %d items instead of %d",
-		      filter, g_list_length(g_browse_results), 4);
+                      mafw_filter_to_string(filter), g_list_length(g_browse_results), 4);
 
-	g_free(filter);
+        mafw_filter_free(filter);
 	g_free(sort_criteria);
 
 	/* Get the first and last items */
@@ -1527,9 +1431,10 @@ START_TEST(test_browse_sort)
 	ck_assert_msg(g_list_length(g_browse_results) == 4,
 		      "Browsing of music/songs category filtering by \"%s\" "
 		      "category returned %d items instead of %d",
-		      filter, g_list_length(g_browse_results), 4);
+                      mafw_filter_to_string(filter),
+                      g_list_length(g_browse_results), 4);
 
-	g_free(filter);
+        mafw_filter_free(filter);
 	g_free(sort_criteria);
 
 	metadata_values = ((BrowseResult *)
@@ -1564,25 +1469,31 @@ END_TEST
 
 static void
 metadata_result_cb(MafwSource * source, const gchar * objectid,
-		   GHashTable * metadata,
-		   gpointer user_data, const GError *error)
+                   GHashTable * metadata, gpointer user_data,
+                   const GError *error)
 {
-	MetadataResult *result = NULL;
-
 	g_metadata_called = TRUE;
 
         if (error) {
+		g_print("%s", error->message);
                 g_metadata_error = TRUE;
+                g_main_loop_quit(user_data);
                 return;
         }
+
+        if (metadata) {
+                MetadataResult *result = NULL;
 
 	result = (MetadataResult *) malloc(sizeof(MetadataResult));
 	result->objectid = g_strdup(objectid);
 	result->metadata = metadata;
-	if (metadata)
+
 		g_hash_table_ref(metadata);
 
 	g_metadata_results = g_list_append(g_metadata_results, result);
+}
+
+        g_main_loop_quit(user_data);
 }
 
 START_TEST(test_get_metadata_clip)
@@ -1596,13 +1507,11 @@ START_TEST(test_get_metadata_clip)
 	const gchar *artist = NULL;
 	const gchar *album = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 	GList *item_metadata = NULL;
 	GValue *mval = NULL;
 
         RUNNING_CASE = "test_get_metadata_clip";
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata_keys = MAFW_SOURCE_LIST(
@@ -1623,11 +1532,10 @@ START_TEST(test_get_metadata_clip)
 	mafw_source_get_metadata(g_tracker_source,
 				  object_id, metadata_keys,
 				  metadata_result_cb,
-				  NULL);
+                                 loop);
 
 	/* Check results... */
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_metadata_called != FALSE,
 		      "No metadata_result signal received");
@@ -1694,13 +1602,11 @@ START_TEST(test_get_metadata_video)
 	const gchar *mime = NULL;
 	const gchar *title = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 	GList *item_metadata = NULL;
 	GValue *mval = NULL;
 
         RUNNING_CASE = "test_get_metadata_video";
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata_keys = MAFW_SOURCE_LIST(
@@ -1716,11 +1622,10 @@ START_TEST(test_get_metadata_video)
 	mafw_source_get_metadata(g_tracker_source,
 				  object_id, metadata_keys,
 				  metadata_result_cb,
-				  NULL);
+                                 loop);
 
 	/* Check results... */
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_metadata_called != FALSE,
 		      "No metadata_result signal received");
@@ -1772,13 +1677,11 @@ START_TEST(test_get_metadata_artist_album_clip)
 	const gchar *artist = NULL;
 	const gchar *album = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 	GList *item_metadata = NULL;
 	GValue *mval = NULL;
 
         RUNNING_CASE = "test_get_metadata_artist_album_clip";
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata_keys = MAFW_SOURCE_LIST(
@@ -1796,11 +1699,10 @@ START_TEST(test_get_metadata_artist_album_clip)
 	mafw_source_get_metadata(g_tracker_source,
 				  object_id, metadata_keys,
 				  metadata_result_cb,
-				  NULL);
+                                 loop);
 
 	/* Check results... */
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_metadata_called != FALSE,
 		      "No metadata_result signal received");
@@ -1868,13 +1770,11 @@ START_TEST(test_get_metadata_genre_artist_album_clip)
 	const gchar *album = NULL;
 	const gchar *genre = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 	GList *item_metadata = NULL;
 	GValue *mval = NULL;
 
         RUNNING_CASE = "test_get_metadata_genre_artist_album_clip";
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata_keys = MAFW_SOURCE_LIST(
@@ -1892,11 +1792,10 @@ START_TEST(test_get_metadata_genre_artist_album_clip)
 	mafw_source_get_metadata(g_tracker_source,
 					   object_id, metadata_keys,
 					   metadata_result_cb,
-					   NULL);
+                                 loop);
 
 	/* Check results... */
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_metadata_called != FALSE,
 		      "No metadata_result signal received");
@@ -1966,35 +1865,29 @@ START_TEST(test_get_metadata_playlist)
 	GHashTable *metadata = NULL;
 	const gchar *mime = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 	GList *item_metadata = NULL;
 	GValue *mval = NULL;
 	gint duration, childcount;
 
         RUNNING_CASE = "test_get_metadata_playlist";
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	metadata_keys = MAFW_SOURCE_LIST(
 		MAFW_METADATA_KEY_MIME,
 		MAFW_METADATA_KEY_DURATION,
 		MAFW_METADATA_KEY_CHILDCOUNT_1);
 
-	object_id =
-		MAFW_TRACKER_SOURCE_UUID "::music/playlists/"
+        object_id = MAFW_TRACKER_SOURCE_UUID "::music/playlists/"
                 "%2Ftmp%2Fplaylist1.pls";
-
 
 	create_temporal_playlist ("/tmp/playlist1.pls", 4);
 	mafw_source_get_metadata(g_tracker_source,
 				  object_id, metadata_keys,
 				  metadata_result_cb,
-				  NULL);
+                                 loop);
 
+        g_main_loop_run(loop);
 	unlink("/tmp/playlist1.pls");
-
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
 
 	ck_assert_msg(g_metadata_called != FALSE,
 		      "No metadata_result signal received");
@@ -2052,13 +1945,11 @@ START_TEST(test_get_metadata_album_clip)
 	const gchar *artist = NULL;
 	const gchar *album = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 	GList *item_metadata = NULL;
 	GValue *mval = NULL;
 
         RUNNING_CASE = "test_get_metadata_album_clip";
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata_keys = MAFW_SOURCE_LIST(
@@ -2076,11 +1967,10 @@ START_TEST(test_get_metadata_album_clip)
 	mafw_source_get_metadata(g_tracker_source,
 				  object_id, metadata_keys,
 				  metadata_result_cb,
-				  NULL);
+                                 loop);
 
 	/* Check results... */
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_metadata_called != FALSE,
 		      "No metadata_result signal received");
@@ -2140,11 +2030,9 @@ START_TEST(test_get_metadata_invalid)
 	const gchar *const *metadata_keys = NULL;
 	gchar *clip_id = NULL;
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
         RUNNING_CASE = "test_get_metadata_invalid";
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata_keys = MAFW_SOURCE_LIST(
@@ -2159,11 +2047,10 @@ START_TEST(test_get_metadata_invalid)
                                   "::music/albums/Album%202/something-"
                                   "that-does-not-exist",
                                   metadata_keys,
-                                  metadata_result_cb, NULL);
+                                 metadata_result_cb, loop);
 
 	/* Check results... */
-	while (g_main_context_pending(context))
-                g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_metadata_results == NULL,
 		      "Query of metadata of non existing objectid "
@@ -2180,7 +2067,6 @@ END_TEST
 START_TEST(test_get_metadata_albums)
 {
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
 	const gchar *const *metadata_keys = NULL;
 	gchar *object_id = NULL;
@@ -2194,7 +2080,6 @@ START_TEST(test_get_metadata_albums)
 
         RUNNING_CASE = "test_get_metadata_albums";
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata_keys = MAFW_SOURCE_LIST(
@@ -2210,11 +2095,10 @@ START_TEST(test_get_metadata_albums)
 	mafw_source_get_metadata(g_tracker_source,
 				  object_id, metadata_keys,
 				  metadata_result_cb,
-				  NULL);
+                                 loop);
 
 	/* Check results... */
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_metadata_called != FALSE,
 		      "No metadata_result signal received");
@@ -2258,8 +2142,8 @@ START_TEST(test_get_metadata_albums)
 	mval = mafw_metadata_first(metadata,
 				   MAFW_METADATA_KEY_CHILDCOUNT_1);
 	childcount = mval ? g_value_get_int(mval) : 0;
-	ck_assert_msg(childcount == 9,
-		      "Childcount for '%s' is '%i' instead of expected '9'",
+        ck_assert_msg(childcount == 7,
+                      "Childcount for '%s' is '%i' instead of expected '7'",
 		      category_id, childcount);
 
 	g_free(category_id);
@@ -2273,7 +2157,6 @@ END_TEST
 START_TEST(test_get_metadata_music)
 {
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
 	const gchar *const *metadata_keys = NULL;
 	gchar *object_id = NULL;
@@ -2287,7 +2170,6 @@ START_TEST(test_get_metadata_music)
 
         RUNNING_CASE = "test_get_metadata_music";
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata_keys = MAFW_SOURCE_LIST(
@@ -2303,11 +2185,10 @@ START_TEST(test_get_metadata_music)
 	mafw_source_get_metadata(g_tracker_source,
 				  object_id, metadata_keys,
 				  metadata_result_cb,
-				  NULL);
+                                 loop);
 
 	/* Check results... */
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_metadata_called != FALSE,
 		      "No metadata_result signal received");
@@ -2367,7 +2248,6 @@ END_TEST
 START_TEST(test_get_metadata_videos)
 {
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
 	const gchar *const *metadata_keys = NULL;
 	gchar *object_id = NULL;
@@ -2381,7 +2261,6 @@ START_TEST(test_get_metadata_videos)
 
         RUNNING_CASE = "test_get_metadata_videos";
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata_keys = MAFW_SOURCE_LIST(
@@ -2397,11 +2276,10 @@ START_TEST(test_get_metadata_videos)
 	mafw_source_get_metadata(g_tracker_source,
 				  object_id, metadata_keys,
 				  metadata_result_cb,
-				  NULL);
+                                 loop);
 
 	/* Check results... */
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_metadata_called != FALSE,
 		      "No metadata_result signal received");
@@ -2460,7 +2338,6 @@ END_TEST
 START_TEST(test_get_metadata_root)
 {
 	GMainLoop *loop = NULL;
-	GMainContext *context = NULL;
 
 	const gchar *const *metadata_keys = NULL;
 	gchar *object_id = NULL;
@@ -2474,7 +2351,6 @@ START_TEST(test_get_metadata_root)
 
         RUNNING_CASE = "test_get_metadata_root";
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata_keys = MAFW_SOURCE_LIST(
@@ -2490,11 +2366,10 @@ START_TEST(test_get_metadata_root)
 	mafw_source_get_metadata(g_tracker_source,
 				  object_id, metadata_keys,
 				  metadata_result_cb,
-				  NULL);
+                                 loop);
 
 	/* Check results... */
-	while (g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_metadata_called != FALSE,
 		      "No metadata_result signal received");
@@ -2562,6 +2437,7 @@ metadatas_result_cb(MafwSource * source,
 
         if (error) {
                 g_metadatas_error = TRUE;
+                g_main_loop_quit(user_data);
                 return;
         }
 
@@ -2578,18 +2454,17 @@ metadatas_result_cb(MafwSource * source,
         }
 
         g_list_free(object_ids);
+        g_main_loop_quit(user_data);
 }
 
 START_TEST(test_get_metadatas_none)
 {
         GMainLoop *loop = NULL;
-        GMainContext *context = NULL;
         const gchar *const *metadata_keys = NULL;
         gchar **object_ids = NULL;
 
         RUNNING_CASE = "test_get_metadatas_none";
         loop = g_main_loop_new(NULL, FALSE);
-        context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata_keys = MAFW_SOURCE_LIST(
@@ -2604,11 +2479,10 @@ START_TEST(test_get_metadatas_none)
         mafw_source_get_metadatas(g_tracker_source,
                                   (const gchar **) object_ids, metadata_keys,
                                   metadatas_result_cb,
-                                  NULL);
+                                  loop);
 
         /* Check results... */
-        while (g_main_context_pending(context))
-                g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_metadatas_called != FALSE,
 		      "No metadatas_result signal received");
@@ -2629,13 +2503,11 @@ END_TEST
 START_TEST(test_get_metadatas_several)
 {
         GMainLoop *loop = NULL;
-        GMainContext *context = NULL;
         const gchar *const *metadata_keys = NULL;
         gchar **object_ids = NULL;
 
         RUNNING_CASE = "test_get_metadatas_several";
         loop = g_main_loop_new(NULL, FALSE);
-        context = g_main_loop_get_context(loop);
 
 	/* Metadata we are interested in */
 	metadata_keys = MAFW_SOURCE_LIST(
@@ -2659,11 +2531,10 @@ START_TEST(test_get_metadatas_several)
         mafw_source_get_metadatas(g_tracker_source,
                                   (const gchar **) object_ids, metadata_keys,
                                   metadatas_result_cb,
-                                  NULL);
+                                  loop);
 
         /* Check results... */
-        while (g_main_context_pending(context))
-                g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_metadatas_called != FALSE,
 		      "No metadatas_result signal received");
@@ -2694,6 +2565,7 @@ metadata_set_cb(MafwSource *self,
 	g_set_metadata_called = TRUE;
 
 	if (error) {
+		g_print("%s\n", error->message);
 		g_set_metadata_error = TRUE;
 	}
 
@@ -2783,7 +2655,7 @@ START_TEST(test_set_metadata_video)
 	/* Set metadata */
 	mafw_source_set_metadata(g_tracker_source,
 				  MAFW_TRACKER_SOURCE_UUID
-				  "::videos/%2Fhome%2Fuser%2FMyDocs%2Fvideo.avi",
+				  "::videos/%2Fhome%2Fuser%2FMyDocs%2Fvideo1.avi",
 				  metadata,
 				  metadata_set_cb,
 				  NULL);
@@ -2828,7 +2700,7 @@ START_TEST(test_set_metadata_invalid)
 			       MAFW_METADATA_KEY_ARTIST,
 			       "Artist X");
 
-	g_print("> Trying to modify a non-writable metadata.../n");
+	g_print("> Trying to modify a non-writable metadata...\n");
 	mafw_source_set_metadata(g_tracker_source,
 				  MAFW_TRACKER_SOURCE_UUID
 				  "::music/songs/%2Fhome%2Fuser%2FMyDocs%2Fclip2.mp3",
@@ -2858,7 +2730,7 @@ START_TEST(test_set_metadata_invalid)
 		      "The number of failed keys reported is incorrect");
 
 	clear_set_metadata_results();
-
+#if 0
         /* 2. Mixing audio and video metadata keys in the same set_metadata
 	   operation */
 
@@ -2873,7 +2745,7 @@ START_TEST(test_set_metadata_invalid)
 			       MAFW_METADATA_KEY_PLAY_COUNT,
 			       1);
 	g_print("> Trying to modify audio and video metadata at the same "
-		"time.../n");
+		"time...\n");
 	mafw_source_set_metadata(g_tracker_source,
 				  MAFW_TRACKER_SOURCE_UUID
 				  "::music/songs/%2Fhome%2Fuser%2FMyDocs%2Fclip3.mp3",
@@ -2904,7 +2776,7 @@ START_TEST(test_set_metadata_invalid)
 		      "The number of failed keys reported is incorrect");
 
 	clear_set_metadata_results();
-
+#endif
 	/* 3. Trying to set metadata of a non-existing clip */
 
 	RUNNING_CASE = "test_set_metadata_invalid_non_existing_clip";
@@ -2912,7 +2784,7 @@ START_TEST(test_set_metadata_invalid)
 	mafw_metadata_add_int(metadata,
 			       MAFW_METADATA_KEY_PLAY_COUNT,
 			       1);
-	g_print("> Trying to modify metadata of a non-existing clip.../n");
+	g_print("> Trying to modify metadata of a non-existing clip...\n");
 	mafw_source_set_metadata(g_tracker_source,
 				  MAFW_TRACKER_SOURCE_UUID
 				  "::music/songs/%2Fhome%2Fuser%2FMyDocs%2Fnonexisting.mp3",
@@ -2950,7 +2822,7 @@ START_TEST(test_set_metadata_invalid)
 	mafw_metadata_add_int(metadata,
 			       MAFW_METADATA_KEY_PLAY_COUNT,
 			       1);
-	g_print("> Trying to modify metadata of an invalid objectid.../n");
+	g_print("> Trying to modify metadata of an invalid objectid...\n");
 	mafw_source_set_metadata(g_tracker_source,
 				  MAFW_TRACKER_SOURCE_UUID
 				  "::music/ssongs",
@@ -2996,16 +2868,16 @@ object_destroyed_cb(MafwSource *self,
 	if (error) {
 		g_destroy_error = TRUE;
 	}
+
+        g_main_loop_quit(user_data);
 }
 
 START_TEST(test_destroy_item)
 {
 	GMainLoop *loop;
-	GMainContext *context;
 
 	RUNNING_CASE = "test_destroy_item";
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	g_print("> Destroy clip2 item...\n");
 	/* Destroy the item */
@@ -3013,10 +2885,9 @@ START_TEST(test_destroy_item)
 				    MAFW_TRACKER_SOURCE_UUID
 				    "::music/songs/%2Fhome%2Fuser%2FMyDocs%2Fclip2.mp3",
                                     object_destroyed_cb,
-                                    NULL);
+                                   loop);
 
-	while(g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_destroy_called != FALSE,
 		      "No destroy signal received");
@@ -3041,11 +2912,9 @@ END_TEST
 START_TEST(test_destroy_playlist)
 {
 	GMainLoop *loop;
-	GMainContext *context;
 
 	RUNNING_CASE = "test_destroy_playlist";
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	g_print("> Destroy playlist item...\n");
 	/* Destroy the playlist */
@@ -3053,10 +2922,9 @@ START_TEST(test_destroy_playlist)
 				    MAFW_TRACKER_SOURCE_UUID
 				    "::music/playlists/%2Fhome%2Fuser%2FMyDocs%2Fplaylist1.pls",
                                     object_destroyed_cb,
-                                    NULL);
+                                   loop);
 
-	while(g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_destroy_called != FALSE,
 		      "No destroy signal received");
@@ -3081,11 +2949,9 @@ END_TEST
 START_TEST(test_destroy_container)
 {
 	GMainLoop *loop;
-	GMainContext *context;
 
 	RUNNING_CASE = "test_destroy_container";
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	g_print("> Destroy Artist 1 container...\n");
 	/* Destroy the item */
@@ -3093,10 +2959,9 @@ START_TEST(test_destroy_container)
 				    MAFW_TRACKER_SOURCE_UUID
 				    "::music/artists/Artist%201",
                                     object_destroyed_cb,
-                                    NULL);
+                                   loop);
 
-	while(g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_destroy_called != FALSE,
 		      "No destroy signal received");
@@ -3130,10 +2995,8 @@ END_TEST
 START_TEST(test_destroy_invalid_category)
 {
 	GMainLoop *loop;
-	GMainContext *context;
 
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	/* Destroy an invalid category */
 	RUNNING_CASE = "test_destroy_invalid_category";
@@ -3142,10 +3005,9 @@ START_TEST(test_destroy_invalid_category)
 	mafw_source_destroy_object(g_tracker_source,
 				    MAFW_TRACKER_SOURCE_UUID "::music/songs",
                                     object_destroyed_cb,
-                                    NULL);
+                                   loop);
 
-	while(g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_destroy_called != FALSE,
 		      "No destroy signal received");
@@ -3165,10 +3027,9 @@ START_TEST(test_destroy_invalid_category)
 	mafw_source_destroy_object(g_tracker_source,
 				    MAFW_TRACKER_SOURCE_UUID "::music/songsss",
                                     object_destroyed_cb,
-                                    NULL);
+                                   loop);
 
-	while(g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_destroy_called != FALSE,
 		      "No destroy signal received");
@@ -3188,11 +3049,9 @@ END_TEST
 START_TEST(test_destroy_failed)
 {
 	GMainLoop *loop;
-	GMainContext *context;
 
 	RUNNING_CASE = "test_destroy_failed";
 	loop = g_main_loop_new(NULL, FALSE);
-	context = g_main_loop_get_context(loop);
 
 	g_print("> Destroy a non-existent file...\n");
 	/* Destroy the item */
@@ -3200,10 +3059,9 @@ START_TEST(test_destroy_failed)
 				    MAFW_TRACKER_SOURCE_UUID
 				    "::music/songs/%2Fhome%2Fuser%2FMyDocs%2Fnonexistent.mp3",
                                     object_destroyed_cb,
-                                    NULL);
+                                   loop);
 
-	while(g_main_context_pending(context))
-		g_main_context_iteration(context, TRUE);
+        g_main_loop_run(loop);
 
 	ck_assert_msg(g_destroy_called != FALSE,
 		      "No destroy signal received");
@@ -3219,6 +3077,7 @@ START_TEST(test_destroy_failed)
 }
 END_TEST
 
+
 /* ---------------------------------------------------- */
 /*                  Suite creation                      */
 /* ---------------------------------------------------- */
@@ -3228,6 +3087,9 @@ SRunner * configure_tests(void)
 	Suite *s = NULL;
 
 	checkmore_wants_dbus();
+
+        create_tracker_database();
+
 	/* Create the suite */
 	s = suite_create("MafwTrackerSource");
 
@@ -3369,927 +3231,282 @@ gchar *DB[DB_SIZE][7] = {
 	/*17*/{"/home/user/MyDocs/video2.avi", "Video 2", "", "", "", "video/x-msvideo", "23"}
 };
 
-static void create_temporal_playlist (gchar *path, gint nitems)
-{
-	FILE *pf;
-	gint i;
+#define ESCAPE(s) s ? g_uri_escape_string(s, NULL, TRUE) : NULL;
 
-	pf = fopen(path, "w");
-	if (pf != NULL) {
-		gchar *lines = g_strdup_printf ("[playlist]\nNumberOfEntries=%d\n\n",
-						nitems);
-		fwrite (lines, strlen(lines), 1, pf);
-		g_free (lines);
+static void _add_playlist(TrackerSparqlConnection *connection,
+                          const gchar *file, const gchar *mime, gint nitems)
+{
+	gint i;
+        GString *query = g_string_new(NULL);
+        GString *entries = g_string_new(NULL);
+        gchar *id = ESCAPE(file);
+        gchar *sql;
+        GError *error = NULL;
+        gchar *entry;
+
+        g_string_printf(query,
+                        "INSERT DATA { "
+                        "<%s> a nfo:FileDataObject, nmm:Playlist ; "
+                        "nie:url 'file://%s' ; "
+                        "nie:mimeType '%s' ; "
+                        "nfo:entryCounter %d ; ",
+			id, file, mime, nitems);
+        g_free(id);
+
 		/* Add some local items */
 		for (i=0; i<(nitems - 1); i++) {
 			gint p = i % DB_SIZE;
-			gchar *file = DB[p][DB_FILENAME];
-			lines = g_strdup_printf("File%d=file://%s\n", i+1, file);
-			fwrite (lines, strlen(lines), 1, pf);
-			g_free(lines);
+                const char *filename = DB[p][DB_FILENAME];
+                entry = ESCAPE(filename);
+                g_string_append_printf(query,
+                                       "nfo:hasMediaFileListEntry <%s%d> ; ",
+                                       entry, i);
+                g_string_append_printf(entries,
+                                       "<%s%d> a nfo:MediaFileListEntry ; "
+                                       "nfo:entryUrl 'file://%s' ; "
+                                       "nfo:listPosition %d . ",
+                                       entry, i, filename, i);
+                g_free(entry);
 		}
+
 		/* Add a non-local item */
-		lines = g_strdup_printf("File%d=http://www.mafwradio.com:8086\n",
-					nitems);
-		fwrite (lines, strlen(lines), 1, pf);
-		g_free(lines);
+        const char *remote = "http://www.mafwradio.com:8086";
+        entry = ESCAPE(remote);
+        g_string_append_printf(query,
+                               "nfo:hasMediaFileListEntry <%s%d> ; ",
+                               entry, nitems);
+        g_string_append_printf(entries,
+                               "<%s%d> a nfo:MediaFileListEntry ; "
+                               "nfo:entryUrl '%s' ; "
+                               "nfo:listPosition %d . ",
+                               entry, nitems, remote, nitems);
+        g_free(entry);
+        g_string_append(query," . ");
 
-		fclose(pf);
-	}
-}
+        sql = g_strconcat (query->str, " ",
+                           entries->str, " }",
+                           NULL);
 
-static gboolean
-_check_query_case(const gchar *actual_query)
-{
-        if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists") == 0) {
-                return actual_query == NULL;
-        } else if ((g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_destroy_container") == 0)) {
-                return g_ascii_strcasecmp(actual_query,
-                                          "<rdfq:Condition>  <rdfq:equals>    <rdfq:Property name=\"Audio:Artist\"/>    <rdf:String>Artist 1</rdf:String>  </rdfq:equals></rdfq:Condition>") == 0;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown") == 0) {
-                return g_ascii_strcasecmp(actual_query,
-                                          "<rdfq:Condition>  <rdfq:equals>    <rdfq:Property name=\"Audio:Artist\"/>    <rdf:String></rdf:String>  </rdfq:equals></rdfq:Condition>") == 0;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown_unknown") == 0) {
-                return g_ascii_strcasecmp(actual_query,
-                                          "<rdfq:Condition>  <rdfq:and>  <rdfq:equals>    <rdfq:Property name=\"Audio:Artist\"/>    <rdf:String></rdf:String>  </rdfq:equals>  <rdfq:equals>    <rdfq:Property name=\"Audio:Album\"/>    <rdf:String></rdf:String>  </rdfq:equals>  </rdfq:and></rdfq:Condition>") == 0;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1_album3") == 0) {
-                return g_ascii_strcasecmp(actual_query,
-                                         "<rdfq:Condition>  <rdfq:and>  <rdfq:equals>    <rdfq:Property name=\"Audio:Artist\"/>    <rdf:String>Artist 1</rdf:String>  </rdfq:equals>  <rdfq:equals>    <rdfq:Property name=\"Audio:Album\"/>    <rdf:String>Album 3</rdf:String>  </rdfq:equals>  </rdfq:and></rdfq:Condition>") == 0;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums") == 0) {
-                return actual_query == NULL;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums_album4") == 0) {
-                return g_ascii_strcasecmp(actual_query,
-					  "<rdfq:Condition>  <rdfq:equals>    <rdfq:Property name=\"Audio:Album\"/>    <rdf:String>Album 4 - Artist 4</rdf:String>  </rdfq:equals></rdfq:Condition>") == 0;
-       } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres") == 0) {
-                return actual_query == NULL;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2") == 0) {
-                return g_ascii_strcasecmp(actual_query,
-                                          "<rdfq:Condition>  <rdfq:equals>    <rdfq:Property name=\"Audio:Genre\"/>    <rdf:String>Genre 2</rdf:String>  </rdfq:equals></rdfq:Condition>") == 0;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_unknown") == 0) {
-                return g_ascii_strcasecmp(actual_query,
-                                          "<rdfq:Condition>  <rdfq:equals>    <rdfq:Property name=\"Audio:Genre\"/>    <rdf:String></rdf:String>  </rdfq:equals></rdfq:Condition>") == 0;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2") == 0) {
-                return g_ascii_strcasecmp(actual_query,
-                                          "<rdfq:Condition>  <rdfq:and>  <rdfq:equals>    <rdfq:Property name=\"Audio:Genre\"/>    <rdf:String>Genre 2</rdf:String>  </rdfq:equals>  <rdfq:equals>    <rdfq:Property name=\"Audio:Artist\"/>    <rdf:String>Artist 2</rdf:String>  </rdfq:equals>  </rdfq:and></rdfq:Condition>") == 0;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2_album2") == 0) {
-                return g_ascii_strcasecmp(actual_query,
-                                          "<rdfq:Condition>  <rdfq:and>  <rdfq:equals>    <rdfq:Property name=\"Audio:Genre\"/>    <rdf:String>Genre 2</rdf:String>  </rdfq:equals>  <rdfq:equals>    <rdfq:Property name=\"Audio:Artist\"/>    <rdf:String>Artist 2</rdf:String>  </rdfq:equals>  <rdfq:equals>    <rdfq:Property name=\"Audio:Album\"/>    <rdf:String>Album 2</rdf:String>  </rdfq:equals>  </rdfq:and></rdfq:Condition>") == 0;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_songs") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_cancel") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_recursive_songs") == 0 ||
-		   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_playlists") == 0 ||
-		   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_videos") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0) {
-                return actual_query == NULL;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_count") == 0 ||
-		   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_offset") == 0) {
-		return actual_query == NULL;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_recursive_artist1") == 0) {
-                return g_ascii_strcasecmp(actual_query,
-                                          "<rdfq:Condition>  <rdfq:equals>    <rdfq:Property name=\"Audio:Artist\"/>    <rdf:String>Artist 1</rdf:String>  </rdfq:equals></rdfq:Condition>") == 0;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_filter_simple") == 0) {
-                return g_ascii_strcasecmp(actual_query,
-                                          "<rdfq:Condition><rdfq:equals><rdfq:Property name=\"Audio:Album\"/><rdf:String>Album 3</rdf:String></rdfq:equals></rdfq:Condition>") == 0;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_filter_and") == 0) {
-                return g_ascii_strcasecmp(actual_query,
-                                          "<rdfq:Condition><rdfq:and><rdfq:equals><rdfq:Property name=\"Audio:Album\"/><rdf:String>Album 3</rdf:String></rdfq:equals><rdfq:equals><rdfq:Property name=\"Audio:Title\"/><rdf:String>Title 3</rdf:String></rdfq:equals></rdfq:and></rdfq:Condition>") == 0;
-	} else if ((g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_albums") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_music") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_videos") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_root") == 0) ||
-                   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadatas_several") ==0)) {
-		return actual_query == NULL;
-        } else {
-                return FALSE;
+        g_string_free(query, TRUE);
+        g_string_free(entries, TRUE);
+
+        tracker_sparql_connection_update(connection, sql, 0, NULL, &error);
+
+        if (error)
+        {
+                g_error("SPARQL update failed, %s", error->message);
+                g_error_free(error);
         }
-}
 
-static gboolean
-_check_concat_case(gchar *actual_concat)
-{
-        if ((g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists") == 0) ||
-            (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2") == 0) ||
-            (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_unknown") == 0)) {
-                return g_ascii_strcasecmp(actual_concat, "Audio:Album") == 0;
-        } else if ((g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres") == 0)) {
-                return g_ascii_strcasecmp(actual_concat, "Audio:Artist") == 0;
-	} else if ((g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_music") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_albums") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_videos") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_root") == 0) ||
-                   (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadatas_several") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2") == 0)) {
-		return (actual_concat == NULL);
-	} else {
-                return FALSE;
-        }
-}
-
-static gboolean
-_check_count_case(gchar *actual_count)
-{
-	if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_albums") == 0 ||
-            g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadatas_several") ==0) {
-		return g_ascii_strcasecmp(actual_count, "Audio:Album") == 0;
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_music") == 0 ||
-		   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_videos") == 0 ||
-		   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_root") == 0) {
-                return g_ascii_strcasecmp(actual_count, "*") == 0;
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_music") == 0) {
-		return (g_ascii_strcasecmp(actual_count, "*") == 0);
-	} else if ((g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_unknown") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2") == 0)) {
-		return (actual_count == NULL);
-        } else {
-                return FALSE;
-        }
-}
-
-static gboolean
-_check_sum_case(gchar *actual_sum, ServiceType service)
-{
-	if ((g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0) ||
-	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0) ||
-	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists") == 0) ||
-	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1") == 0) ||
-	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown") == 0) ||
-	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums") == 0) ||
-	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres") == 0) ||
-	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2") == 0) ||
-	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_unknown") == 0) ||
-	    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2") == 0))	{
-		return (actual_sum == NULL);
-	}
-
-	if (service == SERVICE_MUSIC) {
-		return g_ascii_strcasecmp(actual_sum, "Audio:Duration") == 0;
-	} else if (service == SERVICE_VIDEOS) {
-		return g_ascii_strcasecmp(actual_sum, "Video:Duration") == 0;
-	} else if (service == SERVICE_PLAYLISTS) {
-                return g_ascii_strcasecmp(actual_sum, "Playlist:Duration") == 0;
-        } else {
-		return FALSE;
-	}
-}
-
-static gboolean
-_check_aggregates_case(char **aggregates)
-{
-        if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0 ||
-            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0 ||
-            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1") == 0 ||
-            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown") == 0 ||
-            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2") == 0) {
-                return aggregates[0] == NULL;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_unknown") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_invalid") == 0) {
-                return (g_ascii_strcasecmp(aggregates[0], "CONCAT") == 0 &&
-                        aggregates[1] == NULL);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_albums") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_music") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_videos") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_root") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadatas_several") == 0) {
-                return (g_ascii_strcasecmp(aggregates[0], "COUNT") == 0 &&
-                        g_ascii_strcasecmp(aggregates[1], "SUM") == 0 &&
-                        aggregates[2] == NULL);
-        } else {
-                return FALSE;
-        }
-}
-
-static gboolean
-_check_aggregate_fields_case(char **aggregate_fields)
-{
-        if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0 ||
-            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0 ||
-            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1") == 0 ||
-            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown") == 0 ||
-            g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2") == 0) {
-                return aggregate_fields[0] == NULL;
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_unknown") == 0) {
-                return (g_ascii_strcasecmp(aggregate_fields[0], "Audio:Album") == 0 &&
-                        aggregate_fields[1] == NULL);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_invalid") == 0) {
-                return (g_ascii_strcasecmp(aggregate_fields[0], "Audio:Artist") == 0 &&
-                        aggregate_fields[1] == NULL);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_albums") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadatas_several") == 0) {
-                return (g_ascii_strcasecmp(aggregate_fields[0], "Audio:Album") == 0 &&
-                        g_ascii_strcasecmp(aggregate_fields[1], "Audio:Duration") == 0 &&
-                        aggregate_fields[2] == NULL);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_music") == 0) {
-                return (g_ascii_strcasecmp(aggregate_fields[0], "*") == 0 &&
-                        g_ascii_strcasecmp(aggregate_fields[1], "Audio:Duration") == 0 &&
-                        aggregate_fields[2] == NULL);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_videos") == 0) {
-                return (g_ascii_strcasecmp(aggregate_fields[0], "*") == 0 &&
-                        g_ascii_strcasecmp(aggregate_fields[1], "Video:Duration") == 0 &&
-                        aggregate_fields[2] == NULL);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_root") == 0) {
-                return (g_ascii_strcasecmp(aggregate_fields[0], "*") == 0 &&
-                        (g_ascii_strcasecmp(aggregate_fields[1], "Audio:Duration") == 0 ||
-                         g_ascii_strcasecmp(aggregate_fields[1], "Video:Duration") == 0) &&
-                        aggregate_fields[2] == NULL);
-        } else {
-                return FALSE;
-        }
-}
-
-static gboolean
-_check_params(ServiceType service, const char *id, char **keys, char **values)
-{
-	GHashTable *metadata;
-	gchar *value_1;
-	gchar *value_2;
-	gboolean retval = TRUE;
-	gint i = 0;
-
-	if ((keys == NULL) || (values == NULL) || (id == NULL))
-		return FALSE;
-
-	metadata = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, NULL);
-	while (keys[i] != NULL) {
-		g_hash_table_insert(metadata, keys[i], values[i]);
-		i++;
-	}
-
-	if (g_ascii_strcasecmp(RUNNING_CASE, "test_set_metadata_audio") == 0) {
-		value_1 = (gchar *) g_hash_table_lookup(metadata, "Audio:LastPlay");
-		value_2 = (gchar *) g_hash_table_lookup(metadata, "Audio:PlayCount");
-
-		if ((service != SERVICE_MUSIC) ||
-		    (g_ascii_strcasecmp(id, "/home/user/MyDocs/clip1.mp3") != 0) ||
-		    (g_ascii_strcasecmp(value_1, "2008-11-05T08:27:01Z") != 0) ||
-		    (g_ascii_strcasecmp(value_2, "1") != 0)) {
-			retval = FALSE;
-		}
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_set_metadata_video") == 0) {
-		value_1 = (gchar *) g_hash_table_lookup(metadata, "Video:LastPlayedFrame");
-		value_2 = (gchar *) g_hash_table_lookup(metadata, "Video:PausePosition");
-
-		if ((service != SERVICE_VIDEOS) ||
-		    (g_ascii_strcasecmp(id, "/home/user/MyDocs/video.avi") != 0) ||
-		    (g_ascii_strcasecmp(value_1, "/home/user/thumbnail.png") != 0) ||
-		    (g_ascii_strcasecmp(value_2, "10") != 0)) {
-			retval = FALSE;
-		}
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_set_metadata_invalid_mixed") == 0 ) {
-		value_1 = (gchar *) g_hash_table_lookup(metadata, "Video:PausePosition");
-		value_2 = (gchar *) g_hash_table_lookup(metadata, "Audio:PlayCount");
-
-		if ((g_ascii_strcasecmp(id, "/home/user/MyDocs/clip3.mp3") != 0) ||
-		    (g_ascii_strcasecmp(value_1, "10") != 0) ||
-		    (g_ascii_strcasecmp(value_2, "1") != 0)) {
-			    retval = FALSE;
-		    }
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_set_metadata_invalid_non_existing_clip") == 0) {
-		value_1 = (gchar *) g_hash_table_lookup(metadata, "Audio:PlayCount");
-
-		if ((service != SERVICE_MUSIC) ||
-		    (g_ascii_strcasecmp(id, "/home/user/MyDocs/nonexisting.mp3") != 0) ||
-		    (g_ascii_strcasecmp(value_1, "1") != 0)) {
-			retval = FALSE;
-		}
-	}
-
-	g_hash_table_destroy(metadata);
-	/* Set an error if the parameters in the tracker call are incorrect */
-	g_set_metadata_params_err = !retval;
-	return retval;
+        g_free(sql);
 }
 
 static void
-_add_concat_count_and_sum_to_result(GPtrArray *result,
-                                    gint index,
-                                    gchar **keys,
-                                    gchar *concat,
-                                    const gchar *count,
-                                    const gchar *sum)
+_add_music_piece(TrackerSparqlConnection *connection, int idx)
 {
-        gchar **tuple;
-        gint i = 0;
+        const char *file = DB[idx][DB_FILENAME];
+        const char *title = DB[idx][DB_TITLE];
+        const char *artist = DB[idx][DB_ARTIST];
+        const char *album = DB[idx][DB_ALBUM];
+        const char *genre = DB[idx][DB_GENRE];
+        const char *mime = DB[idx][DB_MIME];
+        int duration= atoi(DB[idx][DB_LENGTH]);
+        gchar *id = ESCAPE(file);
+        gchar *artist_escaped = ESCAPE(artist);
+        gchar *album_escaped = ESCAPE(album);
+        GString *query = g_string_new(NULL);
+        GError *error = NULL;
 
-        tuple = g_new0(gchar *, g_strv_length(keys) + 4);
+        g_string_printf(query,
+                        "INSERT DATA {"
+                        "<%s> a nfo:FileDataObject, nmm:MusicPiece ; "
+                        "nie:mimeType '%s' ; "
+                        "nie:url 'file://%s' ; "
+                        "nfo:duration %d ; ",
+                        id, mime, file, duration);
 
-        i = 0;
-        while (keys[i]) {
-                if (g_ascii_strcasecmp(keys[i], "File:NameDelimited") == 0)
-                        tuple[i] = g_strdup(DB[index][DB_FILENAME]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Title") == 0)
-                        tuple[i] = g_strdup(DB[index][DB_TITLE]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Artist") == 0)
-                        tuple[i] = g_strdup(DB[index][DB_ARTIST]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Album") == 0)
-                        tuple[i] = g_strdup(DB[index][DB_ALBUM]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Genre") == 0)
-                        tuple[i] = g_strdup(DB[index][DB_GENRE]);
-                else if (g_ascii_strcasecmp(keys[i], "File:Mime") == 0)
-                        tuple[i] = g_strdup(DB[index][DB_MIME]);
-                i++;
+        if (title)
+        {
+                g_string_append_printf(query,
+                                       "nie:title '%s' ; ",
+                                       title);
+}
+
+        if (genre)
+{
+                g_string_append_printf(query,
+                                       "nfo:genre '%s' ; ",
+                                       genre);
         }
 
-	if (concat) {
-		tuple[i++] = g_strdup(concat);
-	}
+        if (artist_escaped)
+        {
+                g_string_append_printf(query,
+                                       "nmm:performer <%s> ; ",
+                                       artist_escaped);
+}
 
-        tuple[i++] = g_strdup(count);
-        tuple[i++] = g_strdup(sum);
+        if (album_escaped)
+{
+                g_string_append_printf(query,
+                                       "nmm:musicAlbum <%s> ; ",
+                                       album_escaped);
+        }
 
-        g_ptr_array_add(result, tuple);
+        g_string_append(query," . ");
 
+        if (artist_escaped)
+        {
+                g_string_append_printf(query,
+                                       "<%s> a nmm:Artist ; "
+                                       "nmm:artistName '%s' . ",
+                                       artist_escaped, artist);
+}
+
+        if (album_escaped)
+        {
+                g_string_append_printf(query,
+                                       "<%s> a nmm:MusicAlbum ; "
+                                       "nie:title '%s' ; ",
+                                       album_escaped, album);
+
+                if (artist_escaped)
+{
+                        g_string_append_printf(query,
+                                               "nmm:albumArtist <%s> . ",
+                                               artist_escaped);
+                }
+                else
+                        g_string_append(query," . ");
+        }
+
+        g_string_append(query,"}");
+
+        tracker_sparql_connection_update(
+                                connection, query->str, 0, NULL, &error);
+
+        if (error)
+                g_error("SPARQL update failed, %s", error->message);
+
+        g_string_free(query, TRUE);
+        g_free(album_escaped);
+        g_free(artist_escaped);
+        g_free(id);
 }
 
 static void
-_add_query_to_result(GPtrArray *result,
-                     gint index,
-                     gchar **keys)
+_add_video(TrackerSparqlConnection *connection, int idx)
 {
-        gchar **tuple;
-        gint i = 0;
+        const char *file = DB[idx][DB_FILENAME];
+        const char *title = DB[idx][DB_TITLE];
+        const char *mime = DB[idx][DB_MIME];
+        int duration= atoi(DB[idx][DB_LENGTH]);
+        gchar *id = ESCAPE(file);
+        GString *query = g_string_new(NULL);
+        GError *error = NULL;
 
-        tuple = g_new0(gchar *, g_strv_length(keys) + 3);
+        g_string_printf(query,
+                        "INSERT DATA {"
+                        "<%s> a nfo:FileDataObject, nmm:Video ; "
+                        "nie:mimeType '%s' ; "
+                        "nie:url 'file://%s' ; "
+                        "nfo:duration %d ; ",
+                        id, mime, file, duration);
 
-        /* First item contains uri */
-        tuple[0] = g_strdup(DB[index][DB_FILENAME]);
-        /* Second item is service */
-        tuple[1] = g_strdup(SERVICE_MUSIC_STR);
+        if (title)
+{
+                g_string_append_printf(query,
+                                       "nie:title '%s' ; ",
+                                       title);
+	}
 
-        i = 0;
-        while (keys[i]) {
-                if (g_ascii_strcasecmp(keys[i], "File:NameDelimited") == 0)
-                        tuple[i+2] = g_strdup(DB[index][DB_FILENAME]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Title") == 0 || g_ascii_strcasecmp(keys[i], "Video:Title") == 0)
-                        tuple[i+2] = g_strdup(DB[index][DB_TITLE]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Artist") == 0)
-                        tuple[i+2] = g_strdup(DB[index][DB_ARTIST]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Album") == 0)
-                        tuple[i+2] = g_strdup(DB[index][DB_ALBUM]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Genre") == 0)
-                        tuple[i+2] = g_strdup(DB[index][DB_GENRE]);
-                else if (g_ascii_strcasecmp(keys[i], "File:Mime") == 0)
-                        tuple[i+2] = g_strdup(DB[index][DB_MIME]);
-                i++;
-        }
 
-        g_ptr_array_add(result, tuple);
+        g_string_append(query,"}");
+
+        tracker_sparql_connection_update(
+                                connection, query->str, 0, NULL, &error);
+
+        if (error)
+                g_error("SPARQL update failed, %s", error->message);
+
+        g_string_free(query, TRUE);
+        g_free(id);
 }
 
-static char **
-_get_metadata(gint index,
-              char **keys)
+static void
+create_tracker_database()
 {
-        char **result;
+        GError *error = NULL;
+        TrackerSparqlConnection *connection =
+                        tracker_sparql_connection_get(NULL, &error);
+
+        if (connection)
+{
+                int i;
+                tracker_sparql_connection_update(connection, "DELETE WHERE {?id a nmm:MusicPiece}", 0, NULL, NULL);
+                tracker_sparql_connection_update(connection, "DELETE WHERE {?id a nmm:MusicAlbum}", 0, NULL, NULL);
+                tracker_sparql_connection_update(connection, "DELETE WHERE {?id a nmm:Artist}", 0, NULL, NULL);
+                tracker_sparql_connection_update(connection, "DELETE WHERE {?id a nmm:Playlist}", 0, NULL, NULL);
+                tracker_sparql_connection_update(connection, "DELETE WHERE {?id a nmm:Video}", 0, NULL, NULL);
+		tracker_sparql_connection_update(connection, "DELETE WHERE {?id a nmm:Image}", 0, NULL, NULL);
+		tracker_sparql_connection_update(connection, "DELETE WHERE {?id a nie:DataObject}", 0, NULL, NULL);
+                tracker_sparql_connection_update(connection, "DELETE WHERE {?id a nfo:MediaFileListEntry}", 0, NULL, NULL);
+                tracker_sparql_connection_update(connection, "DELETE WHERE {?id a nfo:MediaList}", 0, NULL, NULL);
+
+                for (i = 0; i < 14; i++)
+                        _add_music_piece(connection, i);
+
+                _add_playlist(connection, "/tmp/playlist1.pls", "audio/x-scpls", 4);
+                _add_playlist(connection, "/tmp/playlist2.m3u", "audio/x-mpegurl", 1);
+
+                _add_video(connection, 16);
+                _add_video(connection, 17);
+        }
+}
+
+static void create_temporal_playlist (gchar *path, gint nitems)
+{
+        FILE *pf;
         gint i;
 
-        result = g_new0(char *, g_strv_length(keys) + 1);
-
-        i=0;
-        while (keys[i]) {
-                if (g_ascii_strcasecmp(keys[i], "File:NameDelimited") == 0)
-                        result[i] = g_strdup(DB[index][DB_FILENAME]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Title") == 0)
-                        result[i] = g_strdup(DB[index][DB_TITLE]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Artist") == 0)
-                        result[i] = g_strdup(DB[index][DB_ARTIST]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Album") == 0)
-                        result[i] = g_strdup(DB[index][DB_ALBUM]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Genre") == 0)
-                        result[i] = g_strdup(DB[index][DB_GENRE]);
-                else if (g_ascii_strcasecmp(keys[i], "File:Mime") == 0)
-                        result[i] = g_strdup(DB[index][DB_MIME]);
-                else if (g_ascii_strcasecmp(keys[i], "Audio:Duration") == 0)
-                        result[i] = g_strdup(DB[index][DB_LENGTH]);
-                else if (g_ascii_strcasecmp(keys[i], "Video:Title") == 0)
-                        result[i] = g_strdup(DB[index][DB_TITLE]);
-		else if ((g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_playlist") == 0) &&
-			 (g_ascii_strcasecmp(keys[i], "Playlist:Duration") == 0))
-			result[i] = g_strdup("76");
-		else if ((g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_playlist") == 0) &&
-			 (g_ascii_strcasecmp(keys[i], "Playlist:Songs") == 0))
-			result[i]= g_strdup("4");
-		else if ((g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_playlist") == 0) &&
-			 (g_ascii_strcasecmp(keys[i], "Playlist:ValidDuration") == 0))
-			result[i] = g_strdup("1");
-                i++;
-        }
-
-        return result;
-}
-
-static void
-_send_metadata(gint index,
-               char **keys,
-               TrackerArrayReply cb,
-               gpointer user_data)
-{
-        char **result = NULL;
-        GError *error = NULL;
-
-        if (index < 0) {
-                /* Domain and code are not relevant */
-                error = g_error_new(1, 1, "error getting metadata");
-                cb(result, error, user_data);
-                g_error_free(error);
-        } else {
-                result = _get_metadata(index, keys);
-                cb(result, NULL, user_data);
-        }
-}
-
-static void
-_send_metadatas(gint *indexes,
-                gint num_indexes,
-                const char **keys,
-                TrackerGPtrArrayReply cb,
-                gpointer user_data)
-{
-        GPtrArray *results = NULL;
-        gint i = 0;
-        GError *error = NULL;
-
-        results = g_ptr_array_sized_new(num_indexes);
-
-        for (i=0; i < num_indexes; i++) {
-                if (indexes[i] < 0) {
-                        /* Domain and code are not relevant */
-                        if (!error) {
-                                error = g_error_new(1, 1, "error getting metadata");
-                        }
-                } else {
-                        g_ptr_array_add(results, _get_metadata(indexes[i], (char **) keys));
+        pf = fopen(path, "w");
+        if (pf != NULL) {
+                gchar *lines = g_strdup_printf ("[playlist]\nNumberOfEntries=%d\n\n",
+                                                nitems);
+                fwrite (lines, strlen(lines), 1, pf);
+                g_free (lines);
+                /* Add some local items */
+                for (i=0; i<(nitems - 1); i++) {
+                        gint p = i % DB_SIZE;
+                        gchar *file = DB[p][DB_FILENAME];
+                        lines = g_strdup_printf("File%d=file://%s\n", i+1, file);
+                        fwrite (lines, strlen(lines), 1, pf);
+                        g_free(lines);
                 }
-        }
+                /* Add a non-local item */
+                lines = g_strdup_printf("File%d=http://www.mafwradio.com:8086\n",
+                                        nitems);
+                fwrite (lines, strlen(lines), 1, pf);
+                g_free(lines);
 
-        cb(results, error, user_data);
-
-        /* Free data */
-        if (error) {
-                g_error_free(error);
-        }
-}
-
-static void
-_send_concat_count_and_sum_expected_result(TrackerGPtrArrayReply callback,
-                                           char **keys,
-                                           ServiceType service,
-                                           gpointer user_data)
-{
-        GPtrArray *result;
-
-        if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists") == 0) {
-                result = g_ptr_array_sized_new(8);
-                _add_concat_count_and_sum_to_result(result, 0, keys, "Some Album", "1", "36");
-                _add_concat_count_and_sum_to_result(result, 1, keys, "Album 1|Album 3", "2", "252");
-                _add_concat_count_and_sum_to_result(result, 2, keys, "Album 2", "1", "17");
-                _add_concat_count_and_sum_to_result(result, 7, keys, "|Album 4", "2", "166");
-                _add_concat_count_and_sum_to_result(result, 8, keys, "Album V2", "1", "64");
-                _add_concat_count_and_sum_to_result(result, 9, keys, "|Album 4", "2", "77");
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadatas_several") == 0) {
-                result = g_ptr_array_sized_new(7);
-                _add_concat_count_and_sum_to_result(result, 0, keys, "Some Artist", "1", "36");
-                _add_concat_count_and_sum_to_result(result, 1, keys, "Artist 1", "1", "23");
-                _add_concat_count_and_sum_to_result(result, 2, keys, "Artist 2", "1", "17");
-                _add_concat_count_and_sum_to_result(result, 3, keys, "Artist 1", "4", "229");
-                _add_concat_count_and_sum_to_result(result, 7, keys, "|Artist 4", "3", "127");
-                _add_concat_count_and_sum_to_result(result, 8, keys, "Artist V2", "1", "64");
-                _add_concat_count_and_sum_to_result(result, 10, keys, "|Artist 4", "3", "116");
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2") == 0) {
-                result = g_ptr_array_sized_new(4);
-                _add_concat_count_and_sum_to_result(result, 2, keys, "Album 2", "1", "17");
-                _add_concat_count_and_sum_to_result(result, 3, keys, "Album 3", "1", "97");
-                _add_concat_count_and_sum_to_result(result, 9, keys, "|Album 4", "2", "65");
-                _add_concat_count_and_sum_to_result(result, 10, keys, "|Album 4", "2", "65");
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_unknown") == 0) {
-                result = g_ptr_array_sized_new(3);
-                _add_concat_count_and_sum_to_result(result, 7, keys, "", "1", "119");
-                _add_concat_count_and_sum_to_result(result, 8, keys, "Album V2", "1", "64");
-                _add_concat_count_and_sum_to_result(result, 12, keys, "Album 4", "1", "12");
-	} else if ((g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_music") == 0) ||
-		   (service == SERVICE_MUSIC &&
-		    (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0))) {
-		result = g_ptr_array_sized_new(2);
-		_add_concat_count_and_sum_to_result(result, 0, keys, NULL ,"12", "501");
-		_add_concat_count_and_sum_to_result(result, 5, keys, NULL, "2", "111");
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_albums") == 0) {
-		result = g_ptr_array_sized_new(9);
-		_add_concat_count_and_sum_to_result(result, 0, keys, NULL, "1", "36");
-		_add_concat_count_and_sum_to_result(result, 1, keys, NULL, "1", "23");
-		_add_concat_count_and_sum_to_result(result, 2, keys, NULL, "1", "17");
-		_add_concat_count_and_sum_to_result(result, 3, keys, NULL, "4", "229");
-		_add_concat_count_and_sum_to_result(result, 7, keys, NULL, "2", "119");
-		_add_concat_count_and_sum_to_result(result, 8, keys, NULL, "1", "64");
-		_add_concat_count_and_sum_to_result(result, 9, keys, NULL, "1", "8");
-		_add_concat_count_and_sum_to_result(result, 10, keys, NULL, "1", "47");
-		_add_concat_count_and_sum_to_result(result, 12, keys, NULL, "2", "69");
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_videos") == 0 ||
-                   (service == SERVICE_VIDEOS &&
-                    g_ascii_strcasecmp(RUNNING_CASE, "test_browse_root") == 0)) {
-		result = g_ptr_array_sized_new(1);
-		_add_concat_count_and_sum_to_result(result, 16, keys, NULL, "2", "53");
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_root") == 0) {
-                if (service == SERVICE_MUSIC) {
-			result = g_ptr_array_sized_new(2);
-			_add_concat_count_and_sum_to_result(result, 0, keys, NULL, "12", "501");
-			_add_concat_count_and_sum_to_result(result, 5, keys, NULL, "2", "111");
-		} else if (service == SERVICE_VIDEOS) {
-			result = g_ptr_array_sized_new(1);
-			_add_concat_count_and_sum_to_result(result, 16, keys, NULL, "2", "53");
-		} else {
-			return;
-		}
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music") == 0) {
-                if (g_ascii_strcasecmp(keys[0], "Audio:Album") == 0) {
-                        result = g_ptr_array_sized_new(9);
-                        _add_concat_count_and_sum_to_result(result, 0, keys, NULL, "1", "36");
-                        _add_concat_count_and_sum_to_result(result, 1, keys, NULL, "1", "23");
-                        _add_concat_count_and_sum_to_result(result, 2, keys, NULL, "1", "17");
-                        _add_concat_count_and_sum_to_result(result, 3, keys, NULL, "4", "229");
-                        _add_concat_count_and_sum_to_result(result, 7, keys, NULL, "2", "119");
-                        _add_concat_count_and_sum_to_result(result, 8, keys, NULL, "1", "64");
-                        _add_concat_count_and_sum_to_result(result, 9, keys, NULL, "1", "8");
-                        _add_concat_count_and_sum_to_result(result, 10, keys, NULL,"1", "47");
-                        _add_concat_count_and_sum_to_result(result, 12, keys, NULL, "2", "69");
-                } else if (g_ascii_strcasecmp(keys[0], "Audio:Artist") == 0) {
-                        result = g_ptr_array_sized_new(6);
-                        _add_concat_count_and_sum_to_result(result, 0, keys, NULL, "1", "36");
-                        _add_concat_count_and_sum_to_result(result, 1, keys, NULL, "5", "252");
-                        _add_concat_count_and_sum_to_result(result, 2, keys, NULL, "1", "17");
-                        _add_concat_count_and_sum_to_result(result, 7, keys, NULL, "3", "166");
-                        _add_concat_count_and_sum_to_result(result, 8, keys, NULL, "1", "64");
-                        _add_concat_count_and_sum_to_result(result, 9, keys, NULL, "3", "77");
-                } else if (g_ascii_strcasecmp(keys[0], "Audio:Genre") == 0) {
-                        result = g_ptr_array_sized_new(4);
-                        _add_concat_count_and_sum_to_result(result, 0, keys, NULL, "1", "36");
-                        _add_concat_count_and_sum_to_result(result, 1, keys, NULL, "3", "155");
-                        _add_concat_count_and_sum_to_result(result, 2, keys, NULL, "6", "226");
-                        _add_concat_count_and_sum_to_result(result, 7, keys, NULL, "4", "195");
-                } else if (g_ascii_strcasecmp(keys[0], "File:Mime") == 0) {
-                        if (service == SERVICE_MUSIC) {
-                                result = g_ptr_array_sized_new(2);
-                                _add_concat_count_and_sum_to_result(result, 0, keys, NULL, "12", "501");
-                                _add_concat_count_and_sum_to_result(result, 5, keys, NULL, "2", "111");
-                        } else if (service == SERVICE_PLAYLISTS) {
-                                result = g_ptr_array_sized_new(2);
-                                _add_concat_count_and_sum_to_result(result, 14, keys, NULL, "1", "0");
-                                _add_concat_count_and_sum_to_result(result, 15, keys, NULL, "1", "0");
-                        } else {
-				return;
-			}
-                } else {
-			return;
-		}
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1") == 0) {
-                result = g_ptr_array_sized_new(2);
-                _add_concat_count_and_sum_to_result(result, 1, keys, NULL, "1", "23");
-                _add_concat_count_and_sum_to_result(result, 3, keys, NULL, "4", "229");
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown") == 0) {
-                result = g_ptr_array_sized_new(2);
-                _add_concat_count_and_sum_to_result(result, 7, keys, NULL, "2", "119");
-                _add_concat_count_and_sum_to_result(result, 11, keys, NULL, "1", "47");
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres") == 0) {
-                result = g_ptr_array_sized_new(4);
-                _add_concat_count_and_sum_to_result(result, 0, keys, NULL, "1", "36");
-                _add_concat_count_and_sum_to_result(result, 1, keys, NULL, "1", "155");
-                _add_concat_count_and_sum_to_result(result, 2, keys, NULL, "4", "226");
-                _add_concat_count_and_sum_to_result(result, 7, keys, NULL, "3", "195");
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2") == 0) {
-                result = g_ptr_array_sized_new(1);
-                _add_concat_count_and_sum_to_result(result, 2, keys, NULL, "1", "17");
-        } else {
-                return;
-        }
-
-        callback(result, NULL, user_data);
-}
-
-static void
-_send_aggregates_expected_result(TrackerGPtrArrayReply callback,
-                                 char **keys,
-                                 ServiceType service,
-                                 gpointer user_data)
-{
-        _send_concat_count_and_sum_expected_result(callback, keys, service, user_data);
-}
-
-static void
-_send_query_expected_result(TrackerGPtrArrayReply callback,
-                            int offset,
-                            int max_hits,
-                            char **keys,
-                            gpointer user_data)
-{
-        GPtrArray *result = NULL;
-
-        if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_unknown_unknown") == 0) {
-                result = g_ptr_array_sized_new(2);
-                _add_query_to_result(result, 7, keys);
-                _add_query_to_result(result, 13, keys);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_artists_artist1_album3") == 0) {
-                result = g_ptr_array_sized_new(2);
-                _add_query_to_result(result, 3, keys);
-                _add_query_to_result(result, 4, keys);
-                _add_query_to_result(result, 5, keys);
-                _add_query_to_result(result, 6, keys);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_albums_album4") == 0) {
-                result = g_ptr_array_sized_new(3);
-                _add_query_to_result(result, 10, keys);
-                _add_query_to_result(result, 11, keys);
-                _add_query_to_result(result, 12, keys);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_genres_genre2_artist2_album2") == 0) {
-                result = g_ptr_array_sized_new(1);
-                _add_query_to_result(result, 2, keys);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_songs") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_cancel") == 0 ||
-                   g_ascii_strcasecmp(RUNNING_CASE, "test_browse_recursive_songs") == 0) {
-                result = g_ptr_array_sized_new(15);
-                _add_query_to_result(result, 0, keys);
-                _add_query_to_result(result, 1, keys);
-                _add_query_to_result(result, 2, keys);
-                _add_query_to_result(result, 3, keys);
-                _add_query_to_result(result, 4, keys);
-                _add_query_to_result(result, 5, keys);
-                _add_query_to_result(result, 6, keys);
-                _add_query_to_result(result, 7, keys);
-                _add_query_to_result(result, 8, keys);
-                _add_query_to_result(result, 9, keys);
-                _add_query_to_result(result, 10, keys);
-                _add_query_to_result(result, 11, keys);
-                _add_query_to_result(result, 12, keys);
-                _add_query_to_result(result, 13, keys);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_music_playlists") == 0) {
-                result = g_ptr_array_sized_new(2);
-                _add_query_to_result(result, 14, keys);
-                _add_query_to_result(result, 15, keys);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_count") == 0) {
-                switch (max_hits) {
-                case 13:
-                        result = g_ptr_array_sized_new(13);
-                        break;
-                case 14:
-                case 15:
-                case G_MAXINT:
-                        result = g_ptr_array_sized_new(14);
-                        break;
-		default:
-			return;
-                }
-                _add_query_to_result(result, 0, keys);
-                _add_query_to_result(result, 1, keys);
-                _add_query_to_result(result, 2, keys);
-                _add_query_to_result(result, 3, keys);
-                _add_query_to_result(result, 4, keys);
-                _add_query_to_result(result, 5, keys);
-                _add_query_to_result(result, 6, keys);
-                _add_query_to_result(result, 7, keys);
-                _add_query_to_result(result, 8, keys);
-                _add_query_to_result(result, 9, keys);
-                _add_query_to_result(result, 10, keys);
-                _add_query_to_result(result, 11, keys);
-                _add_query_to_result(result, 12, keys);
-                switch (max_hits) {
-		case 13:
-			break;
-                case 14:
-                case 15:
-                case G_MAXINT:
-                        _add_query_to_result(result, 13, keys);
-			break;
-		default:
-			return;
-                }
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_offset") == 0) {
-                switch (offset) {
-                case 0:
-                        result = g_ptr_array_sized_new(14);
-                        _add_query_to_result(result, 0, keys);
-                        _add_query_to_result(result, 1, keys);
-                        _add_query_to_result(result, 2, keys);
-                        _add_query_to_result(result, 3, keys);
-                        _add_query_to_result(result, 4, keys);
-                        _add_query_to_result(result, 5, keys);
-                        _add_query_to_result(result, 6, keys);
-                        _add_query_to_result(result, 7, keys);
-                        _add_query_to_result(result, 8, keys);
-                        _add_query_to_result(result, 9, keys);
-                        _add_query_to_result(result, 10, keys);
-                        _add_query_to_result(result, 11, keys);
-                        _add_query_to_result(result, 12, keys);
-                        _add_query_to_result(result, 13, keys);
-                        break;
-                case 13:
-                        result = g_ptr_array_sized_new(1);
-                        _add_query_to_result(result, 13, keys);
-                        break;
-                case 14:
-                case 15:
-                        result = g_ptr_array_new();
-                        break;
-		default:
-			return;
-                }
-        } else if ((g_ascii_strcasecmp(RUNNING_CASE, "test_browse_recursive_artist1") == 0) ||
-		   (g_ascii_strcasecmp(RUNNING_CASE, "test_destroy_container") == 0)) {
-                result = g_ptr_array_sized_new(5);
-                _add_query_to_result(result, 1, keys);
-                _add_query_to_result(result, 3, keys);
-                _add_query_to_result(result, 4, keys);
-                _add_query_to_result(result, 5, keys);
-                _add_query_to_result(result, 6, keys);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_filter_simple") == 0) {
-                result = g_ptr_array_sized_new(4);
-                _add_query_to_result(result, 3, keys);
-                _add_query_to_result(result, 4, keys);
-                _add_query_to_result(result, 5, keys);
-                _add_query_to_result(result, 6, keys);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_filter_and") == 0) {
-                result = g_ptr_array_sized_new(1);
-                _add_query_to_result(result, 3, keys);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_browse_videos") == 0) {
-                result = g_ptr_array_sized_new(2);
-                _add_query_to_result(result, 16, keys);
-		_add_query_to_result(result, 17, keys);
-        } else {
-                return;
-        }
-
-        callback(result, NULL, user_data);
-}
-
-void
-tracker_metadata_get_unique_values_with_concat_count_and_sum_async(TrackerClient *client,
-                                                                   ServiceType service,
-                                                                   char **meta_types,
-                                                                   const char *query,
-                                                                   char *concat,
-                                                                   char *count,
-                                                                   char *sum,
-                                                                   gboolean descending,
-                                                                   int offset,
-                                                                   int max_hits,
-                                                                   TrackerGPtrArrayReply callback,
-                                                                   gpointer user_data)
-{
-        if (_check_query_case(query) &&
-            _check_concat_case(concat) &&
-            _check_count_case(count) &&
-            _check_sum_case(sum, service)) {
-                _send_concat_count_and_sum_expected_result(callback, meta_types, service, user_data);
+                fclose(pf);
         }
 }
 
-void tracker_metadata_get_unique_values_with_aggregates_async(TrackerClient *client,
-                                                              ServiceType service,
-                                                              char **meta_types,
-                                                              const char *query,
-                                                              char **aggregates,
-                                                              char **aggregate_fields,
-                                                              gboolean descending,
-                                                              int offset,
-                                                              int max_hits,
-                                                              TrackerGPtrArrayReply callback,
-                                                              gpointer user_data)
+TrackerSparqlConnection *
+tracker_sparql_connection_get(GCancellable *cancellable, GError **error)
 {
-        if (_check_query_case(query) &&
-            _check_aggregates_case(aggregates) &&
-            _check_aggregate_fields_case(aggregate_fields)) {
-                _send_aggregates_expected_result(callback, meta_types,
-                                                 service, user_data);
-        }
-}
+        /* FIXME - tracker 3 supports in-memory databases */
+	// GFile *store = g_file_new_for_path("/home/user/.cache/tracker");
+	GFile *store = g_file_new_for_path("db");
+        TrackerSparqlConnection *connection;
+        connection = tracker_sparql_connection_local_new(
+                             TRACKER_SPARQL_CONNECTION_FLAGS_NONE, store, NULL,
+                             NULL, NULL, error);
 
-void
-tracker_search_query_async (TrackerClient *client,
-                            int live_query_id,
-                            ServiceType service,
-                            char **fields,
-                            const char *search_text,
-                            const char *keywords,
-                            const char *query,
-                            int offset, int max_hits,
-                            gboolean sort_by_service,
-                            char **sort_fields,
-                            gboolean sort_descending,
-                            TrackerGPtrArrayReply callback,
-                            gpointer user_data)
-{
-        if (_check_query_case(query)) {
-                _send_query_expected_result(callback, offset, max_hits, fields, user_data);
-        }
-}
+        g_object_unref(store);
 
-void
-tracker_metadata_get_async(TrackerClient *client,
-                           ServiceType service,
-                           const char *id,
-                           char **keys,
-                           TrackerArrayReply callback,
-                           gpointer user_data)
-{        if ((g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_clip") == 0 ||
-	      g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_artist_album_clip") == 0 ||
-	      g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_genre_artist_album_clip") == 0 ||
-	      g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_album_clip") == 0) &&
-	     g_ascii_strcasecmp(id, "/home/user/MyDocs/clip1.mp3") == 0) {
-                _send_metadata(1, keys, callback, user_data);
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_video") == 0) {
-		_send_metadata(16, keys, callback, user_data);
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_invalid") == 0) {
-                _send_metadata(-1, keys, callback, user_data);
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_playlist") == 0 &&
-		   g_ascii_strcasecmp(id, "/tmp/playlist1.pls") == 0) {
-		_send_metadata(14, keys, callback, user_data);
-        }
-}
-
-void
-tracker_metadata_get_multiple_async(TrackerClient *client,
-                                    ServiceType service,
-                                    const char **ids,
-                                    const char **keys,
-                                    TrackerGPtrArrayReply callback,
-                                    gpointer user_data)
-{
-        gint indexes[3] = { 0 };
-
-        if ((g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_clip") == 0 ||
-             g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_artist_album_clip") == 0 ||
-             g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_genre_artist_album_clip") == 0 ||
-             g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_album_clip") == 0) &&
-            g_ascii_strcasecmp(ids[0], "/home/user/MyDocs/clip1.mp3") == 0) {
-                indexes[0] = 1;
-                _send_metadatas(indexes, 1, keys, callback, user_data);
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_video") == 0) {
-                indexes[0] = 16;
-		_send_metadatas(indexes, 1, keys, callback, user_data);
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_invalid") == 0) {
-                indexes[0] = -1;
-                _send_metadatas(indexes, 1, keys, callback, user_data);
-	} else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadata_playlist") == 0 &&
-		   g_ascii_strcasecmp(ids[0], "/tmp/playlist1.pls") == 0) {
-                indexes[0] = 14;
-		_send_metadatas(indexes, 1, keys, callback, user_data);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE, "test_get_metadatas_several") == 0) {
-                indexes[0] = 1;
-                indexes[1] = 1;
-                _send_metadatas(indexes, 2, keys, callback, user_data);
-        } else if (g_ascii_strcasecmp(RUNNING_CASE,
-				      "test_browse_music_playlists_playlist1") == 0) {
-		indexes[0] = 0;
-		indexes[1] = 1;
-		indexes[2] = 2;
-		_send_metadatas(indexes, 3, keys, callback, user_data);
-	}
-}
-
-void
-tracker_metadata_set(TrackerClient *client,
-		     ServiceType service,
-		     const char *id,
-		     char **keys,
-		     char **values,
-		     GError **error)
-{
-	if (_check_params(service, id, keys, values)) {
-		if ((g_ascii_strcasecmp(RUNNING_CASE, "test_set_metadata_invalid_mixed") == 0 ) ||
-		    (g_ascii_strcasecmp(RUNNING_CASE, "test_set_metadata_invalid_non_existing_clip") == 0)) {
-			*error = g_error_new(1, 1, "Error during tracker_metadata_set execution");
-		}
-	}
-}
-
-TrackerClient *
-tracker_connect(gboolean enable_warnings)
-{
-        return (gchar *) "DON'T USE";
-}
-
-void
-tracker_disconnect(TrackerClient *client)
-{
+        return connection;
 }
 
 

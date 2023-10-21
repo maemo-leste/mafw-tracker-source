@@ -178,7 +178,8 @@ static void _get_metadatas_tracker_cb(GList *results,
         if (error) {
                 if (!mc->common->error) {
 			/* TODO: Check if copying this error causes leaks in
-			 some parts of the code. If that's the case fix them. */
+			* some parts of the code. If that's the case fix them.
+			*/
                         mc->common->error =  g_error_copy(error);
                 } else {
                         g_error_free(error);
@@ -233,12 +234,6 @@ static gboolean _calculate_duration_is_needed(GHashTable *metadata,
 			        calculate =
 					util_calculate_playlist_duration_is_needed(
 						metadata);
-				/* Remove the non-Mafw data used to check if
-				   MAFW has to calculate the playlist
-				   duration. */
-				util_remove_tracker_data_to_check_pls_duration(
-					metadata, metadata_keys);
-
 				g_free(pls_uri);
 			} else {
 				/* Playlists category. When duration is requested,
@@ -533,18 +528,16 @@ static gchar ** _get_keys(GHashTable *metadata)
 static gboolean _update_metadata_idle(gpointer data)
 {
         struct _update_metadata_closure *umc = NULL;
-        GError *error = NULL;
+	GError *error = NULL;
         gchar **non_updated_keys = NULL;
 	gboolean updated;
 
         umc = (struct _update_metadata_closure *) data;
 
         non_updated_keys = ti_set_metadata(umc->clip, umc->metadata,
-					   umc->category, &updated);
+					   umc->category, &updated, &error);
 
-        if (!non_updated_keys) {
-                error = NULL;
-        } else {
+	if (non_updated_keys && !error) {
                 error = g_error_new(
                         MAFW_SOURCE_ERROR,
                         MAFW_SOURCE_ERROR_UNSUPPORTED_METADATA_KEY,
@@ -614,7 +607,7 @@ mafw_tracker_source_get_metadatas(MafwSource *self,
 {
 	GError *error = NULL;
         CategoryType category;
-        const gchar* const* meta_keys;
+	gchar **meta_keys;
         gchar *album = NULL;
         gchar *artist = NULL;
         gchar *clip = NULL;
@@ -633,16 +626,20 @@ mafw_tracker_source_get_metadatas(MafwSource *self,
 
 	g_return_if_fail(MAFW_IS_TRACKER_SOURCE(self));
 
+	mcc = g_new0(struct _metadatas_common_closure, 1);
+
 	if (mafw_source_all_keys(metadata_keys)) {
-		meta_keys = MAFW_SOURCE_LIST(KNOWN_METADATA_KEYS);
+		gchar **keys = (gchar **)MAFW_SOURCE_LIST(KNOWN_METADATA_KEYS);
+
+		mcc->metadata_keys = g_strdupv(keys);
 	} else {
-		meta_keys = metadata_keys;
+		mcc->metadata_keys = g_strdupv((gchar **) metadata_keys);
 	}
 
+	meta_keys = mcc->metadata_keys;
+
 	/* Prepare common structure operation */
-        mcc = g_new0(struct _metadatas_common_closure, 1);
 	mcc->source = self;
-        mcc->metadata_keys = g_strdupv((gchar **) meta_keys);
 	mcc->callback = metadatas_cb;
 	mcc->user_data = user_data;
         mcc->remaining = object_ids? g_strv_length((gchar **) object_ids): 0;
@@ -709,12 +706,6 @@ mafw_tracker_source_get_metadatas(MafwSource *self,
                                          * calculated */
                                         playlist_metadata_keys =
                                                 g_strdupv(mcc->metadata_keys);
-                                        if (util_is_duration_requested(
-                                                    (const gchar **) mcc->metadata_keys)) {
-                                                playlist_metadata_keys =
-                                                        util_add_tracker_data_to_check_pls_duration(
-                                                        playlist_metadata_keys);
-                                        }
                                 }
                                 playlist_mc->object_ids =
                                         g_list_prepend(playlist_mc->object_ids,

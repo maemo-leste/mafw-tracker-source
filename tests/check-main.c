@@ -32,7 +32,7 @@ SRunner *configure_tests(void);
 
 int main(void)
 {
-	return checkmore_run(configure_tests(), FALSE);
+	return checkmore_run(configure_tests(), TRUE);
 }
 
 /* vi: set noexpandtab ts=8 sw=8 cino=t0,(0: */

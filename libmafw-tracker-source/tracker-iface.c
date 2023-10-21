@@ -28,7 +28,6 @@
 
 #include <glib.h>
 #include <string.h>
-#include <tracker.h>
 #include <libmafw/mafw.h>
 #include <totem-pl-parser.h>
 #include <stdlib.h>
@@ -42,11 +41,14 @@
 #include "album-art.h"
 #include "key-mapping.h"
 
-#define AGGREGATED_TYPE_CONCAT "CONCAT"
-#define AGGREGATED_TYPE_COUNT  "COUNT"
-#define AGGREGATED_TYPE_SUM    "SUM"
-
 /* ------------------------ Internal types ----------------------- */
+
+/* How many properties to ask for at once - sqlite has a limit of nested
+ * queries, see YYSTACKDEPTH compile-time define
+ */
+#ifndef MAX_SPARQL_OPTIONALS
+#define MAX_SPARQL_OPTIONALS 10
+#endif
 
 /* Stores information needed to invoke MAFW's callback after getting
    results from tracker */
@@ -71,16 +73,20 @@ struct _mafw_metadata_closure {
          * when aggregating data in get_metadata */
         gboolean count_childcount;
         /* Type of service to be used in tracker */
-        enum TrackerObjectType tracker_type;
+        TrackerObjectType tracker_type;
         /* Cache to store keys and values */
         TrackerCache *cache;
 	/* List of paths to the asked items */
 	gchar **path_list;
+	/* List of keys to the asked items */
+	gchar **tracker_keys;
+	gchar **uris;
+	GPtrArray *results;
 };
 
 /* ---------------------------- Globals -------------------------- */
 
-static TrackerClient *tc = NULL;
+static TrackerSparqlConnection *tc = NULL;
 static InfoKeyTable *info_keys = NULL;
 
 /* ------------------------- Private API ------------------------- */
@@ -259,18 +265,53 @@ static GList *_build_objectids_from_unique_key(TrackerCache *cache)
         return objectid_list;
 }
 
-static void _tracker_query_cb(GPtrArray *tracker_result,
-                              GError *error,
+static GPtrArray *
+_get_sparql_tracker_result(TrackerSparqlCursor *cursor)
+{
+	GPtrArray *result = g_ptr_array_new();
+	gint columns = tracker_sparql_cursor_get_n_columns(cursor);
+
+	while (tracker_sparql_cursor_next(cursor, NULL, NULL)) {
+		int i;
+		gchar **row = g_new0(gchar *, columns + 1);
+
+		g_ptr_array_add(result, row);
+
+		for (i = 0; i < columns; i++) {
+			const gchar *s;
+
+			s = tracker_sparql_cursor_get_string(cursor, i, NULL);
+
+			if (!s)
+				s = "";
+
+			row[i] = g_strdup(s);
+		}
+	}
+
+	return result;
+}
+
+static void _tracker_sparql_query_cb(GObject *object, GAsyncResult *res,
                               gpointer user_data)
 {
 	MafwResult *mafw_result = NULL;
 	struct _mafw_query_closure *mc;
+	GError *error = NULL;
+	TrackerSparqlCursor *cursor = NULL;
 
 	mc = (struct _mafw_query_closure *) user_data;
 
-	if (error == NULL) {
+	cursor = tracker_sparql_connection_query_finish(
+			 TRACKER_SPARQL_CONNECTION(object),
+			 res,
+			 &error);
+
+	if (!error) {
                 mafw_result = g_new0(MafwResult, 1);
-                tracker_cache_values_add_results(mc->cache, tracker_result);
+		tracker_cache_values_add_results(
+					mc->cache,
+					_get_sparql_tracker_result(cursor));
                 mafw_result->metadata_values =
                         tracker_cache_build_metadata(mc->cache, NULL);
                 mafw_result->ids =
@@ -281,24 +322,38 @@ static void _tracker_query_cb(GPtrArray *tracker_result,
 	} else {
                 g_warning("Error while querying: %s\n", error->message);
                 mc->callback(NULL, error, mc->user_data);
+		g_error_free(error);
         }
+
+	if (cursor)
+		g_object_unref(cursor);
 
         tracker_cache_free(mc->cache);
         g_free(mc);
 }
 
-static void _tracker_unique_values_cb(GPtrArray *tracker_result,
-				      GError *error,
+static void _tracker_sparql_unique_values_cb(GObject      *object,
+					     GAsyncResult *res,
 				      gpointer user_data)
 {
+	GError *error = NULL;
+	TrackerSparqlCursor *cursor = NULL;
 	MafwResult *mafw_result = NULL;
 	struct _mafw_query_closure *mc;
 
 	mc = (struct _mafw_query_closure *) user_data;
 
-	if (error == NULL) {
+	cursor = tracker_sparql_connection_query_finish(
+			 TRACKER_SPARQL_CONNECTION(object),
+			 res,
+			 &error);
+
+	if (!error) {
                 mafw_result = g_new0(MafwResult, 1);
-                tracker_cache_values_add_results(mc->cache, tracker_result);
+
+		tracker_cache_values_add_results(
+					mc->cache,
+					_get_sparql_tracker_result(cursor));
                 mafw_result->metadata_values =
                         tracker_cache_build_metadata(mc->cache, NULL);
                 mafw_result->ids = _build_objectids_from_unique_key(mc->cache);
@@ -308,7 +363,11 @@ static void _tracker_unique_values_cb(GPtrArray *tracker_result,
         } else {
                 g_warning("Error while querying: %s\n", error->message);
                 mc->callback(NULL, error, mc->user_data);
+		g_error_free(error);
         }
+
+	if (cursor)
+		g_object_unref(cursor);
 
         tracker_cache_free(mc->cache);
         g_free(mc);
@@ -330,46 +389,156 @@ static void _do_tracker_get_unique_values(gchar **keys,
 	perf_elapsed_time_checkpoint("Ready to query Tracker");
 #endif
 
-        tracker_metadata_get_unique_values_with_aggregates_async(
-                tc,
-                SERVICE_MUSIC,
+	gchar *sql = util_build_sparql(
+                TRACKER_TYPE_MUSIC,
+			     TRUE,
                 keys,
                 filter,
                 aggregated_types,
                 aggregated_keys,
-                FALSE,
                 offset,
                 count,
-                _tracker_unique_values_cb,
-                mc);
+			     NULL,
+			     FALSE);
 
-	g_free(filter);
+	tracker_sparql_connection_query_async(
+				tc,
+				sql,
+				NULL,
+				_tracker_sparql_unique_values_cb,
+                mc);
+	g_free(sql);
 }
 
-static void _tracker_metadata_cb(GPtrArray *results,
-                                 GError *error,
+static GPtrArray *
+_append_sparql_tracker_result(TrackerSparqlCursor *cursor,
+			      GPtrArray *results, gint cols)
+{
+	gint columns = tracker_sparql_cursor_get_n_columns(cursor);
+	guint offset;
+	guint row_idx = 0;
+	gchar **row;
+
+	if (!results) {
+		results = g_ptr_array_new();
+		offset = 0;
+	} else {
+		row = g_ptr_array_index(results, 0);
+		offset = g_strv_length(row);
+	}
+
+	while (tracker_sparql_cursor_next(cursor, NULL, NULL)) {
+		int i;
+
+		if (!offset) {
+			row = g_new(gchar *, cols + 1);
+			g_ptr_array_add(results, row);
+		} else {
+			row = g_ptr_array_index(results, row_idx++);
+		}
+
+		for (i = 0; i < columns; i++) {
+			const gchar *s;
+
+			s = tracker_sparql_cursor_get_string(cursor, i, NULL);
+
+			if (!s)
+				s = "";
+
+			row[i + offset] = g_strdup(s);
+		}
+
+		row[offset + i] = NULL;
+	}
+
+	return results;
+}
+
+static void _tracker_sparql_metadata_cb(GObject *object, GAsyncResult *res,
                                  gpointer user_data)
 {
         GList *metadata_list = NULL;
-        struct _mafw_metadata_closure *mc =
-                (struct _mafw_metadata_closure *) user_data;
+	struct _mafw_metadata_closure *mc = user_data;
+	GError *error = NULL;
+	TrackerSparqlCursor *cursor = NULL;
 
-        if (!error) {
-                tracker_cache_values_add_results(mc->cache, results);
-                metadata_list = tracker_cache_build_metadata(mc->cache,
-					(const gchar**)mc->path_list);
-                mc->mult_callback(metadata_list, NULL, mc->user_data);
-                g_list_foreach(metadata_list, (GFunc) g_hash_table_unref, NULL);
-                g_list_free(metadata_list);
-        } else {
-                g_warning("Error while getting metadata: %s\n",
-                          error->message);
-                mc->mult_callback(NULL, error, mc->user_data);
-        }
+	if (object) {
+		cursor = tracker_sparql_connection_query_finish(
+				 TRACKER_SPARQL_CONNECTION(object),
+				 res, &error);
+	}
 
-        tracker_cache_free(mc->cache);
+	if (!error) {
+		guint keys_len = g_strv_length(mc->tracker_keys);
+		guint columns = 0;
+
+		if (object) {
+			gchar **row;
+
+			mc->results = _append_sparql_tracker_result(
+					      cursor, mc->results, keys_len);
+
+			if (mc->results->len) {
+				row = g_ptr_array_index(mc->results, 0);
+				columns = g_strv_length(row);
+			}
+		}
+
+		if (!mc->results || !mc->results->len || keys_len == columns) {
+			/* we have all the chunks */
+			tracker_cache_values_add_results(mc->cache,
+							 mc->results);
+			mc->results = NULL;
+			metadata_list = tracker_cache_build_metadata(
+						mc->cache,
+						(const gchar**)mc->path_list);
+			mc->mult_callback(metadata_list, NULL, mc->user_data);
+			g_list_foreach(metadata_list,
+				       (GFunc) mafw_metadata_release,
+				       NULL);
+			g_list_free(metadata_list);
+		} else {
+			/* get another chunk of data */
+			gchar **keys = &mc->tracker_keys[columns];
+			gchar *sql = util_build_meta_sparql(
+					     mc->cache->tracker_type, mc->uris,
+					     keys, MAX_SPARQL_OPTIONALS);
+
+			tracker_sparql_connection_query_async(
+						tc, sql, NULL,
+						_tracker_sparql_metadata_cb,
+						mc);
+			g_free(sql);
+			return;
+		}
+	} else {
+		g_warning("Error while getting metadata: %s\n",
+			  error->message);
+		mc->mult_callback(NULL, error, mc->user_data);
+		g_error_free(error);
+	}
+
+	if (cursor)
+		g_object_unref(cursor);
+
+	tracker_cache_free(mc->cache);
+
+	if (mc->results) {
+		g_ptr_array_foreach(mc->results, (GFunc)g_strfreev, NULL);
+		g_ptr_array_free(mc->results, TRUE);
+	}
+
 	g_strfreev(mc->path_list);
+	g_strfreev(mc->tracker_keys);
+	g_strfreev(mc->uris);
 	g_free(mc);
+}
+
+static gboolean _run_tracker_metadata_cb(gpointer data)
+{
+	_tracker_sparql_metadata_cb(NULL, NULL, data);
+
+	return FALSE;
 }
 
 static gchar **_uris_to_filenames(gchar **uris)
@@ -385,39 +554,21 @@ static gchar **_uris_to_filenames(gchar **uris)
         return filenames;
 }
 
-static gboolean _run_tracker_metadata_cb(gpointer data)
-{
-        _tracker_metadata_cb(NULL, NULL, data);
-
-        return FALSE;
-}
-
 static void _do_tracker_get_metadata(gchar **uris,
 				     gchar **keys,
-				     enum TrackerObjectType tracker_obj_type,
+				     TrackerObjectType tracker_obj_type,
 				     MafwTrackerMetadatasResultCB callback,
 				     gpointer user_data)
 {
-	gchar **tracker_keys;
-	gint service_type;
         struct _mafw_metadata_closure *mc = NULL;
         gchar **user_keys;
         gchar **pathnames;
-
-	/* Figure out tracker service type */
-	if (tracker_obj_type == TRACKER_TYPE_VIDEO) {
-		service_type = SERVICE_VIDEOS;
-	} else if (tracker_obj_type == TRACKER_TYPE_PLAYLIST){
-		service_type = SERVICE_PLAYLISTS;
-	} else {
-		service_type = SERVICE_MUSIC;
-	}
 
         /* Save required information */
         mc = g_new0(struct _mafw_metadata_closure, 1);
         mc->mult_callback = callback;
         mc->user_data = user_data;
-        mc->cache = tracker_cache_new(service_type,
+        mc->cache = tracker_cache_new(tracker_obj_type,
                                       TRACKER_CACHE_RESULT_TYPE_GET_METADATA);
 
         /* If we have only a URI, add it as a predefined value */
@@ -432,24 +583,28 @@ static void _do_tracker_get_metadata(gchar **uris,
 
         user_keys = tracker_cache_keys_get_tracker(mc->cache);
 
-	tracker_keys = keymap_mafw_keys_to_tracker_keys(user_keys,
-							service_type);
+	mc->tracker_keys = keymap_mafw_keys_to_tracker_keys(user_keys,
+							    tracker_obj_type);
         g_strfreev(user_keys);
+	mc->uris = g_strdupv(uris);
 
-        if (g_strv_length(tracker_keys) > 0) {
-                pathnames = _uris_to_filenames(uris);
+	if (g_strv_length(mc->tracker_keys) > 0) {
+		pathnames = _uris_to_filenames(uris);
 		mc->path_list = pathnames;
-                tracker_metadata_get_multiple_async(
+		gchar *sql = util_build_meta_sparql(tracker_obj_type, uris,
+						    mc->tracker_keys,
+						    MAX_SPARQL_OPTIONALS);
+
+		tracker_sparql_connection_query_async(
                         tc,
-                        service_type,
-                        (const gchar **) pathnames,
-                        (const gchar **)tracker_keys,
-                        _tracker_metadata_cb,
+					sql,
+					NULL,
+					_tracker_sparql_metadata_cb,
                         mc);
+		g_free(sql);
         } else {
                 g_idle_add(_run_tracker_metadata_cb, mc);
         }
-	g_strfreev(tracker_keys);
 }
 
 /* ------------------------- Public API ------------------------- */
@@ -464,7 +619,7 @@ gchar *ti_create_filter(const MafwFilter *filter)
 
 	/* Convert the filter to RDF */
 	clause = g_string_new("");
-	if (util_mafw_filter_to_rdf(filter, clause)) {
+	if (util_mafw_filter_to_sparql(filter, clause)) {
 		ret_str = g_string_free(clause, FALSE);
 	} else {
 		g_warning("Invalid or unsupported filter syntax");
@@ -476,15 +631,18 @@ gchar *ti_create_filter(const MafwFilter *filter)
 
 gboolean ti_init(void)
 {
+	GError *error = NULL;
+
 	if (info_keys == NULL) {
 		info_keys = keymap_get_info_key_table();
 	}
 
-	tc = tracker_connect(TRUE);
+	tc = tracker_sparql_connection_get(NULL, &error);
 
 	if (tc == NULL) {
-		g_critical("Could not get a connection to Tracker. "
-			   "Plugin disabled.");
+		g_critical("Could not get a connection to Tracker %s. Plugin disabled.",
+			   error ? error->message : "No error given");
+		g_clear_error (&error);
 	}
 
 	return tc != NULL;
@@ -571,7 +729,7 @@ void  ti_init_watch (GObject *source)
 
 void ti_deinit()
 {
-	tracker_disconnect(tc);
+	g_object_unref(tc);
 	tc = NULL;
 }
 
@@ -586,23 +744,13 @@ void ti_get_videos(gchar **keys,
 	gchar **tracker_keys;
         gchar **tracker_sort_keys;
 	struct _mafw_query_closure *mc;
-        gchar *filter;
         gchar **keys_to_query;
-
-        if (rdf_filter) {
-                filter = g_strdup_printf(RDF_QUERY_BEGIN
-                                         " %s "
-                                         RDF_QUERY_END,
-                                         rdf_filter);
-        } else {
-                filter = NULL;
-	}
 
 	/* Prepare mafw closure struct */
 	mc = g_new0(struct _mafw_query_closure, 1);
 	mc->callback = callback;
 	mc->user_data = user_data;
-        mc->cache = tracker_cache_new(SERVICE_VIDEOS,
+        mc->cache = tracker_cache_new(TRACKER_TYPE_VIDEO,
                                       TRACKER_CACHE_RESULT_TYPE_QUERY);
 
         /* Add requested keys; add also uri, as it will be needed to
@@ -613,37 +761,39 @@ void ti_get_videos(gchar **keys,
 	/* Map MAFW keys to Tracker keys */
         keys_to_query = tracker_cache_keys_get_tracker(mc->cache);
 	tracker_keys = keymap_mafw_keys_to_tracker_keys(keys_to_query,
-							SERVICE_VIDEOS);
+							TRACKER_TYPE_VIDEO);
         g_strfreev(keys_to_query);
 
 	if (sort_fields != NULL) {
 		tracker_sort_keys =
 			keymap_mafw_sort_keys_to_tracker_keys(sort_fields,
-                                                              SERVICE_VIDEOS);
+                                                              TRACKER_TYPE_VIDEO);
 	} else {
 		tracker_sort_keys =
 			util_create_sort_keys_array(2,
 						    TRACKER_VKEY_TITLE,
 						    TRACKER_FKEY_FILENAME);
 	}
-
 	/* Query tracker */
-        tracker_search_query_async(tc, -1,
-                                   SERVICE_VIDEOS,
+	gchar *sql = util_build_sparql(
+                                   TRACKER_TYPE_VIDEO,
+			     FALSE,
                                    tracker_keys,
-                                   NULL,   /* Search text */
-                                   NULL,   /* Keywords */
-                                   filter,
-                                   offset, count,
-                                   FALSE,   /* Sort by service */
-                                   tracker_sort_keys, /* Sort fields */
-                                   FALSE, /* sort descending? */
-                                   _tracker_query_cb,
-                                   mc);
+                                   rdf_filter,
+			     NULL,
+			     NULL,
+			     offset,
+			     count,
+			     tracker_sort_keys,
+			     FALSE);
 
-        if (filter) {
-                g_free(filter);
-        }
+	tracker_sparql_connection_query_async(
+				tc,
+				sql,
+				NULL,
+				_tracker_sparql_query_cb,
+                                   mc);
+	g_free(sql);
 
         g_strfreev(tracker_keys);
         g_strfreev(tracker_sort_keys);
@@ -662,7 +812,7 @@ void ti_get_songs(const gchar *genre,
 {
 	gchar **tracker_keys;
         gchar **tracker_sort_keys;
-	gchar *rdf_filter = NULL;
+	gchar *sparql_filter = NULL;
         gchar **use_sort_fields;
 	struct _mafw_query_closure *mc;
         gchar **keys_to_query = NULL;
@@ -685,7 +835,7 @@ void ti_get_songs(const gchar *genre,
 	mc = g_new0(struct _mafw_query_closure, 1);
 	mc->callback = callback;
 	mc->user_data = user_data;
-        mc->cache = tracker_cache_new(SERVICE_MUSIC,
+	mc->cache = tracker_cache_new(TRACKER_TYPE_MUSIC,
                                       TRACKER_CACHE_RESULT_TYPE_QUERY);
 
         /* Save known values */
@@ -722,30 +872,35 @@ void ti_get_songs(const gchar *genre,
         /* Get the keys to ask tracker */
         keys_to_query = tracker_cache_keys_get_tracker(mc->cache);
 	tracker_keys = keymap_mafw_keys_to_tracker_keys(keys_to_query,
-							SERVICE_MUSIC);
+							TRACKER_TYPE_MUSIC);
         g_strfreev(keys_to_query);
         tracker_sort_keys =
                 keymap_mafw_sort_keys_to_tracker_keys(use_sort_fields,
-                                                      SERVICE_MUSIC);
-        rdf_filter = util_create_filter_from_category(genre, artist,
+                                                      TRACKER_TYPE_MUSIC);
+	sparql_filter = util_create_filter_from_category(genre, artist,
 						      album, user_filter);
-
-	/* Map to tracker keys */
-        tracker_search_query_async(tc, -1,
-                                   SERVICE_MUSIC,
+	gchar *sql = util_build_sparql(
+                                   TRACKER_TYPE_MUSIC,
+			     FALSE,
                                    tracker_keys,
-                                   NULL,   /* Search text */
-                                   NULL,   /* Keywords */
-                                   rdf_filter,
-                                   offset, count,
-                                   FALSE,   /* Sort by service */
-                                   tracker_sort_keys, /* Sort fields */
-                                   FALSE, /* sort descending? */
-                                   _tracker_query_cb,
-                                   mc);
+			     sparql_filter,
+			     NULL,
+			     NULL,
+			     offset,
+			     count,
+			     tracker_sort_keys,
+			     FALSE);
 
-	if (rdf_filter) {
-                g_free(rdf_filter);
+	tracker_sparql_connection_query_async(
+				tc,
+				sql,
+				NULL,
+				_tracker_sparql_query_cb,
+                                   mc);
+	g_free(sql);
+
+	if (sparql_filter) {
+		g_free(sparql_filter);
         }
 
         if (use_sort_fields != sort_fields) {
@@ -781,7 +936,7 @@ void ti_get_artists(const gchar *genre,
 	mc->callback = callback;
 	mc->user_data = user_data;
         mc->cache =
-                tracker_cache_new(SERVICE_MUSIC,
+                tracker_cache_new(TRACKER_TYPE_MUSIC,
                                   TRACKER_CACHE_RESULT_TYPE_UNIQUE);
 
         filters = g_new0(gchar *, 3);
@@ -796,9 +951,9 @@ void ti_get_artists(const gchar *genre,
                 escaped_genre =
                         util_get_tracker_value_for_filter(
                                 MAFW_METADATA_KEY_GENRE,
-                                SERVICE_MUSIC,
+                                TRACKER_TYPE_MUSIC,
                                 genre);
-                filters[0] = g_strdup_printf(RDF_QUERY_BY_GENRE,
+                filters[0] = g_strdup_printf(SPARQL_QUERY_BY_GENRE,
                                              escaped_genre);
                 g_free(escaped_genre);
                 filters[1] = g_strdup(rdf_filter);
@@ -835,7 +990,7 @@ void ti_get_artists(const gchar *genre,
                 case SPECIAL_KEY_DURATION:
                         aggregate_keys[i-1] =
                                 keymap_mafw_key_to_tracker_key(tracker_keys[i],
-                                                               SERVICE_MUSIC);
+                                                               TRACKER_TYPE_MUSIC);
                         aggregate_types[i-1] = AGGREGATED_TYPE_SUM;
                         break;
 
@@ -853,7 +1008,7 @@ void ti_get_artists(const gchar *genre,
                 default:
                         aggregate_keys[i-1] =
                                 keymap_mafw_key_to_tracker_key(tracker_keys[i],
-                                                               SERVICE_MUSIC);
+                                                               TRACKER_TYPE_MUSIC);
                         aggregate_types[i-1] = AGGREGATED_TYPE_CONCAT;
                 }
         }
@@ -895,7 +1050,7 @@ void ti_get_genres(gchar **keys,
 	mc->callback = callback;
 	mc->user_data = user_data;
         mc->cache =
-                tracker_cache_new(SERVICE_MUSIC,
+                tracker_cache_new(TRACKER_TYPE_MUSIC,
                                   TRACKER_CACHE_RESULT_TYPE_UNIQUE);
 
         /* Genre will be used as title */
@@ -930,7 +1085,7 @@ void ti_get_genres(gchar **keys,
                 case SPECIAL_KEY_DURATION:
                         aggregate_keys[i-1] =
                                 keymap_mafw_key_to_tracker_key(tracker_keys[i],
-                                                               SERVICE_MUSIC);
+                                                               TRACKER_TYPE_MUSIC);
                         aggregate_types[i-1] = AGGREGATED_TYPE_SUM;
                         break;
 
@@ -951,7 +1106,7 @@ void ti_get_genres(gchar **keys,
                 default:
                         aggregate_keys[i-1] =
                                 keymap_mafw_key_to_tracker_key(tracker_keys[i],
-                                                               SERVICE_MUSIC);
+                                                               TRACKER_TYPE_MUSIC);
                         aggregate_types[i-1] = AGGREGATED_TYPE_CONCAT;
                 }
         }
@@ -980,7 +1135,7 @@ void ti_get_playlists(gchar **keys,
 		      gpointer user_data)
 {
 	struct _mafw_query_closure *mc;
-	gchar *rdf_filter = NULL;
+	gchar *sparql_filter = NULL;
         gchar **use_sort_fields;
         gchar **tracker_sort_keys;
 	gchar **tracker_keys;
@@ -998,7 +1153,7 @@ void ti_get_playlists(gchar **keys,
 	mc = g_new0(struct _mafw_query_closure, 1);
 	mc->callback = callback;
 	mc->user_data = user_data;
-        mc->cache = tracker_cache_new(SERVICE_PLAYLISTS,
+        mc->cache = tracker_cache_new(TRACKER_TYPE_PLAYLIST,
                                       TRACKER_CACHE_RESULT_TYPE_QUERY);
 
         /* Add URI, as it will likely be needed to build ids */
@@ -1009,32 +1164,39 @@ void ti_get_playlists(gchar **keys,
 	/* Map to tracker keys */
         keys_to_query = tracker_cache_keys_get_tracker(mc->cache);
 	tracker_keys = keymap_mafw_keys_to_tracker_keys(keys_to_query,
-							SERVICE_PLAYLISTS);
+							TRACKER_TYPE_PLAYLIST);
         g_strfreev(keys_to_query);
         tracker_sort_keys =
                 keymap_mafw_sort_keys_to_tracker_keys(use_sort_fields,
-                                                      SERVICE_MUSIC);
-        rdf_filter = util_build_complex_rdf_filter(NULL, user_filter);
+                                                      TRACKER_TYPE_MUSIC);
+	sparql_filter = util_build_complex_rdf_filter(NULL, user_filter);
 
 	/* Execute query */
-        tracker_search_query_async(tc, -1,
-                                   SERVICE_PLAYLISTS,
+	gchar *sql = util_build_sparql(
+                                   TRACKER_TYPE_PLAYLIST,
+			     FALSE,
                                    tracker_keys,
-                                   NULL,   /* Search text */
-                                   NULL,   /* Keywords */
-                                   rdf_filter,
-                                   offset, count,
-                                   FALSE,   /* Sort by service */
-                                   tracker_sort_keys, /* Sort fields */
-                                   FALSE, /* sort descending? */
-                                   _tracker_query_cb,
+			     sparql_filter,
+			     NULL,
+			     NULL,
+			     offset,
+			     count,
+			     tracker_sort_keys,
+			     FALSE);
+
+	tracker_sparql_connection_query_async(
+				tc,
+				sql,
+				NULL,
+				_tracker_sparql_query_cb,
                                    mc);
+	g_free(sql);
 
         if (use_sort_fields != sort_fields) {
                 g_free(use_sort_fields);
         }
 
-	g_free(rdf_filter);
+	g_free(sparql_filter);
         g_strfreev(tracker_keys);
         g_strfreev(tracker_sort_keys);
 }
@@ -1066,7 +1228,7 @@ void ti_get_albums(const gchar *genre,
 	mc->callback = callback;
  	mc->user_data = user_data;
 
-        mc->cache = tracker_cache_new(SERVICE_MUSIC,
+        mc->cache = tracker_cache_new(TRACKER_TYPE_MUSIC,
                                       TRACKER_CACHE_RESULT_TYPE_UNIQUE);
 
         filters = g_new0(gchar *, 4);
@@ -1083,9 +1245,9 @@ void ti_get_albums(const gchar *genre,
                 escaped_genre =
                         util_get_tracker_value_for_filter(
                                 MAFW_METADATA_KEY_GENRE,
-                                SERVICE_MUSIC,
+                                TRACKER_TYPE_MUSIC,
                                 genre);
-                filters[i] = g_strdup_printf(RDF_QUERY_BY_GENRE,
+                filters[i] = g_strdup_printf(SPARQL_QUERY_BY_GENRE,
                                              escaped_genre);
                 g_free(escaped_genre);
                 i++;
@@ -1100,9 +1262,9 @@ void ti_get_albums(const gchar *genre,
                 escaped_artist =
                         util_get_tracker_value_for_filter(
                                 MAFW_METADATA_KEY_ARTIST,
-                                SERVICE_MUSIC,
+                                TRACKER_TYPE_MUSIC,
                                 artist);
-                filters[i] = g_strdup_printf(RDF_QUERY_BY_ARTIST,
+                filters[i] = g_strdup_printf(SPARQL_QUERY_BY_ARTIST,
                                              escaped_artist);
                 g_free(escaped_artist);
                 i++;
@@ -1141,7 +1303,7 @@ void ti_get_albums(const gchar *genre,
                 case SPECIAL_KEY_DURATION:
                         aggregate_keys[i-1] =
                                 keymap_mafw_key_to_tracker_key(tracker_keys[i],
-                                                               SERVICE_MUSIC);
+                                                               TRACKER_TYPE_MUSIC);
                         aggregate_types[i-1] = AGGREGATED_TYPE_SUM;
                         break;
 
@@ -1153,7 +1315,7 @@ void ti_get_albums(const gchar *genre,
                 default:
                         aggregate_keys[i-1] =
                                 keymap_mafw_key_to_tracker_key(tracker_keys[i],
-                                                               SERVICE_MUSIC);
+                                                               TRACKER_TYPE_MUSIC);
                         aggregate_types[i-1] = AGGREGATED_TYPE_CONCAT;
                 }
         }
@@ -1195,50 +1357,41 @@ static void _tracker_metadata_from_container_cb(GPtrArray *tracker_result,
         g_free(mc);
 }
 
-static void _get_stats_cb(GPtrArray *result, GError *error, gpointer user_data)
+static void _tracker_sparql_metadata_from_container_cb(GObject      *object,
+						       GAsyncResult *res,
+						       gpointer      user_data)
 {
-        GHashTable *metadata = NULL;
-        gchar **item;
-        gchar *lookstring;
-        gint i;
-        struct _mafw_metadata_closure *mc =
-                (struct _mafw_metadata_closure *) user_data;
+	GError *error = NULL;
+	TrackerSparqlCursor *cursor = NULL;
+	struct _mafw_metadata_closure *mc =
+			(struct _mafw_metadata_closure *) user_data;
 
-        if (!error) {
-                switch (mc->tracker_type) {
-                case TRACKER_TYPE_MUSIC:
-                        lookstring = "Music";
-                        break;
+			cursor = tracker_sparql_connection_query_finish(
+					 TRACKER_SPARQL_CONNECTION(object),
+					 res,
+					 &error);
 
-                case TRACKER_TYPE_VIDEO:
-                        lookstring = "Videos";
-                        break;
+			if (!error) {
+				GHashTable *metadata;
 
-                default:
-                        lookstring = "Playlists";
-                        break;
-                }
+				tracker_cache_values_add_results(
+							mc->cache,
+							_get_sparql_tracker_result(cursor));
+				metadata =
+						tracker_cache_build_metadata_aggregated(
+							mc->cache,
+							mc->count_childcount);
+				mc->callback(metadata, NULL, mc->user_data);
+			} else {
+				mc->callback(NULL, error, mc->user_data);
+				g_error_free(error);
+			}
 
-                i = 0;
-                while (i < result->len) {
-                        item = g_ptr_array_index(result, i);
-                        if (strcmp(item[0], lookstring) == 0) {
-                                metadata = mafw_metadata_new();
-                                mafw_metadata_add_int(
-                                        metadata,
-                                        MAFW_METADATA_KEY_CHILDCOUNT_1,
-                                        atoi(item[1]));
-                                break;
-                        } else {
-                                i++;
-                        }
-                }
-                mc->callback(metadata, NULL, mc->user_data);
-        } else {
-                mc->callback(NULL, error, mc->user_data);
-        }
+			if (cursor)
+				g_object_unref(cursor);
 
-        g_free(mc);
+			tracker_cache_free(mc->cache);
+			g_free(mc);
 }
 
 static gboolean _run_tracker_metadata_from_container_cb(gpointer data)
@@ -1253,14 +1406,12 @@ static gboolean _run_tracker_metadata_from_container_cb(gpointer data)
 static void _do_tracker_get_metadata_from_service(
         gchar **keys,
         const gchar *title,
-        enum TrackerObjectType tracker_type,
+        TrackerObjectType tracker_type,
         MafwTrackerMetadataResultCB callback,
         gpointer user_data)
 {
         gchar *aggregate_types[3] = { 0 };
         gchar *aggregate_keys[3] = { 0 };
-        gchar *sum_key;
-        ServiceType service;
         gchar **unique_keys;
         gchar **tracker_keys;
         MetadataKey *metadata_key;
@@ -1271,32 +1422,13 @@ static void _do_tracker_get_metadata_from_service(
         mc->callback = callback;
         mc->user_data = user_data;
         mc->tracker_type = tracker_type;
-
-        /* If user has only requested CHILDCOUNT, then use a special tracker API
-         * to speed up the request */
-        if (strcmp(keys[0], MAFW_METADATA_KEY_CHILDCOUNT_1) == 0 &&
-            !keys[1]) {
-                tracker_get_stats_async(tc, _get_stats_cb, mc);
-                return;
-        }
-
         mc->count_childcount = FALSE;
        	unique_keys = g_new0(gchar *, 2);
-	unique_keys[0] = g_strdup("File:Mime");
-
-        if (tracker_type == TRACKER_TYPE_MUSIC) {
-                sum_key = TRACKER_AKEY_DURATION;
-                service = SERVICE_MUSIC;
-        } else if (tracker_type == TRACKER_TYPE_VIDEO) {
-                sum_key = TRACKER_VKEY_DURATION;
-                service = SERVICE_VIDEOS;
-        } else {
-                sum_key = TRACKER_PKEY_DURATION;
-                service = SERVICE_PLAYLISTS;
-        }
+	unique_keys[0] = g_strdup(TRACKER_FKEY_MIME);
 
         mc->cache =
-                tracker_cache_new(service, TRACKER_CACHE_RESULT_TYPE_UNIQUE);
+                tracker_cache_new(tracker_type,
+				  TRACKER_CACHE_RESULT_TYPE_UNIQUE);
 
         tracker_cache_key_add_unique(mc->cache, MAFW_METADATA_KEY_MIME);
 
@@ -1321,7 +1453,7 @@ static void _do_tracker_get_metadata_from_service(
                 case SPECIAL_KEY_DURATION:
                         aggregate_keys[i-1] =
                                 keymap_mafw_key_to_tracker_key(tracker_keys[i],
-                                                               service);
+                                                               tracker_type);
                         aggregate_types[i-1] = AGGREGATED_TYPE_SUM;
                         break;
 
@@ -1332,8 +1464,9 @@ static void _do_tracker_get_metadata_from_service(
 
                 default:
                         aggregate_keys[i-1] =
-                                keymap_mafw_key_to_tracker_key(tracker_keys[i],
-                                                               service);
+						keymap_mafw_key_to_tracker_key(
+							tracker_keys[i],
+                                                               tracker_type);
                         aggregate_types[i-1] = AGGREGATED_TYPE_CONCAT;
                         break;
                 }
@@ -1342,18 +1475,25 @@ static void _do_tracker_get_metadata_from_service(
         g_strfreev(tracker_keys);
 
         if (aggregate_keys[0]) {
-                tracker_metadata_get_unique_values_with_aggregates_async(
-                        tc,
-                        service,
+		gchar *sql = util_build_sparql(
+                        tracker_type,
+				     TRUE,
                         unique_keys,
                         NULL,
                         aggregate_types,
                         aggregate_keys,
-                        FALSE,
                         0,
-                        -1,
-                        _tracker_metadata_from_container_cb,
+				     0,
+				     NULL,
+				     FALSE);
+
+		tracker_sparql_connection_query_async(
+					tc,
+					sql,
+					NULL,
+					_tracker_sparql_metadata_from_container_cb,
                         mc);
+		g_free(sql);
         } else {
                 g_idle_add(_run_tracker_metadata_from_container_cb, mc);
         }
@@ -1419,7 +1559,7 @@ void ti_get_metadata_from_category(const gchar *genre,
 
 	/* Create cache */
         mc->cache =
-                tracker_cache_new(SERVICE_MUSIC,
+                tracker_cache_new(TRACKER_TYPE_MUSIC,
                                   TRACKER_CACHE_RESULT_TYPE_UNIQUE);
 
         /* Preset metadata that we know already */
@@ -1530,7 +1670,7 @@ void ti_get_metadata_from_category(const gchar *genre,
 	/* Compute tracker filter and tracker keys */
         filter = util_create_filter_from_category(genre, artist, album, NULL);
 
-        tracker_ukeys[0] = keymap_mafw_key_to_tracker_key(ukey, SERVICE_MUSIC);
+        tracker_ukeys[0] = keymap_mafw_key_to_tracker_key(ukey, TRACKER_TYPE_MUSIC);
 
         /* Get the list of keys to use with tracker */
         tracker_keys = tracker_cache_keys_get_tracker(mc->cache);
@@ -1544,7 +1684,7 @@ void ti_get_metadata_from_category(const gchar *genre,
                 case SPECIAL_KEY_DURATION:
                         aggregate_keys[i-1] =
                                 keymap_mafw_key_to_tracker_key(tracker_keys[i],
-                                                               SERVICE_MUSIC);
+                                                               TRACKER_TYPE_MUSIC);
                         aggregate_types[i-1] = AGGREGATED_TYPE_SUM;
                         break;
 
@@ -1558,7 +1698,7 @@ void ti_get_metadata_from_category(const gchar *genre,
                 default:
                         aggregate_keys[i-1] =
                                 keymap_mafw_key_to_tracker_key(tracker_keys[i],
-                                                               SERVICE_MUSIC);
+                                                               TRACKER_TYPE_MUSIC);
                         aggregate_types[i-1] = AGGREGATED_TYPE_CONCAT;
                 }
         }
@@ -1566,18 +1706,25 @@ void ti_get_metadata_from_category(const gchar *genre,
         g_strfreev(tracker_keys);
 
         if (aggregate_keys[0]) {
-                tracker_metadata_get_unique_values_with_aggregates_async(
-                        tc,
-                        SERVICE_MUSIC,
+		gchar *sql = util_build_sparql(
+                        TRACKER_TYPE_MUSIC,
+				     TRUE,
                         tracker_ukeys,
                         filter,
                         aggregate_types,
                         aggregate_keys,
-                        FALSE,
                         0,
-                        -1,
-                        _tracker_metadata_from_container_cb,
+				     0,
+				     NULL,
+				     FALSE);
+
+		tracker_sparql_connection_query_async(
+					tc,
+					sql,
+					NULL,
+					_tracker_sparql_metadata_from_container_cb,
                         mc);
+		g_free(sql);
         } else {
                 g_idle_add(_run_tracker_metadata_from_container_cb, mc);
         }
@@ -1615,70 +1762,9 @@ void ti_get_metadata_from_playlist(gchar **uris,
 				 callback, user_data);
 }
 
-void ti_get_playlist_entries(GList *pathnames,
-			     gchar **keys,
-			     MafwTrackerSongsResultCB callback,
-			     gpointer user_data,
-			     GError **error)
-{
-	gchar *rdf_filter;
-        gint required_size = 0;
-        gint *string_sizes;
-        gint i;
-        GList *current_path;
-        gchar *path_list;
-        gchar *insert_place;
-
-        /* Build a filter */
-
-        /* Compute the required size for the filter */
-        current_path = pathnames;
-        string_sizes = g_new0(gint, g_list_length(pathnames));
-        i = 0;
-        while (current_path != NULL) {
-                string_sizes[i] = strlen(current_path->data);
-                /* Requires size for the string plus the ',' */
-                required_size += string_sizes[i] + 1;
-                current_path = g_list_next(current_path);
-                i++;
-        }
-
-        path_list = g_new0(gchar, required_size);
-
-        /* Copy strings */
-        current_path = pathnames;
-        insert_place = path_list;
-        i = 0;
-        while (current_path != NULL) {
-                memmove(insert_place, current_path->data, string_sizes[i]);
-                insert_place += string_sizes[i];
-                /* Put a ',' at the end */
-                *insert_place = ',';
-                insert_place++;
-                /* Move ahead */
-                current_path = g_list_next(current_path);
-                i++;
-        }
-
-        /* Due to the last 'insert_place++', we're placed one position
-         * after the end of the big string. Move one position back to
-         * insert the '\0' */
-        *(insert_place - 1) = '\0';
-
-	rdf_filter = g_strdup_printf (RDF_QUERY_BY_FILE_SET, path_list);
-        ti_get_songs(NULL, NULL, NULL,
-                     keys,
-                     rdf_filter,
-                     NULL,
-                     0, -1,
-                     callback, user_data);
-	g_free(rdf_filter);
-	g_free(path_list);
-        g_free(string_sizes);
-}
-
 gchar **
-ti_set_metadata(const gchar *uri, GHashTable *metadata, CategoryType category, gboolean *updated)
+ti_set_metadata(const gchar *uri, GHashTable *metadata, CategoryType category,
+		gboolean *updated, GError **error)
 {
         GList *keys = NULL;
         GList *running_key;
@@ -1688,15 +1774,15 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, CategoryType category, g
         gchar **values_array = NULL;;
         gchar **unsupported_array = NULL;
         gchar *mafw_key;
-        gchar *pathname;
-        GError *error = NULL;
         GValue *value;
         gboolean updatable;
-        ServiceType service;
+        TrackerObjectType tracker_type;
         static InfoKeyTable *t = NULL;
         TrackerKey *tracker_key;
 
-        if (!t) {
+	*error = NULL;
+
+	if (!t) {
                 t = keymap_get_info_key_table();
         }
 
@@ -1712,13 +1798,10 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, CategoryType category, g
         keys_array = g_new0(gchar *, count_keys+1);
         values_array = g_new0(gchar *, count_keys+1);
 
-	if (category == CATEGORY_VIDEO)
-	{
-		service = SERVICE_VIDEOS;	
-	}
-	else
-	{
-		service = SERVICE_MUSIC;
+	if (category == CATEGORY_VIDEO) {
+		tracker_type = TRACKER_TYPE_VIDEO;	
+	} else {
+		tracker_type = TRACKER_TYPE_MUSIC;
 	}
 
         /* Convert lists to arrays */
@@ -1734,7 +1817,7 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, CategoryType category, g
                         /* Special case: some keys should follow ISO-8601
                          * spec */
                         tracker_key = keymap_get_tracker_info(mafw_key,
-                                                              service);
+                                                              tracker_type);
                         if (tracker_key &&
                             tracker_key->value_type == G_TYPE_DATE) {
                                 value = mafw_metadata_first(metadata,
@@ -1759,8 +1842,7 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, CategoryType category, g
                                         	values_array[i_key] =
                                                 	g_strdup_value_contents(value);
                                         	break;
-                                	}
-
+					}
                         }
                 } else {
                         updatable = FALSE;
@@ -1769,7 +1851,7 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, CategoryType category, g
                 if (updatable) {
                         keys_array[i_key] =
 				keymap_mafw_key_to_tracker_key(mafw_key,
-							       service);
+							       tracker_type);
                         i_key++;
                 } else {
                         if (!unsupported_array) {
@@ -1787,13 +1869,42 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, CategoryType category, g
 
 	/* If there are some updatable keys, call tracker to update them */
 	if (keys_array[0] != NULL) {
-                pathname = g_filename_from_uri(uri, NULL, NULL);
-		tracker_metadata_set(tc, service, pathname,
-                                     (const gchar **)keys_array,
-                                     values_array, &error);
-                g_free(pathname);
+		TrackerSparqlCursor *cursor;
+		gchar *sparql;
+		gboolean object_exists = FALSE;
 
-		if (error) {
+		sparql = util_build_update_sparql(
+				 tracker_type, uri, NULL, NULL, TRUE);
+
+		cursor = tracker_sparql_connection_query(
+				 tc, sparql, NULL, error);
+		g_free(sparql);
+
+		if (!*error) {
+
+			if (tracker_sparql_cursor_next(cursor, NULL, error))
+				object_exists = TRUE;
+
+			g_object_unref(cursor);
+
+			if (object_exists) {
+				sparql = util_build_update_sparql(tracker_type, uri,
+								  keys_array,
+								  values_array,
+								  FALSE);
+				tracker_sparql_connection_update(tc, sparql, 0,
+								 NULL, error);
+
+				g_free(sparql);
+			} else if (!*error) {
+				*error = g_error_new(
+						 MAFW_SOURCE_ERROR,
+						 MAFW_SOURCE_ERROR_OBJECT_ID_NOT_AVAILABLE,
+						 "There is no object with such id");
+			}
+		}
+
+		if (*error || !object_exists) {
 			/* Tracker_metadata_set is an atomic operation; so
 			 * none of the keys were updated */
 			i_key = 0;
@@ -1807,8 +1918,6 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, CategoryType category, g
 				i_key++;
 				u_key++;
 			}
-
-			g_error_free(error);
 		} else if (updated) {
 			/* We successfully updated some keys at least */
 			*updated = TRUE;
@@ -1822,42 +1931,34 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, CategoryType category, g
 }
 
 
-static void _set_playlist_duration_cb(GError *error, gpointer user_data)
+static void _set_playlist_duration_cb(GObject *object, GAsyncResult *res,
+				      gpointer user_data)
 {
+	GError *error = NULL;
+
+	tracker_sparql_connection_update_finish(
+				TRACKER_SPARQL_CONNECTION(object), res, &error);
+
 	if (error != NULL) {
 		g_warning("Error while setting the playlist duration: "
 			  "%s", error->message);
+		g_error_free(error);
 	}
 }
 
-
 void ti_set_playlist_duration(const gchar *uri, guint duration)
 {
-	gchar **keys_array;
-	gchar **values_array;
-	gchar *pathname;
+	GString *sql = g_string_new("");
 
-	/* Store in Tracker the new value for the playlist duration and set the
-	   valid_duration value to TRUE. */
-	pathname = g_filename_from_uri(uri, NULL, NULL);
+	/* Store in Tracker the new value for the playlist duration */
+	g_string_append_printf(sql,
+			       "DELETE {?o nfo:listDuration ?d} "
+			       "INSERT {?o nfo:listDuration %d} "
+			       "WHERE {?o a nmm:Playlist.?o nie:url '%s'. OPTIONAL{?o nfo:listDuration ?d}}",
+			       duration, uri);
 
-        keys_array = g_new0(gchar *, 3);
-	keys_array[0] = g_strdup(TRACKER_PKEY_DURATION);
-	keys_array[1] = g_strdup(TRACKER_PKEY_VALID_DURATION);
+	tracker_sparql_connection_update_async(tc, sql->str, G_PRIORITY_DEFAULT, NULL,
+					       _set_playlist_duration_cb, NULL);
 
-        values_array = g_new0(gchar *, 3);
-	values_array[0] = g_strdup_printf("%d", duration);
-	values_array[1] = g_strdup_printf("%d", 1);
-
-	tracker_metadata_set_async(tc,
-				   SERVICE_PLAYLISTS,
-				   pathname,
-				   (const gchar **) keys_array,
-				   values_array,
-				   _set_playlist_duration_cb,
-				   NULL);
-
-	g_free(pathname);
-	g_strfreev(keys_array);
-        g_strfreev(values_array);
+	g_string_free(sql, TRUE);
 }

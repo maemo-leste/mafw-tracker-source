@@ -27,7 +27,6 @@
 
 #include <glib.h>
 #include <glib-object.h>
-#include <tracker.h>
 
 /* How the key should be managed in the cache */
 enum TrackerCacheKeyType {
@@ -45,7 +44,7 @@ enum TrackerCacheKeyType {
 
 /* How results from tracker where obtained */
 enum TrackerCacheResultType {
-        /* Results were obtained with tracker_search_query_async */
+        /* Results were obtained with tracker_sparql_connection_query_async */
         TRACKER_CACHE_RESULT_TYPE_QUERY,
         /* Results were obtained with
          * tracker_metadata_get_unique_values_with_aggregated */
@@ -77,7 +76,7 @@ typedef struct TrackerCache {
         /* How results from tracker have been obtained */
         enum TrackerCacheResultType result_type;
         /* The service used with tracker */
-        ServiceType service;
+	TrackerObjectType tracker_type;
         /* Values returned by tracker */
         GPtrArray *tracker_results;
         /* The list of keys */
@@ -85,7 +84,7 @@ typedef struct TrackerCache {
 } TrackerCache;
 
 
-TrackerCache *tracker_cache_new(ServiceType service,
+TrackerCache *tracker_cache_new(TrackerObjectType tracker_type,
                                 enum TrackerCacheResultType result_type);
 
 void tracker_cache_free(TrackerCache *cache);

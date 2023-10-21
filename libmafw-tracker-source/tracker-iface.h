@@ -33,12 +33,6 @@ typedef struct {
 	GList *metadata_values;
 } MafwResult;
 
-enum TrackerObjectType {
-        TRACKER_TYPE_MUSIC,
-        TRACKER_TYPE_VIDEO,
-        TRACKER_TYPE_PLAYLIST
-};
-
 typedef void (*MafwTrackerSongsResultCB)(MafwResult *result,
 					 GError *error,
 					 gpointer user_data);
@@ -149,18 +143,11 @@ void ti_get_metadata_from_playlists(gchar **keys,
                                     const gchar *title,
                                     MafwTrackerMetadataResultCB callback,
                                     gpointer user_data);
-
-void ti_get_playlist_entries(GList *uris,
-			     gchar **keys,
-			     MafwTrackerSongsResultCB callback,
-			     gpointer user_data,
-			     GError **error);
-
 void ti_set_playlist_duration(const gchar *uri, guint duration);
 
 gchar **ti_set_metadata(const gchar *uri, 
 			GHashTable *metadata,
 			CategoryType category,
-			gboolean *updated);
+			gboolean *updated, GError **error);
 
 #endif

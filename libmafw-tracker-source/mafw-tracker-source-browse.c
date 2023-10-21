@@ -87,6 +87,17 @@ struct _browse_closure {
 	guint remaining_count;
 };
 
+struct _browse_error_closure {
+	/* Source instance */
+	MafwSource *source;
+	/* The user callback used to emit the browse results to the user */
+	MafwSourceBrowseResultCb callback;
+	/* User data for the user callback  */
+	gpointer user_data;
+	/* Error */
+	GError *error;
+};
+
 typedef gboolean (*_BrowseFunc)(struct _browse_closure *bc,
 				GList *child,
 				GError **error);
@@ -383,11 +394,6 @@ static gboolean _add_playlist_duration_idle(gpointer data)
 
 		return FALSE;
 	}
-
-	/* Remove the non-Mafw data used to check if MAFW has to calculate
-	 the playlist duration. */
-	util_remove_tracker_data_to_check_pls_duration(pls_metadata,
-		playlists_bc->metadata_keys);
 
 	/* If not, the duration contains the correct value. Continue with the
 	   next playlist. */
@@ -799,21 +805,35 @@ static gboolean _get_playlist_entries(const gchar *pls_uri,
 	return result;
 }
 
+static gboolean _send_error_idle(gpointer data)
+{
+	struct _browse_error_closure *bec = data;
+
+	bec->callback(bec->source, MAFW_SOURCE_INVALID_BROWSE_ID, 0, 0, NULL,
+		      NULL, bec->user_data, bec->error);
+
+	g_error_free(bec->error);
+	g_free(bec);
+
+	return FALSE;
+}
+
 static void _send_error(MafwSource *source,
                         MafwSourceBrowseResultCb browse_cb,
                         gint code,
                         gchar *description,
                         gpointer user_data)
 {
-        GError *error = NULL;
+	struct _browse_error_closure *bec =
+			g_new(struct _browse_error_closure, 1);
 
-        g_set_error(&error,
-                    MAFW_SOURCE_ERROR,
-                    code,
-                    "%s",description);
-        browse_cb(source, MAFW_SOURCE_INVALID_BROWSE_ID, 0, 0, NULL, NULL,
-                  user_data, error);
-        g_error_free(error);
+	bec->source = source;
+	bec->callback = browse_cb;
+	bec->user_data = user_data;
+	bec->error = NULL;
+
+	g_set_error(&bec->error, MAFW_SOURCE_ERROR, code, "%s",description);
+	g_idle_add_full(G_PRIORITY_DEFAULT_IDLE, _send_error_idle, bec, NULL);
 }
 
 static void _browse_songs_branch(const gchar *genre,
@@ -846,7 +866,7 @@ static void _browse_albums_branch(const gchar *album,
                 if (album) {
                         /* Browsing /music/albums/<album from artist> */
                         escaped_album =
-                                mafw_tracker_source_escape_string(album);
+				tracker_sparql_escape_string(album);
                         bc->object_id_prefix =
                                 _build_object_id(TRACKER_SOURCE_MUSIC,
                                                  TRACKER_SOURCE_ALBUMS,
@@ -1160,13 +1180,6 @@ static gboolean _browse_playlists_branch(const gchar *playlist,
                         _build_object_id(TRACKER_SOURCE_MUSIC,
                                          TRACKER_SOURCE_PLAYLISTS,
                                          NULL);
-
-		if (util_is_duration_requested(
-			    (const gchar **) bc->metadata_keys)) {
-			bc->metadata_keys =
-				util_add_tracker_data_to_check_pls_duration(
-					bc->metadata_keys);
-		}
 
 		ti_get_playlists(bc->metadata_keys,
 				 bc->filter_criteria,

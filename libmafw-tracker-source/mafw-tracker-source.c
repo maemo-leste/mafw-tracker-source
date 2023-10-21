@@ -189,12 +189,12 @@ static gboolean _destroy_object_idle(gpointer data)
 
 static void _get_uri(gpointer metadata, gpointer uris_list)
 {
-	GValue *gval;
+	GValue *gval = NULL;
 	const gchar *uri;
 	GList **uris = (GList **) uris_list;
 
-	gval =  mafw_metadata_first(metadata,
-				    MAFW_METADATA_KEY_URI);
+	if (metadata)
+		gval = mafw_metadata_first(metadata, MAFW_METADATA_KEY_URI);
 
 	if (gval) {
 		uri = g_value_get_string(gval);
@@ -308,6 +308,16 @@ MafwSource *mafw_tracker_source_new(void)
 	return source;
 }
 
+static gboolean _destroy_object_error_idle(gpointer data)
+{
+	struct _destroy_object_closure *dc = data;
+
+	/* Emit the error */
+	dc->callback(dc->source, dc->object_id, dc->user_data, dc->error);
+
+	return G_SOURCE_REMOVE;
+}
+
 void mafw_tracker_source_destroy_object(MafwSource *self,
 					 const gchar *object_id,
 					 MafwSourceObjectDestroyedCb cb,
@@ -315,23 +325,10 @@ void mafw_tracker_source_destroy_object(MafwSource *self,
 {
 	CategoryType category;
 	gchar *genre, *artist, *album, *clip;
-	GError *error = NULL;
 
         g_return_if_fail(MAFW_IS_TRACKER_SOURCE(self));
         g_return_if_fail(object_id != NULL);
 
-	category = util_extract_category_info(object_id, &genre, &artist,
-                                              &album, &clip);
-	if (category == CATEGORY_ERROR) {
-		g_set_error(&error,
-			MAFW_SOURCE_ERROR,
-			MAFW_SOURCE_ERROR_INVALID_OBJECT_ID,
-			"Malformed object id: %s", object_id);
-		/* Emit the error */
-		cb(self, object_id, user_data, error);
-		g_error_free(error);
-		return;
-	}
 
 	/* Prepare destroy operation */
 	struct _destroy_object_closure *dc =
@@ -345,6 +342,23 @@ void mafw_tracker_source_destroy_object(MafwSource *self,
 	dc->current_index = 0;
 	dc->remaining_count = 1;
 	dc->metadata_keys = NULL;
+
+	category = util_extract_category_info(object_id, &genre, &artist,
+					      &album, &clip);
+	if (category == CATEGORY_ERROR) {
+		/* Emit the error */
+		dc->error = g_error_new(
+				    MAFW_SOURCE_ERROR,
+				    MAFW_SOURCE_ERROR_INVALID_OBJECT_ID,
+				    "Malformed object id: %s", object_id);
+		g_idle_add_full(
+			G_PRIORITY_DEFAULT_IDLE,
+			_destroy_object_error_idle,
+			dc,
+			(GDestroyNotify) _destroy_object_closure_free);
+
+		return;
+	}
 
 	/* Destroy operation */
 	if (clip) {
@@ -365,15 +379,15 @@ void mafw_tracker_source_destroy_object(MafwSource *self,
 			     NULL, 0, 0, _destroy_object_tracker_cb, dc);
 	} else {
 		/* Delete other containers is not allowed */
-		error = g_error_new(MAFW_SOURCE_ERROR,
+		dc->error = g_error_new(MAFW_SOURCE_ERROR,
 				    MAFW_SOURCE_ERROR_DESTROY_OBJECT_FAILED,
 				    "Operation not allowed for category: %s",
 				    dc->object_id);
-		/* Emit the error */
-		cb(self, object_id, user_data, error);
-		/* Frees */
-		g_error_free(error);
-		_destroy_object_closure_free(dc);
+		g_idle_add_full(
+			G_PRIORITY_DEFAULT_IDLE,
+			_destroy_object_error_idle,
+			dc,
+			(GDestroyNotify) _destroy_object_closure_free);
 	}
 
 	/* Frees */

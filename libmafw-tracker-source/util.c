@@ -25,37 +25,13 @@
 #include "util.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <totem-pl-parser.h>
 #include <libmafw/mafw-source.h>
 #include <libmafw/mafw.h>
 #include "key-mapping.h"
 
 /* ------------------------- Private API ------------------------- */
-
-static void _insert_chars(gchar *str, gchar *chars, gint index)
-{
-	for (; *chars != '\0'; chars++) {
-		str[index++] = *chars;
-	}
-}
-
-const static gchar *_get_tracker_type(const gchar *mafw_key,
-                                      ServiceType service)
-{
-        GType key_type;
-
-        key_type = keymap_get_tracker_type(mafw_key, service);
-
-        if (key_type == G_TYPE_INT) {
-                return "Integer";
-        } else if (key_type == G_TYPE_DOUBLE) {
-                return "Double";
-        } else if (key_type == G_TYPE_DATE) {
-                return "Date";
-        } else {
-                return "String";
-        }
-}
 
 /* ------------------------- Public API ------------------------- */
 
@@ -68,7 +44,7 @@ void util_gvalue_free(GValue *value)
 }
 
 gchar *util_get_tracker_value_for_filter(const gchar *mafw_key,
-                                         ServiceType service,
+                                         TrackerObjectType type,
 					 const gchar *value)
 {
         MetadataKey *metadata_key;
@@ -89,16 +65,7 @@ gchar *util_get_tracker_value_for_filter(const gchar *mafw_key,
                 return g_strdup(value);
         }
 
-	/* Tracker just stores pathnames, so convert URI to pathame */
-        if (metadata_key->special == SPECIAL_KEY_URI) {
-                pathname = g_filename_from_uri(value, NULL, NULL);
-                escaped_pathname = util_escape_rdf_text(pathname);
-                g_free(pathname);
-
-                return escaped_pathname;
-        }
-
-        tracker_key = keymap_get_tracker_info(mafw_key, service);
+        tracker_key = keymap_get_tracker_info(mafw_key, type);
 
         if (!tracker_key) {
                 return g_strdup(value);
@@ -112,7 +79,7 @@ gchar *util_get_tracker_value_for_filter(const gchar *mafw_key,
 
 	/* If the key does not need special handling, just use
 	   the user provided value in the filter without any modifications */
-	return util_escape_rdf_text(value);
+	return tracker_sparql_escape_string(value);
 }
 
 gchar *util_str_replace(gchar *str, gchar *old, gchar *new)
@@ -176,14 +143,6 @@ gchar* util_unescape_string(const gchar* original)
 	return g_uri_unescape_string(original, NULL);
 }
 
-/*
- * Returns the 'data' field of a GList node.
- */
-inline gchar *get_data(const GList * list)
-{
-	return (gchar *) list->data;
-}
-
 #ifndef G_DEBUG_DISABLE
 void perf_elapsed_time_checkpoint(gchar *event)
 {
@@ -237,209 +196,142 @@ glong util_iso8601_to_epoch(const gchar *iso_date)
         return timeval.tv_sec;
 }
 
-gchar *util_escape_rdf_text(const gchar *text)
+static const gchar *var_id()
 {
-	gchar *tmp;
-	gint size;
-	gint pos;
-	gchar *result;
+	static unsigned int id = 0;
+	static gchar var[7];
 
-	if (text == NULL) {
-		return NULL;
-	}
+	if (id > 10000)
+		id = 0;
 
-	/* Calculate size of escaped string */
-	for (tmp = (gchar *) text, size = 0; *tmp != '\0'; tmp++) {
-		if (*tmp == '&') {
-			size += 5;
-		} else if (*tmp == '<' || *tmp == '>') {
-			size += 4;
-		} else if (*tmp == '"' || *tmp == '\'') {
-			size += 6;
-		} else {
-			size += 1;
-		}
-	}
+	sprintf(var, "?v%04u", id++);
 
-	/* Generate escaped string */
-	result = g_new0(gchar, size + 1);
-	for (tmp = (gchar *) text, pos = 0; *tmp != '\0'; tmp++) {
-		if (*tmp == '&') {
-			_insert_chars(result, "&amp;", pos);
-			pos += 5;
-		} else if (*tmp == '<') {
-			_insert_chars(result, "&lt;", pos);
-			pos += 4;
-		} else if (*tmp == '>') {
-			_insert_chars(result, "&gt;", pos);
-			pos += 4;
-		} else if (*tmp == '"') {
-			_insert_chars(result, "&quot;", pos);
-			pos += 6;
-		} else if (*tmp == '\'') {
-			_insert_chars(result, "&apos;", pos);
-			pos += 6;
-		} else {
-			result[pos] = *tmp;
-			pos++;
-		}
-	}
-
-	return result;
+	return var;
 }
 
-gboolean util_mafw_filter_to_rdf(const MafwFilter *filter,
-				 GString *p)
+static gchar *_get_expression(const MafwFilter *filter, TrackerObjectType type,
+			      const gchar *tracker_key, const gchar *var)
 {
-	gboolean ret = TRUE;
+	gchar *expr;
+	const char *c;
 
-	if (MAFW_FILTER_IS_SIMPLE(filter)) {
-		gchar *close_tag;
-		gchar *start_tag;
+	gchar *tracker_value;
+	gboolean is_cont  = FALSE;
 
-                /* Special case: uri must be split in path + filename */
-                if (strcmp(filter->key, MAFW_METADATA_KEY_URI) == 0 &&
-                    g_str_has_prefix(filter->value, "file://") &&
-                    filter->type == mafw_f_eq) {
-                        gboolean success;
-                        gchar *pathname;
-                        gchar *dirname;
-                        gchar *filename;
-                        MafwFilter *filter_by_dirname;
-                        MafwFilter *filter_by_filename;
-                        MafwFilter *joined_filter;
-
-                        pathname =
-                                g_filename_from_uri(filter->value, NULL, NULL);
-                        dirname = g_path_get_dirname(pathname);
-                        filename = g_path_get_basename(pathname);
-
-                        filter_by_dirname = MAFW_FILTER_EQ(TRACKER_FKEY_PATH,
-                                                           dirname);
-                        filter_by_filename =
-                                MAFW_FILTER_EQ(MAFW_METADATA_KEY_FILENAME,
-                                               filename);
-                        joined_filter = MAFW_FILTER_AND(filter_by_dirname,
-                                                        filter_by_filename);
-
-                        success = util_mafw_filter_to_rdf(joined_filter, p);
-
-                        mafw_filter_free(joined_filter);
-                        mafw_filter_free(filter_by_dirname);
-                        mafw_filter_free(filter_by_filename);
-                        g_free(pathname);
-                        g_free(dirname);
-                        g_free(filename);
-
-                        return success;
-                }
+	g_assert(MAFW_FILTER_IS_SIMPLE(filter));
 
 		switch (filter->type) {
 		case mafw_f_eq:
-			start_tag = g_strdup("<rdfq:equals>");
-			close_tag = g_strdup("</rdfq:equals>");
+			c = "=";
 			break;
 		case mafw_f_lt:
-			start_tag = g_strdup("<rdfq:lessThan>");
-			close_tag = g_strdup("</rdfq:lessThan>");
+			c = "<";
 			break;
 		case mafw_f_gt:
-			start_tag = g_strdup("<rdfq:greaterThan>");
-			close_tag = g_strdup("</rdfq:greaterThan>");
+			c = ">";
  			break;
 		case mafw_f_approx:
-			start_tag = g_strdup("<rdfq:contains>");
-			close_tag = g_strdup("</rdfq:contains>");
+			is_cont = TRUE;
 			break;
 		case mafw_f_exists:
 			g_warning("mafw_f_exists not implemented");
-			ret = FALSE;
-			break;
+			return NULL;
 		default:
 			g_warning("Unknown filter type");
+			return NULL;
+		}
+
+	tracker_value = util_get_tracker_value_for_filter(filter->key, type,
+							  filter->value);
+	if (is_cont)
+		expr = g_strdup_printf("CONTAINS(%s,'%s')", var, tracker_value);
+	else
+		expr = g_strdup_printf("(%s%s'%s')", var, c, tracker_value);
+
+	g_free(tracker_value);
+
+	return expr;
+}
+
+static gboolean _filter_to_sparql(const MafwFilter *filter,
+				  GString *k, GString *e)
+{
+	gboolean ret = TRUE;
+	gchar *key;
+
+	if (MAFW_FILTER_IS_SIMPLE(filter)) {
+		gchar *expr;
+		const gchar *var = var_id();
+
+		key = keymap_mafw_key_to_tracker_key(
+			      filter->key, TRACKER_TYPE_MUSIC);
+		expr = _get_expression(filter, TRACKER_TYPE_MUSIC, key, var);
+
+		if (expr) {
+
+			g_string_append_printf(k, " . %s %s", key, var);
+			g_string_append_printf(e, "(%s)", expr);
+
+			g_free(expr);
+		} else
 			ret = FALSE;
-			break;
-		}
 
-		if (ret) {
-			gchar *tracker_key;
-			const gchar *tracker_type;
-			gchar *tracker_value;
-
-			tracker_key =
-				keymap_mafw_key_to_tracker_key(
-					filter->key,
-					SERVICE_MUSIC);
-
-                        g_string_append(p, start_tag);
-                        g_string_append_printf(
-                                p,
-                                "<rdfq:Property name=\"%s\"/>",
-                                tracker_key);
-
-			tracker_type =
-				_get_tracker_type(filter->key,
-                                                  SERVICE_MUSIC);
-
-			tracker_value =
-				util_get_tracker_value_for_filter (
-					filter->key,
-                                        SERVICE_MUSIC,
-					filter->value);
-
-                        g_string_append_printf(
-                                p,
-                                "<rdf:%s>%s</rdf:%s>",
-				tracker_type,
-                                tracker_value,
-				tracker_type);
-                        g_string_append(p, close_tag);
-
-			g_free(tracker_value);
-			g_free(tracker_key);
-			g_free(start_tag);
-			g_free(close_tag);
-		}
-
+		g_free(key);
 	} else {
-		/* Process each part of the filter recursively */
 		MafwFilter **parts;
+
 		for (parts = filter->parts; *parts; ) {
-			if (filter->type == mafw_f_not) {
-				GString *cts = g_string_new("");
-				g_string_append(p, "<rdfq:not>");
-				ret = ret && util_mafw_filter_to_rdf(*parts,
-                                                                     cts);
- 				g_string_append(p, cts->str);
-				g_string_free(cts, TRUE);
-				g_string_append(p, "</rdfq:not>");
+			if (filter->type == mafw_f_and ||
+			    filter->type == mafw_f_or) {
+				while (*parts != NULL) {
+					GString *_k = g_string_new("");
+					GString *_e = g_string_new("");
+
+					ret = _filter_to_sparql(*parts, _k, _e);
+
+					if (ret) {
+						const char *op;
+
+						if (filter->type == mafw_f_and)
+							op = " && ";
+						else
+							op = " || ";
+
+						g_string_append(k, _k->str);
+
+						if (e->len)
+							g_string_append(e, op);
+
+						g_string_append(e, _e->str);
+					}
+
+					g_string_free(_k, TRUE);
+					g_string_free(_e, TRUE);
+
+					if (!ret)
+						break;
+
+					parts++;
+				}
+			} else if (filter->type == mafw_f_not) {
+				GString *_k = g_string_new("");
+				GString *_e = g_string_new("");
+
+				ret = _filter_to_sparql(*parts, _k, _e);
+
+				if (ret) {
+					g_string_append(k, _k->str);
+					g_string_append(e, "!");
+					g_string_append(e, _e->str);
+				}
+
+				g_string_free(_k, TRUE);
+				g_string_free(_e, TRUE);
+
+				if (!ret)
+					break;
+
 				parts++;
-			} else if (filter->type == mafw_f_and) {
-				g_string_append(p, "<rdfq:and>");
-				while (*parts != NULL) {
-					GString *cts = g_string_new("");
-					ret = ret &&
-						util_mafw_filter_to_rdf(
-                                                        *parts,
-                                                        cts);
-					g_string_append(p, cts->str);
-					g_string_free(cts, TRUE);
-					parts++;
-				}
-				g_string_append(p, "</rdfq:and>");
-			} else if (filter->type == mafw_f_or) {
-				g_string_append(p, "<rdfq:or>");
-				while (*parts != NULL) {
-					GString *cts = g_string_new("");
-					ret = ret &&
-						util_mafw_filter_to_rdf(
-                                                        *parts,
-                                                        cts);
-					g_string_append(p, cts->str);
-					g_string_free(cts, TRUE);
-					parts++;
-				}
-				g_string_append(p, "</rdfq:or>");
 			} else {
 				g_warning("Filter type not implemented");
 				ret = FALSE;
@@ -447,6 +339,24 @@ gboolean util_mafw_filter_to_rdf(const MafwFilter *filter,
 			}
 		}
 	}
+
+	return ret;
+
+}
+
+gboolean util_mafw_filter_to_sparql(const MafwFilter *filter, GString *p)
+{
+	gboolean ret;
+	GString *k = g_string_new("");
+	GString *e = g_string_new("");
+
+	ret = _filter_to_sparql(filter, k, e);
+
+	if (ret)
+		g_string_append_printf(p, "%s . FILTER(%s)", k->str, e->str);
+
+	g_string_free(k, TRUE);
+	g_string_free(e, TRUE);
 
 	return ret;
 }
@@ -508,9 +418,9 @@ gchar *util_create_filter_from_category(const gchar *genre,
                 escaped_genre =
                         util_get_tracker_value_for_filter(
                                 MAFW_METADATA_KEY_GENRE,
-                                SERVICE_MUSIC,
+                                TRACKER_TYPE_MUSIC,
                                 genre);
-                filters[i] = g_strdup_printf(RDF_QUERY_BY_GENRE,
+                filters[i] = g_strdup_printf(SPARQL_QUERY_BY_GENRE,
                                              escaped_genre);
                 g_free(escaped_genre);
                 i++;
@@ -520,9 +430,9 @@ gchar *util_create_filter_from_category(const gchar *genre,
                 escaped_artist =
 			util_get_tracker_value_for_filter(
                                 MAFW_METADATA_KEY_ARTIST,
-                                SERVICE_MUSIC,
+                                TRACKER_TYPE_MUSIC,
                                 artist);
-                filters[i] = g_strdup_printf(RDF_QUERY_BY_ARTIST,
+                filters[i] = g_strdup_printf(SPARQL_QUERY_BY_ARTIST,
 					     escaped_artist);
                 g_free(escaped_artist);
                 i++;
@@ -532,9 +442,9 @@ gchar *util_create_filter_from_category(const gchar *genre,
                 escaped_album =
                         util_get_tracker_value_for_filter(
                                 MAFW_METADATA_KEY_ALBUM,
-                                SERVICE_MUSIC,
+                                TRACKER_TYPE_MUSIC,
                                 album);
-                filters[i] = g_strdup_printf(RDF_QUERY_BY_ALBUM,
+                filters[i] = g_strdup_printf(SPARQL_QUERY_BY_ALBUM,
                                              escaped_album);
                 g_free(escaped_album);
                 i++;
@@ -568,25 +478,18 @@ gchar *util_build_complex_rdf_filter(gchar **filters,
                 break;
         case 1:
                 if (append_filter)
-                        cfilter = g_strconcat(RDF_QUERY_BEGIN, append_filter,
-                                              RDF_QUERY_END, NULL);
+                        cfilter = g_strdup(append_filter);
                 else
-                        cfilter = g_strconcat(RDF_QUERY_BEGIN, filters[0],
-                                              RDF_QUERY_END, NULL);
+                        cfilter = g_strdup(filters[0]);
                 break;
         default:
                 join_filters = g_strjoinv(NULL, filters);
                 if (append_filter)
-                        cfilter = g_strconcat(RDF_QUERY_AND_BEGIN,
-                                              join_filters,
+                        cfilter = g_strconcat(join_filters,
                                               append_filter,
-                                              RDF_QUERY_AND_END,
                                               NULL);
                 else
-                        cfilter = g_strconcat(RDF_QUERY_AND_BEGIN,
-                                              join_filters,
-                                              RDF_QUERY_AND_END,
-                                              NULL);
+                        cfilter = g_strdup(join_filters);
                 g_free(join_filters);
                 break;
         }
@@ -616,6 +519,16 @@ void util_sum_count(gpointer data, gpointer user_data)
         if (gval) {
                 *total_sum += g_value_get_int(gval);
         }
+}
+
+static gchar *filename_to_uri(const gchar *filename)
+{
+	gchar *uri = g_filename_to_uri(filename, NULL, NULL);
+
+	if (!uri)
+		uri = g_strdup(filename);
+
+	return uri;
 }
 
 CategoryType util_extract_category_info(const gchar *object_id,
@@ -717,26 +630,22 @@ CategoryType util_extract_category_info(const gchar *object_id,
 		if (path_length >2) {
 			category = CATEGORY_ERROR;
 		} else if (clip && path_length == 2) {
-                        *clip = g_filename_to_uri(get_data(g_list_nth(path, 1)),
-                                                  NULL, NULL);
+				*clip = filename_to_uri(get_data(g_list_nth(path, 1)));
 		}
 		break;
 	case CATEGORY_MUSIC_SONGS:
 		if (path_length > 3) {
 			category = CATEGORY_ERROR;
 		} else if (clip && path_length == 3) {
-			*clip = g_filename_to_uri(get_data(g_list_nth(path, 2)),
-                                                  NULL, NULL);
+				*clip = filename_to_uri(get_data(g_list_nth(path, 2)));
 		}
 		break;
 	case CATEGORY_MUSIC_PLAYLISTS:
 		switch (path_length) {
 		case 3:
                         if (clip) {
-                                *clip =
-                                        g_filename_to_uri(
-						get_data(g_list_nth(path, 2)),
-						NULL, NULL);
+						*clip = filename_to_uri(
+								get_data(g_list_nth(path, 2)));
                         }
 			break;
 		case 2:
@@ -751,9 +660,8 @@ CategoryType util_extract_category_info(const gchar *object_id,
 		switch (path_length) {
 		case 4:
                         if (clip) {
-                                *clip = g_filename_to_uri(
-                                        get_data(g_list_nth(path, 3)),
-                                        NULL, NULL);
+						*clip = filename_to_uri(
+								get_data(g_list_nth(path, 3)));
                         }
 			/* No break */
 		case 3:
@@ -773,9 +681,8 @@ CategoryType util_extract_category_info(const gchar *object_id,
 		switch (path_length) {
 		case 5:
                         if (clip) {
-                                *clip = g_filename_to_uri(
-                                        get_data(g_list_nth(path, 4)),
-                                        NULL, NULL);
+						*clip = filename_to_uri(
+								get_data(g_list_nth(path, 4)));
                         }
 			/* No break */
 		case 4:
@@ -802,9 +709,8 @@ CategoryType util_extract_category_info(const gchar *object_id,
 		switch (path_length) {
 		case 6:
                         if (clip) {
-                                *clip = g_filename_to_uri(
-                                        get_data(g_list_nth(path, 5)),
-                                        NULL, NULL);
+						*clip = filename_to_uri(
+								get_data(g_list_nth(path, 5)));
                         }
 			/* No break */
 		case 5:
@@ -882,46 +788,10 @@ gboolean util_calculate_playlist_duration_is_needed(GHashTable *pls_metadata)
 		MAFW_METADATA_KEY_DURATION);
 
 	if (!gval) {
-		/* Duration is 0. */
-		/* Check if MAFW has calculated this duration before. */
-		gval = mafw_metadata_first(
-			pls_metadata,
-			TRACKER_PKEY_VALID_DURATION);
-
-		if ((gval) && (g_value_get_boolean(gval) == FALSE)) {
-			/* The duration hasn't been calculated before,
-			   so do it now. */
 			calculate = TRUE;
-		}
 	}
 
 	return calculate;
-}
-
-gchar** util_add_tracker_data_to_check_pls_duration(gchar **keys)
-{
-	/* Add the valid-duration key to the requested keys.
-	   It's a Tracker key, without correspondence in MAFW, is needed to
-	   check if MAFW has calculated the playlist duration before.
-	   Don't forget remove it from the MAFW results before sending them to
-	   the user!. */
-	return util_add_element_to_strv(keys, TRACKER_PKEY_VALID_DURATION);
-}
-
-void util_remove_tracker_data_to_check_pls_duration(GHashTable *metadata,
-						    gchar **metadata_keys)
-{
-	/* Remove the valid-duration value from the results.
-	   It's a Tracker metadata key without correspondence in MAFW.
-	   Don't return it to the user!. */
-	g_hash_table_remove(metadata, TRACKER_PKEY_VALID_DURATION);
-
-	if (_contains_key((const gchar **) metadata_keys,
-			  TRACKER_PKEY_VALID_DURATION)) {
-		gint n = g_strv_length(metadata_keys);
-		g_free(metadata_keys[n-1]);
-		metadata_keys[n-1] = NULL;
-	}
 }
 
 gchar** util_list_to_strv(GList *list)
@@ -950,4 +820,243 @@ gchar** util_add_element_to_strv(gchar **array, const gchar *element)
 	new_array[n + 1] = NULL;
 
 	return new_array;
+}
+
+static gchar *_group_concat(const gchar *v)
+{
+	/* We do all this voodoo magic because SQLITE GROUP_CONCAT() with
+	 * custom separator is broken, so we cannot replace the default ','
+	 * separator with '|', when calling GROUP_CONCAT. Lets hope there is
+	 * no artist in this world that will name her album with something
+	 * containing the string below. Though, given the state the music is
+	 * nowadays...
+	 */
+
+#define SEP "!@_SQLITE_GROUP_CONCAT_IS_BROKEN_@!"
+
+	return g_strdup_printf("REPLACE(REPLACE("
+			       AGGREGATED_TYPE_CONCAT "(DISTINCT CONCAT(%s, '"
+			       SEP "')),'" SEP ",','|'), '" SEP "', '')", v);
+#undef SEP
+}
+
+static const char *_get_service(TrackerObjectType type)
+{
+	switch (type) {
+		case TRACKER_TYPE_PLAYLIST:
+			return "?o a nmm:Playlist";
+		case TRACKER_TYPE_VIDEO:
+			return "?o a nmm:Video";
+		default:
+			return "?o a nmm:MusicPiece";
+	}
+}
+
+gchar *util_build_sparql(TrackerObjectType type,
+			 gboolean unique,
+			 gchar **fields,
+			 const gchar *condition,
+			 gchar **aggregates,
+			 gchar **aggregate_fields,
+			 guint offset,
+			 guint limit,
+			 gchar **tracker_sort_keys,
+			 gboolean desc)
+{
+	GString *sql_select;
+	GString *sql_where;
+	GString *sql_group;
+	guint i;
+	gchar *sql;
+
+	sql_select = g_string_new ("SELECT");
+	sql_where = g_string_new("WHERE { ");
+	sql_group = g_string_new(NULL);
+
+	g_string_append(sql_where, _get_service(type));
+
+	for (i = 0; i < g_strv_length(fields); i++) {
+		const gchar *var = var_id();
+
+		g_string_append_printf(sql_select, " %s", var);
+		g_string_append_printf(sql_where, " . OPTIONAL {%s %s}",
+				       fields[i], var);
+
+		if (unique)
+			g_string_append_printf(sql_group, " GROUP BY %s", var);
+	}
+
+	if (aggregates) {
+		for (i = 0; i < g_strv_length(aggregates); i++) {
+			const gchar *var = var_id();
+
+			if (!strcmp(aggregates[i], AGGREGATED_TYPE_CONCAT)) {
+				gchar *concat = _group_concat(var);
+				g_string_append_printf(sql_select, " %s",
+						       concat);
+				g_free(concat);
+			} else if (!strcmp(aggregates[i],
+					   AGGREGATED_TYPE_COUNT)) {
+				if (!strcmp(aggregate_fields[i] , "*")) {
+					g_string_append_printf(sql_select,
+							       " %s(*)",
+							       aggregates[i]);
+				} else {
+					g_string_append_printf(sql_select,
+							       " %s(DISTINCT %s)",
+							       aggregates[i],
+							       var);
+				}
+
+
+			} else {
+				g_string_append_printf(sql_select, " %s(%s)",
+						       aggregates[i], var);
+			}
+
+			if (strcmp(aggregates[i], AGGREGATED_TYPE_COUNT) ||
+			    strcmp(aggregate_fields[i] , "*")) {
+				g_string_append_printf(sql_where, " . %s %s",
+						       aggregate_fields[i],
+						       var);
+			}
+		}
+	}
+
+	if (limit) {
+		g_string_append_printf(sql_group,
+				       " LIMIT %u OFFSET %u", limit, offset);
+	}
+
+	if (condition)
+		g_string_append_printf(sql_where, "%s", condition);
+
+	sql = g_strconcat (sql_select->str, " ",
+			   sql_where->str, " }",
+			   sql_group->str,
+			   NULL);
+
+	g_string_free(sql_select, TRUE);
+	g_string_free(sql_where, TRUE);
+	g_string_free(sql_group, TRUE);
+
+	g_debug("Created sparql '%s'", sql);
+
+	return sql;
+}
+
+gchar *util_build_meta_sparql(TrackerObjectType type,
+			      gchar **uris,
+			      gchar **fields,
+			      int max_fields)
+{
+	GString *sql_select;
+	GString *sql_where;
+	guint i;
+	gchar *sql;
+
+	sql_select = g_string_new ("SELECT");
+	sql_where = g_string_new(" { ");
+
+	g_string_append(sql_where, _get_service(type));
+
+	for (i = 0; i < g_strv_length(fields) && i < max_fields; i++) {
+		const gchar *var = var_id();
+
+		g_string_append_printf(sql_select, " %s", var);
+		g_string_append_printf(sql_where, " . OPTIONAL{%s %s}",
+				       fields[i], var);
+	}
+
+	sql = g_strconcat (sql_select->str, " ", NULL);
+
+	if (uris) {
+		gchar *tmp;
+		gchar **uri;
+
+		g_string_append(sql_where, " . ?o nie:url '%s' }");
+
+		tmp = g_string_free(sql_where, FALSE);
+		sql_where = g_string_new("{");
+
+		for (uri = uris; *uri; uri++) {
+			gchar *escaped_uri = tracker_sparql_escape_string(*uri);
+
+			g_string_append_printf(sql_where, tmp, escaped_uri);
+			g_free(escaped_uri);
+
+			if (*(uri + 1))
+				g_string_append(sql_where, " UNION");
+		}
+
+		g_free(tmp);
+	}
+
+
+	sql = g_strconcat (sql_select->str, " WHERE ",
+			   sql_where->str, " }",
+			   NULL);
+
+	g_string_free(sql_select, TRUE);
+	g_string_free(sql_where, TRUE);
+
+	g_debug("Created metadata sparql '%s'", sql);
+
+	return sql;
+}
+
+gchar *util_build_update_sparql(TrackerObjectType type,
+				const gchar *uri,
+				gchar **keys,
+				gchar **values,
+				gboolean select)
+{
+	gchar *sql;
+	gchar *escaped_uri;
+
+	escaped_uri = tracker_sparql_escape_string(uri);
+
+	if (select) {
+
+		sql = g_strdup_printf("SELECT * WHERE {%s ; nie:url '%s'}",
+				      _get_service(type), escaped_uri);
+
+		g_debug("Created update select sparql '%s'", sql);
+
+	} else {
+		GString *sql_delete;
+		GString *sql_insert;
+		GString *sql_where;
+
+		sql_where = g_string_new("");
+		sql_delete = g_string_new ("");
+		sql_insert = g_string_new ("");
+
+		for (int i = 0; i < g_strv_length(keys); i++) {
+			const gchar *var = var_id();
+
+			g_string_append_printf(sql_delete, " %s %s .",
+					       keys[i], var);
+			g_string_append_printf(sql_insert, " %s '%s' .",
+					       keys[i], values[i]);
+			g_string_append_printf(sql_where, " . OPTIONAL {%s %s}",
+					       keys[i], var);
+		}
+
+		sql = g_strdup_printf(
+			      "DELETE {%s} INSERT {%s} WHERE {%s . ?o nie:url '%s'%s}",
+			      sql_delete->str, sql_insert->str,
+			      _get_service(type), escaped_uri,
+			      sql_where->str);
+
+		g_string_free(sql_delete, TRUE);
+		g_string_free(sql_insert, TRUE);
+		g_string_free(sql_where, TRUE);
+
+		g_debug("Created update sparql '%s'", sql);
+	}
+
+	g_free(escaped_uri);
+
+	return sql;
 }

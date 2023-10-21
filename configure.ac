@@ -48,7 +48,7 @@ dnl Prerequisites.
 PKG_CHECK_MODULES(DEPS,
 			gobject-2.0 >= 2.0
 			mafw >= 0.1
-			tracker >= 0.6.95
+			tracker-sparql-2.0
 			hildon-thumbnail >= 3.0
 			totem-plparser
 )
@@ -64,39 +64,16 @@ dnl Check for glib-genmarshal.
 GLIB_GENMARSHAL=`pkg-config --variable=glib_genmarshal glib-2.0`
 AC_SUBST(GLIB_GENMARSHAL)
 
-dnl Default compile flags.  (NOTE: CFLAGS is reserved for the user!)
-
-AC_SUBST([_CFLAGS])
-AC_SUBST([_LDFLAGS])
-_CFLAGS="-Wall -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations"
-_CFLAGS="$_CFLAGS -ggdb3"
-
 dnl Configure-time options.
-
-dnl Debugging.
-DISABLED_BY_DEFAULT([debug], [compile with debug flags and extra output])
-if test "x$enable_debug" = xyes; then
-	AC_DEFINE([MAFW_DEBUG], [1], [Enable debugging related parts.])
-	_CFLAGS="$_CFLAGS -O0 -Werror -DGTK_DISABLE_DEPRECATED"
-else
-	AC_DEFINE([G_DEBUG_DISABLE], [1], [Disable g_debug() calls.])
-	_CFLAGS="$_CFLAGS -O2"
-fi
-AS_IF([test "x$enable_debug" = xyes],
-	[AC_DEFINE([MAFW_DEBUG], [1], [Enable extra debug messages])
-	 CFLAGS="$CFLAGS -Werror -O0 -ggdb3 -DGTK_DISABLE_DEPRECATED"],
-	[AC_DEFINE([G_DEBUG_DISABLE], [1], [Disable g_debug calls])
-	 CFLAGS="$CFLAGS -O2"])
-
 
 dnl Tests.
 ENABLED_BY_DEFAULT([tests], [disable unit tests])
-#if test "x$enable_tests" = xyes; then
-#	PKG_CHECK_MODULES(CHECKMORE, [checkmore, check >= 0.9.4])
-#	if test -z "$CHECKMORE_LIBS"; then
-#		AC_MSG_WARN([checkmore is needed for unit tests!])
-#	fi
-#fi
+if test "x$enable_tests" = xyes; then
+	PKG_CHECK_MODULES(CHECKMORE, [checkmore, check >= 0.9.4])
+	if test -z "$CHECKMORE_LIBS"; then
+		AC_MSG_WARN([checkmore is needed for unit tests!])
+	fi
+fi
 AM_CONDITIONAL(ENABLE_TESTS,
                [test "x$enable_tests" = xyes && test -n "$CHECKMORE_LIBS"])
 dnl Tracing.

@@ -26,8 +26,7 @@
 #define _MAFW_TRACKER_SOURCE_KEY_MAPPING_H_
 
 #include <glib.h>
-#include <tracker.h>
-
+#include "util.h"
 #define keymap_is_key_supported(key) (key_map_get_metadata((key)) != NULL)
 
 enum KeyType {
@@ -44,8 +43,7 @@ enum SpecialKey {
         SPECIAL_KEY_CHILDCOUNT,
         SPECIAL_KEY_DURATION,
         SPECIAL_KEY_MIME,
-        SPECIAL_KEY_TITLE,
-        SPECIAL_KEY_URI
+        SPECIAL_KEY_TITLE
 };
 
 typedef struct MetadataKey {
@@ -88,18 +86,18 @@ typedef struct InfoKeyTable {
 
 
 gchar *keymap_mafw_key_to_tracker_key(const gchar *mafw_key,
-				      ServiceType service);
+				      TrackerObjectType type);
 gchar **keymap_mafw_keys_to_tracker_keys(gchar **mafw_keys,
-					 ServiceType service);
+					 TrackerObjectType type);
 gchar **keymap_mafw_sort_keys_to_tracker_keys(gchar **mafw_keys,
-                                              ServiceType service);
+                                              TrackerObjectType type);
 gboolean keymap_is_key_supported_in_tracker(const gchar *mafw_key);
 gboolean keymap_mafw_key_is_writable(gchar *mafw_key);
 InfoKeyTable *keymap_get_info_key_table(void);
 MetadataKey *keymap_get_metadata(const gchar *mafw_key);
 TrackerKey *keymap_get_tracker_info(const gchar *mafw_key,
-                                    ServiceType service);
+                                    TrackerObjectType type);
 GType keymap_get_tracker_type(const gchar *mafw_key,
-                              ServiceType service);
+                              TrackerObjectType type);
 
 #endif

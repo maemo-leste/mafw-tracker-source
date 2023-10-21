@@ -137,18 +137,24 @@ static GValue *_get_title(TrackerCache *cache, gint index, const gchar *path)
 		else
 	                pathname = g_filename_from_uri(uri_title, NULL, NULL);
 
-                /* Get filename */
-                filename = g_path_get_basename(pathname);
+		if (pathname) {
+			/* Get filename */
+			filename = g_path_get_basename(pathname);
 
-                /* Remove extension */
-                dot = g_strrstr(filename, ".");
-                if (dot) {
-                        *dot = '\0';
-                }
+			/* Remove extension */
+			dot = g_strrstr(filename, ".");
+			if (dot) {
+				*dot = '\0';
+			}
 
-                /* Use filename as the value */
-                g_value_set_string(value_uri, filename);
-                g_free(filename);
+			/* Use filename as the value */
+			g_value_set_string(value_uri, filename);
+			g_free(filename);
+		} else {
+			util_gvalue_free(value_uri);
+			value_uri = NULL;
+		}
+
                 g_free(pathname);
                 util_gvalue_free(value_title);
 
@@ -336,14 +342,14 @@ static void _tracker_cache_value_free(gpointer data)
  * Returns: a new cache
  **/
 TrackerCache *
-tracker_cache_new(ServiceType service,
+tracker_cache_new(TrackerObjectType tracker_type,
                   enum TrackerCacheResultType result_type)
 {
 
         TrackerCache *cache;
 
         cache = g_new0(TrackerCache, 1);
-        cache->service = service;
+        cache->tracker_type = tracker_type;
         cache->result_type = result_type;
         cache->cache = g_hash_table_new_full(g_str_hash,
                                              g_str_equal,
@@ -507,7 +513,7 @@ tracker_cache_key_add(TrackerCache *cache,
                       gboolean user_key)
 {
         TrackerCacheValue *value;
-        gint offset;
+	gint offset = 0;
         gint level;
         MetadataKey *metadata_key;
 
@@ -553,7 +559,7 @@ tracker_cache_key_add(TrackerCache *cache,
         /* Within the current service, check if the key makes sense (CHILDCOUNT
          * always makes sense */
         if (metadata_key->special != SPECIAL_KEY_CHILDCOUNT &&
-            keymap_get_tracker_info(key, cache->service) == NULL) {
+            keymap_get_tracker_info(key, cache->tracker_type) == NULL) {
                 _insert_key(cache, key, TRACKER_CACHE_KEY_TYPE_VOID,
                             user_key, -1);
                 return;
@@ -571,26 +577,17 @@ tracker_cache_key_add(TrackerCache *cache,
                 return;
         }
 
-        /* In case of Uri, it is always returned in first position
-         * when querying */
-        if (cache->result_type == TRACKER_CACHE_RESULT_TYPE_QUERY &&
-            metadata_key->special == SPECIAL_KEY_URI) {
-                _insert_key(cache, key, TRACKER_CACHE_KEY_TYPE_TRACKER,
-                            user_key, 0);
-                return;
-        }
-
         /* Childcount is 0 for all clips, unless playlists */
         if (cache->result_type != TRACKER_CACHE_RESULT_TYPE_UNIQUE &&
             metadata_key->special == SPECIAL_KEY_CHILDCOUNT &&
-            cache->service != SERVICE_PLAYLISTS) {
+            cache->tracker_type != TRACKER_TYPE_PLAYLIST) {
                 tracker_cache_key_add_precomputed_int(cache, key, user_key, 0);
                 return;
         }
 
         /* MIME for playlists and non-leaf nodes are always 'container' */
         if (metadata_key->special == SPECIAL_KEY_MIME &&
-            (cache->service == SERVICE_PLAYLISTS ||
+            (cache->tracker_type == TRACKER_TYPE_PLAYLIST ||
              cache->result_type == TRACKER_CACHE_RESULT_TYPE_UNIQUE)) {
                 tracker_cache_key_add_precomputed_string(
                         cache,
@@ -606,14 +603,6 @@ tracker_cache_key_add(TrackerCache *cache,
             metadata_key->special == SPECIAL_KEY_TITLE) {
                 tracker_cache_key_add(cache, MAFW_METADATA_KEY_URI,
                                       maximum_level, FALSE);
-        }
-
-        /* Insert remaining keys */
-        if (cache->result_type == TRACKER_CACHE_RESULT_TYPE_QUERY) {
-                /* In case of queries, skip uri and service */
-                offset = 2;
-        } else {
-                offset = 0;
         }
 
         _insert_key(cache, key, TRACKER_CACHE_KEY_TYPE_TRACKER,
@@ -753,19 +742,10 @@ tracker_cache_keys_get_tracker(TrackerCache *cache)
         GHashTableIter cache_iter;
         gchar *key;
         TrackerCacheValue *value;
-        gint offset;
-        gint limit;
+        gint offset = 0;
+        gint limit = cache->last_tracker_index;
 
         ask_keys = g_new0(gchar *, cache->last_tracker_index + 1);
-
-        /* Skip uri and service in case of query */
-        if (cache->result_type == TRACKER_CACHE_RESULT_TYPE_QUERY) {
-                offset = 2;
-                limit = cache->last_tracker_index + 2;
-        } else {
-                offset = 0;
-                limit = cache->last_tracker_index;
-        }
 
         /* Search tracker keys and add them to the strv */
         g_hash_table_iter_init(&cache_iter,
@@ -888,7 +868,6 @@ tracker_cache_value_get(TrackerCache *cache,
         GValue *return_value = NULL;
         TrackerCacheValue *cached_value = NULL;
         gchar **queried_result = NULL;
-        gchar *uri;
         float float_val = 0;
         MetadataKey *metadata_key;
 
@@ -987,20 +966,9 @@ tracker_cache_value_get(TrackerCache *cache,
                 default:
                         g_value_init(return_value, G_TYPE_STRING);
                         /* Special case: convert pathname to URI */
-                        if (metadata_key->special == SPECIAL_KEY_URI) {
-                                uri = g_filename_to_uri(
-                                        queried_result[
-                                                cached_value->tracker_index],
-                                        NULL,
-                                        NULL);
-                                g_value_set_string(return_value, uri);
-                                g_free(uri);
-			} else {
-				g_value_set_string(
-                                        return_value,
-                                        queried_result[
-                                                cached_value->tracker_index]);
-                        }
+                        g_value_set_string(
+                              return_value,
+                              queried_result[cached_value->tracker_index]);
                         break;
                 }
                 return return_value;
