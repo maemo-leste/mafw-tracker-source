@@ -28,98 +28,127 @@
 #include <glib.h>
 #include <libmafw/mafw.h>
 #include <tracker-sparql.h>
+
 #include "definitions.h"
 
 #define IS_STRING_EMPTY(str) ((str) == NULL || (str)[0] == '\0')
 
-typedef enum  {
-	TRACKER_TYPE_MUSIC,
-	TRACKER_TYPE_VIDEO,
-	TRACKER_TYPE_PLAYLIST
+typedef enum
+{
+  TRACKER_TYPE_MUSIC,
+  TRACKER_TYPE_VIDEO,
+  TRACKER_TYPE_PLAYLIST
 } TrackerObjectType;
 
-typedef enum {
-	CATEGORY_ROOT,
-	CATEGORY_VIDEO,
-	CATEGORY_MUSIC,
-	CATEGORY_MUSIC_PLAYLISTS,
-	CATEGORY_MUSIC_SONGS,
-	CATEGORY_MUSIC_ALBUMS,
-	CATEGORY_MUSIC_GENRES,
-	CATEGORY_MUSIC_ARTISTS,
-	CATEGORY_ERROR
+typedef enum
+{
+  CATEGORY_ROOT,
+  CATEGORY_VIDEO,
+  CATEGORY_MUSIC,
+  CATEGORY_MUSIC_PLAYLISTS,
+  CATEGORY_MUSIC_SONGS,
+  CATEGORY_MUSIC_ALBUMS,
+  CATEGORY_MUSIC_GENRES,
+  CATEGORY_MUSIC_ARTISTS,
+  CATEGORY_ERROR
 } CategoryType;
 
 #define AGGREGATED_TYPE_CONCAT "GROUP_CONCAT"
 #define AGGREGATED_TYPE_COUNT  "COUNT"
 #define AGGREGATED_TYPE_SUM    "SUM"
 
-void util_gvalue_free(GValue *value);
+void
+util_gvalue_free(GValue *value);
+
 gchar *util_str_replace(gchar *str, gchar *old, gchar *new);
-GList *util_itemid_to_path(const gchar *item_id);
-gchar *util_unescape_string(const gchar* original);
+GList *
+util_itemid_to_path(const gchar *item_id);
+gchar *
+util_unescape_string(const gchar *original);
 
 /*
  * Returns the 'data' field of a GList node.
  */
-inline static gchar *get_data(const GList * list)
+inline static gchar *
+get_data(const GList *list)
 {
-	return (gchar *) list->data;
+  return (gchar *)list->data;
 }
 
 #ifndef G_DEBUG_DISABLE
-void perf_elapsed_time_checkpoint(gchar *event);
+void
+perf_elapsed_time_checkpoint(gchar *event);
+
 #endif  /* G_DEBUG_DISABLE */
 
-gchar *util_epoch_to_iso8601(glong epoch);
-glong util_iso8601_to_epoch(const gchar *iso_date);
-gboolean util_mafw_filter_to_sparql(const MafwFilter *filter,
-				 GString *p);
-gchar *util_get_tracker_value_for_filter(const gchar *mafw_key,
-                                         TrackerObjectType type,
-					 const gchar *value);
-gboolean util_tracker_value_is_unknown(const gchar *value);
-gchar **util_create_sort_keys_array(gint n, gchar *key1, ...);
-gchar *util_create_filter_from_category(const gchar *genre,
-					const gchar *artist,
-					const gchar *album,
-					const gchar *user_filter);
-gchar *util_build_complex_rdf_filter(gchar **filters,
-				     const gchar *append_filter);
-void util_sum_duration(gpointer data, gpointer user_data);
-void util_sum_count(gpointer data, gpointer user_data);
-CategoryType util_extract_category_info(const gchar *object_id,
-                                        gchar **genre,
-                                        gchar **artist,
-                                        gchar **album,
-                                        gchar **clip);
-gboolean util_is_duration_requested(const gchar **key_list);
-gboolean util_calculate_playlist_duration_is_needed(GHashTable *pls_metadata);
-void util_remove_tracker_data_to_check_pls_duration(GHashTable *metadata,
-						    gchar **metadata_keys);
+gchar *
+util_epoch_to_iso8601(glong epoch);
+glong
+util_iso8601_to_epoch(const gchar *iso_date);
+gboolean
+util_mafw_filter_to_sparql(const MafwFilter *filter,
+                           GString *p);
+gchar *
+util_get_tracker_value_for_filter(const gchar *mafw_key,
+                                  TrackerObjectType type,
+                                  const gchar *value);
+gboolean
+util_tracker_value_is_unknown(const gchar *value);
+gchar **
+util_create_sort_keys_array(gint n, gchar *key1, ...);
+gchar *
+util_create_filter_from_category(const gchar *genre,
+                                 const gchar *artist,
+                                 const gchar *album,
+                                 const gchar *user_filter);
+gchar *
+util_build_complex_rdf_filter(gchar **filters,
+                              const gchar *append_filter);
+void
+util_sum_duration(gpointer data, gpointer user_data);
+void
+util_sum_count(gpointer data, gpointer user_data);
+CategoryType
+util_extract_category_info(const gchar *object_id,
+                           gchar **genre,
+                           gchar **artist,
+                           gchar **album,
+                           gchar **clip);
+gboolean
+util_is_duration_requested(const gchar **key_list);
+gboolean
+util_calculate_playlist_duration_is_needed(GHashTable *pls_metadata);
+void
+util_remove_tracker_data_to_check_pls_duration(GHashTable *metadata,
+                                               gchar **metadata_keys);
 
-gchar** util_list_to_strv(GList *list);
-gchar** util_add_element_to_strv(gchar **array, const gchar *element);
+gchar **
+util_list_to_strv(GList *list);
+gchar **
+util_add_element_to_strv(gchar **array, const gchar *element);
 
-gchar *util_build_sparql(TrackerObjectType type,
-			 gboolean unique,
-			 gchar **fields,
-			 const gchar *condition,
-			 gchar **aggregates,
-			 gchar **aggregate_fields,
-			 guint offset,
-			 guint limit,
-			 gchar **tracker_sort_keys,
-			 gboolean desc);
+gchar *
+util_build_sparql(TrackerObjectType type,
+                  gboolean unique,
+                  gchar **fields,
+                  const gchar *condition,
+                  gchar **aggregates,
+                  gchar **aggregate_fields,
+                  guint offset,
+                  guint limit,
+                  gchar **tracker_sort_keys,
+                  gboolean desc);
 
-gchar *util_build_meta_sparql(TrackerObjectType type,
-			      gchar **uris,
-			      gchar **fields, int max_fields);
+gchar *
+util_build_meta_sparql(TrackerObjectType type,
+                       gchar **uris,
+                       gchar **fields, int max_fields);
 
-gchar *util_build_update_sparql(TrackerObjectType type,
-				const gchar *uri,
-				gchar **keys,
-				gchar **values,
-				gboolean select);
+gchar *
+util_build_update_sparql(TrackerObjectType type,
+                         const gchar *uri,
+                         gchar **keys,
+                         gchar **values,
+                         gboolean select);
 
 #endif

@@ -27,20 +27,23 @@
 
 #include <glib.h>
 
-
 /* Supportted album art thumbnail sizes */
-enum thumbnail_size {
-	THUMBNAIL_CROPPED = 1,
-	THUMBNAIL_NORMAL
+enum thumbnail_size
+{
+  THUMBNAIL_CROPPED = 1,
+  THUMBNAIL_NORMAL
 };
 
+gchar *
+albumart_get_album_art_uri(const gchar *album);
 
-gchar *albumart_get_album_art_uri(const gchar *album);
+gchar *
+albumart_get_thumbnail_uri(const gchar *orig_file_uri,
+                           enum thumbnail_size size);
 
-gchar *albumart_get_thumbnail_uri(const gchar *orig_file_uri,
-                                   enum thumbnail_size size);
-
-gboolean albumart_key_is_album_art(const gchar *key);
-gboolean albumart_key_is_thumbnail(const gchar *key);
+gboolean
+albumart_key_is_album_art(const gchar *key);
+gboolean
+albumart_key_is_thumbnail(const gchar *key);
 
 #endif

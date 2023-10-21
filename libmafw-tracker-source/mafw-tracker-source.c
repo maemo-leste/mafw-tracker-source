@@ -26,53 +26,50 @@
 #include "config.h"
 #endif
 
-#include <stdlib.h>
-#include <string.h>
 #include <gio/gio.h>
 #include <gmodule.h>
+#include <stdlib.h>
+#include <string.h>
 
+#include "definitions.h"
 #include "mafw-tracker-source.h"
 #include "tracker-iface.h"
 #include "util.h"
-#include "definitions.h"
 
 #undef G_LOG_DOMAIN
 #define G_LOG_DOMAIN "mafw-tracker-source"
 
 #define MAFW_TRACKER_SOURCE_GET_PRIVATE(object) \
-	(G_TYPE_INSTANCE_GET_PRIVATE((object), MAFW_TYPE_TRACKER_SOURCE, \
-				      MafwTrackerSourcePrivate))
-
+  (G_TYPE_INSTANCE_GET_PRIVATE((object), MAFW_TYPE_TRACKER_SOURCE, \
+                               MafwTrackerSourcePrivate))
 
 /* Flag to indicate if the plugin has been initialized */
 static gboolean plugin_initialized = FALSE;
 
 /*_________________________ Data types  ________________________*/
 
-
-struct _destroy_object_closure {
-        /* Source instance */
-        MafwSource *source;
-        /* The objectid to be removed */
-        gchar *object_id;
-        /* The user callback to notify what has happened */
-        MafwSourceObjectDestroyedCb callback;
-        /* User data for callback */
-        gpointer user_data;
-	/* Callback error */
-	GError *error;
-	/* List of uris to destroy */
-	GList *uris;
-	/* Some extra fields used to destroy the files */
-	guint current_index;
-	guint remaining_count;
-	/* We may have to allocate memory for URI resolution */
-	gchar **metadata_keys;
+struct _destroy_object_closure
+{
+  /* Source instance */
+  MafwSource *source;
+  /* The objectid to be removed */
+  gchar *object_id;
+  /* The user callback to notify what has happened */
+  MafwSourceObjectDestroyedCb callback;
+  /* User data for callback */
+  gpointer user_data;
+  /* Callback error */
+  GError *error;
+  /* List of uris to destroy */
+  GList *uris;
+  /* Some extra fields used to destroy the files */
+  guint current_index;
+  guint remaining_count;
+  /* We may have to allocate memory for URI resolution */
+  gchar **metadata_keys;
 };
 
-
 /*________________________ Plugin init  ________________________*/
-
 
 /*
  * Registers the plugin descriptor making this plugin available to the
@@ -80,164 +77,175 @@ struct _destroy_object_closure {
  */
 G_MODULE_EXPORT MafwPluginDescriptor mafw_tracker_source_plugin_description =
 {
-	{ .name = MAFW_TRACKER_SOURCE_PLUGIN_NAME },
-	.initialize = mafw_tracker_source_plugin_initialize,
-	.deinitialize = mafw_tracker_source_plugin_deinitialize,
+  { .name = MAFW_TRACKER_SOURCE_PLUGIN_NAME },
+  .initialize = mafw_tracker_source_plugin_initialize,
+  .deinitialize = mafw_tracker_source_plugin_deinitialize,
 };
 
 /*
  * Plugin initialization. Initializes connectivity with Tracker
  * and then creates a MafwTrackerSource instance and registers it.
  */
-gboolean mafw_tracker_source_plugin_initialize(MafwRegistry * registry,
-					       GError **error)
+gboolean
+mafw_tracker_source_plugin_initialize(MafwRegistry *registry,
+                                      GError **error)
 {
-	MafwSource *source;
+  MafwSource *source;
 
-	/* First, check connectivity with Tracker */
-	plugin_initialized = ti_init();
-	if (plugin_initialized == FALSE) {
-		/* Disable plugin if we cannot connect to Tracker */
-		return FALSE;
-	}
+  /* First, check connectivity with Tracker */
+  plugin_initialized = ti_init();
 
-	/* Create a tracker source instance and register it */
-	source = mafw_tracker_source_new();
-	mafw_registry_add_extension(registry, MAFW_EXTENSION(source));
+  if (plugin_initialized == FALSE)
+  {
+    /* Disable plugin if we cannot connect to Tracker */
+    return FALSE;
+  }
 
-	return TRUE;
+  /* Create a tracker source instance and register it */
+  source = mafw_tracker_source_new();
+  mafw_registry_add_extension(registry, MAFW_EXTENSION(source));
+
+  return TRUE;
 }
 
 /*
  * Plugin deinit
  */
-void mafw_tracker_source_plugin_deinitialize(GError **error)
+void
+mafw_tracker_source_plugin_deinitialize(GError **error)
 {
-	ti_deinit();
+  ti_deinit();
 }
 
 /*_______________________________ Utilities _____________________________*/
 
-static void _destroy_object_closure_free(gpointer data)
+static void
+_destroy_object_closure_free(gpointer data)
 {
-	struct _destroy_object_closure *dc;
+  struct _destroy_object_closure *dc;
 
-	dc = (struct _destroy_object_closure *) data;
+  dc = (struct _destroy_object_closure *)data;
 
-	/* Free objectid of the destroyed item */
-	g_free(dc->object_id);
+  /* Free objectid of the destroyed item */
+  g_free(dc->object_id);
 
-	/* Free list of uris */
-	if (dc->uris) {
-		g_list_foreach(dc->uris, (GFunc) g_free, NULL);
-		g_list_free(dc->uris);
-	}
+  /* Free list of uris */
+  if (dc->uris)
+  {
+    g_list_foreach(dc->uris, (GFunc)g_free, NULL);
+    g_list_free(dc->uris);
+  }
 
-	/* Free metadata keys */
-	g_strfreev(dc->metadata_keys);
+  /* Free metadata keys */
+  g_strfreev(dc->metadata_keys);
 
-	/* Free callback error */
-	if (dc->error) {
-		g_error_free(dc->error);
-	}
-	g_free(dc);
+  /* Free callback error */
+  if (dc->error)
+    g_error_free(dc->error);
+
+  g_free(dc);
 }
 
-gchar* mafw_tracker_source_escape_string(const gchar* original)
+gchar *
+mafw_tracker_source_escape_string(const gchar *original)
 {
-	return g_uri_escape_string(original,
-				  "abcdefghijklmnopqrstuvwxyz"
-				  "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-				  TRUE);
+  return g_uri_escape_string(original,
+                             "abcdefghijklmnopqrstuvwxyz"
+                             "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+                             TRUE);
 }
 
 /* ___________________ GObject private implementation __________________ */
 
-static gboolean _destroy_object_idle(gpointer data)
+static gboolean
+_destroy_object_idle(gpointer data)
 {
+  GFile *file;
+  gchar *uri;
 
-	GFile *file;
-	gchar *uri;
+  struct _destroy_object_closure *dc = (struct _destroy_object_closure *)data;
 
-	struct _destroy_object_closure *dc =
-		(struct _destroy_object_closure *) data;
+  if (dc->remaining_count == 0)
+  {
+    dc->callback(dc->source, dc->object_id, dc->user_data, dc->error);
+    return FALSE;
+  }
+  else
+  {
+    uri = get_data(g_list_nth(dc->uris, dc->current_index));
+    file = g_file_new_for_uri(uri);
 
-	if (dc->remaining_count == 0) {
-		dc->callback(dc->source, dc->object_id, dc->user_data,
-			     dc->error);
-		return FALSE;
-	} else {
-		uri = get_data(g_list_nth(dc->uris, dc->current_index));
-		file = g_file_new_for_uri(uri);
-		if (!g_file_delete(file, NULL, NULL)) {
-			if (!dc->error) {
-				dc->error =g_error_new(
-                                      MAFW_SOURCE_ERROR,
-                                      MAFW_SOURCE_ERROR_DESTROY_OBJECT_FAILED,
-                                      "One or more files can't be deleted");
-			}
-		}
+    if (!g_file_delete(file, NULL, NULL))
+    {
+      if (!dc->error)
+      {
+        dc->error = g_error_new(MAFW_SOURCE_ERROR,
+                                MAFW_SOURCE_ERROR_DESTROY_OBJECT_FAILED,
+                                "One or more files can't be deleted");
+      }
+    }
 
-		dc->current_index++;
-		dc->remaining_count--;
+    dc->current_index++;
+    dc->remaining_count--;
 
-		g_object_unref(file);
-	}
+    g_object_unref(file);
+  }
 
-	return TRUE;
+  return TRUE;
 }
 
-static void _get_uri(gpointer metadata, gpointer uris_list)
+static void
+_get_uri(gpointer metadata, gpointer uris_list)
 {
-	GValue *gval = NULL;
-	const gchar *uri;
-	GList **uris = (GList **) uris_list;
+  GValue *gval = NULL;
+  const gchar *uri;
+  GList **uris = (GList **)uris_list;
 
-	if (metadata)
-		gval = mafw_metadata_first(metadata, MAFW_METADATA_KEY_URI);
+  if (metadata)
+    gval = mafw_metadata_first(metadata, MAFW_METADATA_KEY_URI);
 
-	if (gval) {
-		uri = g_value_get_string(gval);
-		if (uri) {
-			*uris = g_list_append(*uris, (gchar *) uri);
-		}
-	}
+  if (gval)
+  {
+    uri = g_value_get_string(gval);
+
+    if (uri)
+      *uris = g_list_append(*uris, (gchar *)uri);
+  }
 }
 
-static void _destroy_object_tracker_cb(MafwResult *clips, GError *error,
-				       gpointer user_data)
+static void
+_destroy_object_tracker_cb(MafwResult *clips, GError *error, gpointer user_data)
 {
-	GList *uris = NULL;
+  GList *uris = NULL;
 
-	struct _destroy_object_closure *dc =
-		(struct _destroy_object_closure *) user_data;
+  struct _destroy_object_closure *dc = user_data;
 
-	if (error == NULL) {
-		g_list_foreach(clips->metadata_values, _get_uri, &uris);
-		dc->uris = uris;
-		dc->current_index = 0;
-		dc->remaining_count = g_list_length(dc->uris);
+  if (error == NULL)
+  {
+    g_list_foreach(clips->metadata_values, _get_uri, &uris);
+    dc->uris = uris;
+    dc->current_index = 0;
+    dc->remaining_count = g_list_length(dc->uris);
 
-		g_idle_add_full(G_PRIORITY_DEFAULT_IDLE,
-				(GSourceFunc) _destroy_object_idle, dc,
-				(GDestroyNotify) _destroy_object_closure_free);
-		g_list_foreach(clips->ids,
-			       (GFunc) g_free, NULL);
-		g_list_free(clips->ids);
-		g_free(clips);
-	} else {
-		/* Emit error */
-		GError *mafw_error;
-		mafw_error = g_error_new(MAFW_SOURCE_ERROR,
-					  MAFW_SOURCE_ERROR_INVALID_OBJECT_ID,
-					  "%s not found", dc->object_id);
-		dc->callback(dc->source, dc->object_id, dc->user_data,
-			     mafw_error);
-		_destroy_object_closure_free(dc);
-		g_error_free(mafw_error);
-	}
+    g_idle_add_full(G_PRIORITY_DEFAULT_IDLE,
+                    (GSourceFunc)_destroy_object_idle, dc,
+                    (GDestroyNotify)_destroy_object_closure_free);
+    g_list_foreach(clips->ids, (GFunc)g_free, NULL);
+    g_list_free(clips->ids);
+    g_free(clips);
+  }
+  else
+  {
+    /* Emit error */
+    GError *mafw_error;
+    mafw_error = g_error_new(MAFW_SOURCE_ERROR,
+                             MAFW_SOURCE_ERROR_INVALID_OBJECT_ID,
+                             "%s not found", dc->object_id);
+    dc->callback(dc->source, dc->object_id, dc->user_data, mafw_error);
+    _destroy_object_closure_free(dc);
+    g_error_free(mafw_error);
+  }
 }
-
 
 /*_________________________ Tracker Source GObject ________________________*/
 
@@ -246,37 +254,38 @@ G_DEFINE_TYPE(MafwTrackerSource, mafw_tracker_source, MAFW_TYPE_SOURCE);
 /*
  * Class initialization
  */
-static void mafw_tracker_source_class_init(MafwTrackerSourceClass * klass)
+static void
+mafw_tracker_source_class_init(MafwTrackerSourceClass *klass)
 {
-	MafwSourceClass *source_class = MAFW_SOURCE_CLASS(klass);
+  MafwSourceClass *source_class = MAFW_SOURCE_CLASS(klass);
 
-	source_class->browse = mafw_tracker_source_browse;
-        source_class->cancel_browse = mafw_tracker_source_cancel_browse;
-        source_class->get_update_progress =
-                mafw_tracker_source_get_update_progress;
-	source_class->get_metadata = mafw_tracker_source_get_metadata;
-	source_class->get_metadatas = mafw_tracker_source_get_metadatas;
-	source_class->destroy_object = mafw_tracker_source_destroy_object;
-        source_class->set_metadata = mafw_tracker_source_set_metadata;
+  source_class->browse = mafw_tracker_source_browse;
+  source_class->cancel_browse = mafw_tracker_source_cancel_browse;
+  source_class->get_update_progress =
+    mafw_tracker_source_get_update_progress;
+  source_class->get_metadata = mafw_tracker_source_get_metadata;
+  source_class->get_metadatas = mafw_tracker_source_get_metadatas;
+  source_class->destroy_object = mafw_tracker_source_destroy_object;
+  source_class->set_metadata = mafw_tracker_source_set_metadata;
 
-	klass->browse_id_counter = 0;
+  klass->browse_id_counter = 0;
 
-	g_type_class_add_private(klass, sizeof(MafwTrackerSourcePrivate));
+  g_type_class_add_private(klass, sizeof(MafwTrackerSourcePrivate));
 }
 
 /*
  * Instance initialization
  */
-static void mafw_tracker_source_init(MafwTrackerSource * source_tracker)
+static void
+mafw_tracker_source_init(MafwTrackerSource *source_tracker)
 {
-	source_tracker->priv =
-                MAFW_TRACKER_SOURCE_GET_PRIVATE(source_tracker);
+  source_tracker->priv = MAFW_TRACKER_SOURCE_GET_PRIVATE(source_tracker);
 
-        /* Initialize list of pending browse operations */
-        source_tracker->priv->pending_browse_ops = NULL;
+  /* Initialize list of pending browse operations */
+  source_tracker->priv->pending_browse_ops = NULL;
 
-        /* Initialize last progress; assume that tracker isn't indexing */
-        source_tracker->priv->last_progress = 100;
+  /* Initialize last progress; assume that tracker isn't indexing */
+  source_tracker->priv->last_progress = 100;
 }
 
 /**
@@ -286,144 +295,147 @@ static void mafw_tracker_source_init(MafwTrackerSource * source_tracker)
  *
  * Returns: a new tracker source.
  */
-MafwSource *mafw_tracker_source_new(void)
+MafwSource *
+mafw_tracker_source_new(void)
 {
-	MafwSource *source = NULL;
+  MafwSource *source = NULL;
 
-	if (plugin_initialized == FALSE) {
-		g_critical ("Plugin has not been initialized. "
-			    "Cannot create a MafwTrackerSource instance.");
-	} else {
-		source = MAFW_SOURCE(
-			g_object_new(MAFW_TYPE_TRACKER_SOURCE,
-				     "plugin", MAFW_TRACKER_SOURCE_PLUGIN_NAME,
-				     "uuid", MAFW_TRACKER_SOURCE_UUID,
-				     "name", MAFW_TRACKER_SOURCE_NAME,
-				     NULL));
+  if (plugin_initialized == FALSE)
+  {
+    g_critical("Plugin has not been initialized. "
+               "Cannot create a MafwTrackerSource instance.");
+  }
+  else
+  {
+    source = MAFW_SOURCE(
+      g_object_new(MAFW_TYPE_TRACKER_SOURCE,
+                   "plugin", MAFW_TRACKER_SOURCE_PLUGIN_NAME,
+                   "uuid", MAFW_TRACKER_SOURCE_UUID,
+                   "name", MAFW_TRACKER_SOURCE_NAME,
+                   NULL));
 
-		/* Connect to notifications about changes on the filesystem */
-		ti_init_watch(G_OBJECT(source));
-	}
+    /* Connect to notifications about changes on the filesystem */
+    ti_init_watch(G_OBJECT(source));
+  }
 
-	return source;
+  return source;
 }
 
-static gboolean _destroy_object_error_idle(gpointer data)
+static gboolean
+_destroy_object_error_idle(gpointer data)
 {
-	struct _destroy_object_closure *dc = data;
+  struct _destroy_object_closure *dc = data;
 
-	/* Emit the error */
-	dc->callback(dc->source, dc->object_id, dc->user_data, dc->error);
+  /* Emit the error */
+  dc->callback(dc->source, dc->object_id, dc->user_data, dc->error);
 
-	return G_SOURCE_REMOVE;
+  return G_SOURCE_REMOVE;
 }
 
-void mafw_tracker_source_destroy_object(MafwSource *self,
-					 const gchar *object_id,
-					 MafwSourceObjectDestroyedCb cb,
-					 gpointer user_data)
+void
+mafw_tracker_source_destroy_object(MafwSource *self,
+                                   const gchar *object_id,
+                                   MafwSourceObjectDestroyedCb cb,
+                                   gpointer user_data)
 {
-	CategoryType category;
-	gchar *genre, *artist, *album, *clip;
+  CategoryType category;
+  gchar *genre, *artist, *album, *clip;
 
-        g_return_if_fail(MAFW_IS_TRACKER_SOURCE(self));
-        g_return_if_fail(object_id != NULL);
+  g_return_if_fail(MAFW_IS_TRACKER_SOURCE(self));
+  g_return_if_fail(object_id != NULL);
 
+  /* Prepare destroy operation */
+  struct _destroy_object_closure *dc =
+    g_new0(struct _destroy_object_closure, 1);
 
-	/* Prepare destroy operation */
-	struct _destroy_object_closure *dc =
-		g_new0(struct _destroy_object_closure, 1);
- 	dc->source = self;
-	dc->object_id = g_strdup(object_id);
-	dc->callback = cb;
-	dc->user_data = user_data;
-	dc->error = NULL;
-	dc->uris = NULL;
-	dc->current_index = 0;
-	dc->remaining_count = 1;
-	dc->metadata_keys = NULL;
+  dc->source = self;
+  dc->object_id = g_strdup(object_id);
+  dc->callback = cb;
+  dc->user_data = user_data;
+  dc->error = NULL;
+  dc->uris = NULL;
+  dc->current_index = 0;
+  dc->remaining_count = 1;
+  dc->metadata_keys = NULL;
 
-	category = util_extract_category_info(object_id, &genre, &artist,
-					      &album, &clip);
-	if (category == CATEGORY_ERROR) {
-		/* Emit the error */
-		dc->error = g_error_new(
-				    MAFW_SOURCE_ERROR,
-				    MAFW_SOURCE_ERROR_INVALID_OBJECT_ID,
-				    "Malformed object id: %s", object_id);
-		g_idle_add_full(
-			G_PRIORITY_DEFAULT_IDLE,
-			_destroy_object_error_idle,
-			dc,
-			(GDestroyNotify) _destroy_object_closure_free);
+  category = util_extract_category_info(
+        object_id, &genre, &artist, &album, &clip);
 
-		return;
-	}
+  if (category == CATEGORY_ERROR)
+  {
+    /* Emit the error */
+    dc->error = g_error_new(MAFW_SOURCE_ERROR,
+                            MAFW_SOURCE_ERROR_INVALID_OBJECT_ID,
+                            "Malformed object id: %s", object_id);
+    g_idle_add_full(G_PRIORITY_DEFAULT_IDLE,
+                    _destroy_object_error_idle, dc,
+                    (GDestroyNotify)_destroy_object_closure_free);
 
-	/* Destroy operation */
-	if (clip) {
-		/* Delete a video, a song or a playlist file */
-		dc->uris = g_list_append(dc->uris, g_strdup(clip));
-		g_idle_add_full(
-			G_PRIORITY_DEFAULT_IDLE,
-			_destroy_object_idle,
-			dc,
-			(GDestroyNotify) _destroy_object_closure_free);
-	} else if (artist || album){
-		/* Delete a an album or an artist container and its files */
-		dc->metadata_keys =
-			g_strdupv((gchar **)
-				  MAFW_SOURCE_LIST(MAFW_METADATA_KEY_URI));
+    return;
+  }
 
-		ti_get_songs(genre, artist, album, dc->metadata_keys, NULL,
-			     NULL, 0, 0, _destroy_object_tracker_cb, dc);
-	} else {
-		/* Delete other containers is not allowed */
-		dc->error = g_error_new(MAFW_SOURCE_ERROR,
-				    MAFW_SOURCE_ERROR_DESTROY_OBJECT_FAILED,
-				    "Operation not allowed for category: %s",
-				    dc->object_id);
-		g_idle_add_full(
-			G_PRIORITY_DEFAULT_IDLE,
-			_destroy_object_error_idle,
-			dc,
-			(GDestroyNotify) _destroy_object_closure_free);
-	}
+  /* Destroy operation */
+  if (clip)
+  {
+    /* Delete a video, a song or a playlist file */
+    dc->uris = g_list_append(dc->uris, g_strdup(clip));
+    g_idle_add_full(G_PRIORITY_DEFAULT_IDLE,
+                    _destroy_object_idle, dc,
+                    (GDestroyNotify)_destroy_object_closure_free);
+  }
+  else if (artist || album)
+  {
+    /* Delete a an album or an artist container and its files */
+    dc->metadata_keys =
+      g_strdupv((gchar **)MAFW_SOURCE_LIST(MAFW_METADATA_KEY_URI));
 
-	/* Frees */
-	if (clip)
-		g_free(clip);
-	if (genre)
-		g_free(genre);
-	if (album)
-		g_free(album);
-	if (artist)
-		g_free(artist);
+    ti_get_songs(genre, artist, album, dc->metadata_keys, NULL,
+                 NULL, 0, 0, _destroy_object_tracker_cb, dc);
+  }
+  else
+  {
+    /* Delete other containers is not allowed */
+    dc->error = g_error_new(MAFW_SOURCE_ERROR,
+                            MAFW_SOURCE_ERROR_DESTROY_OBJECT_FAILED,
+                            "Operation not allowed for category: %s",
+                            dc->object_id);
+    g_idle_add_full(G_PRIORITY_DEFAULT_IDLE,
+                    _destroy_object_error_idle, dc,
+                    (GDestroyNotify)_destroy_object_closure_free);
+  }
 
-	return;
+  /* Frees */
+  if (clip)
+    g_free(clip);
+
+  if (genre)
+    g_free(genre);
+
+  if (album)
+    g_free(album);
+
+  if (artist)
+    g_free(artist);
+
+  return;
 }
 
-gint mafw_tracker_source_get_update_progress(MafwSource *self,
-                                             gint *processed_items,
-                                             gint *remaining_items,
-                                             gint *remaining_time)
+gint
+mafw_tracker_source_get_update_progress(MafwSource *self,
+                                        gint *processed_items,
+                                        gint *remaining_items,
+                                        gint *remaining_time)
 {
-        g_return_val_if_fail(MAFW_IS_TRACKER_SOURCE(self), 100);
+  g_return_val_if_fail(MAFW_IS_TRACKER_SOURCE(self), 100);
 
-        if (processed_items) {
-                *processed_items =
-                        MAFW_TRACKER_SOURCE(self)->priv->processed_items;
-        }
+  if (processed_items)
+    *processed_items = MAFW_TRACKER_SOURCE(self)->priv->processed_items;
 
-        if (remaining_items) {
-                *remaining_items =
-                        MAFW_TRACKER_SOURCE(self)->priv->remaining_items;
-        }
+  if (remaining_items)
+    *remaining_items = MAFW_TRACKER_SOURCE(self)->priv->remaining_items;
 
-        if (remaining_time) {
-                *remaining_time =
-                        MAFW_TRACKER_SOURCE(self)->priv->remaining_time;
-        }
+  if (remaining_time)
+    *remaining_time = MAFW_TRACKER_SOURCE(self)->priv->remaining_time;
 
-        return MAFW_TRACKER_SOURCE(self)->priv->last_progress;
+  return MAFW_TRACKER_SOURCE(self)->priv->last_progress;
 }

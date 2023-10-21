@@ -45,65 +45,65 @@
 #define ROOT_MUSIC_PLAYLISTS_TITLE           "Playlists"
 
 #define KNOWN_METADATA_KEYS                                             \
-        MAFW_METADATA_KEY_URI,						\
-		MAFW_METADATA_KEY_MIME,                                 \
-                MAFW_METADATA_KEY_TITLE,				\
-		MAFW_METADATA_KEY_DURATION,				\
-                MAFW_METADATA_KEY_ARTIST,				\
-		MAFW_METADATA_KEY_ALBUM,				\
-                MAFW_METADATA_KEY_GENRE,				\
-		MAFW_METADATA_KEY_TRACK,				\
-                MAFW_METADATA_KEY_YEAR,                                 \
-		MAFW_METADATA_KEY_BITRATE,				\
-                MAFW_METADATA_KEY_COUNT,				\
-		MAFW_METADATA_KEY_PLAY_COUNT,				\
-                MAFW_METADATA_KEY_LAST_PLAYED,                          \
-                MAFW_METADATA_KEY_DESCRIPTION,                          \
-                MAFW_METADATA_KEY_ENCODING,				\
-		MAFW_METADATA_KEY_ADDED,				\
-                MAFW_METADATA_KEY_MODIFIED,                             \
-                MAFW_METADATA_KEY_THUMBNAIL_URI,                        \
-                MAFW_METADATA_KEY_THUMBNAIL_SMALL_URI,			\
-                MAFW_METADATA_KEY_THUMBNAIL_MEDIUM_URI,                 \
-                MAFW_METADATA_KEY_THUMBNAIL_LARGE_URI,			\
-                MAFW_METADATA_KEY_PAUSED_THUMBNAIL_URI,                 \
-                MAFW_METADATA_KEY_PAUSED_POSITION,                      \
-                MAFW_METADATA_KEY_THUMBNAIL,				\
-		MAFW_METADATA_KEY_IS_SEEKABLE,				\
-                MAFW_METADATA_KEY_RES_X,				\
-                MAFW_METADATA_KEY_RES_Y,				\
-		MAFW_METADATA_KEY_COMMENT,				\
-                MAFW_METADATA_KEY_TAGS,                                 \
-		MAFW_METADATA_KEY_DIDL,                                 \
-                MAFW_METADATA_KEY_ARTIST_INFO_URI,                      \
-                MAFW_METADATA_KEY_ALBUM_INFO_URI,                       \
-                MAFW_METADATA_KEY_LYRICS_URI,				\
-		MAFW_METADATA_KEY_LYRICS,				\
-                MAFW_METADATA_KEY_RATING,				\
-		MAFW_METADATA_KEY_COMPOSER,				\
-                MAFW_METADATA_KEY_FILENAME,				\
-		MAFW_METADATA_KEY_FILESIZE,				\
-                MAFW_METADATA_KEY_COPYRIGHT,                            \
-                MAFW_METADATA_KEY_PROTOCOL_INFO,                        \
-                MAFW_METADATA_KEY_AUDIO_BITRATE,                        \
-                MAFW_METADATA_KEY_AUDIO_CODEC,                          \
-                MAFW_METADATA_KEY_ALBUM_ART_URI,			\
-                MAFW_METADATA_KEY_ALBUM_ART_SMALL_URI,                  \
-                MAFW_METADATA_KEY_ALBUM_ART_MEDIUM_URI,                 \
-                MAFW_METADATA_KEY_ALBUM_ART_LARGE_URI,                  \
-                MAFW_METADATA_KEY_ALBUM_ART,                            \
-                MAFW_METADATA_KEY_VIDEO_BITRATE,                        \
-                MAFW_METADATA_KEY_VIDEO_CODEC,                          \
-                MAFW_METADATA_KEY_VIDEO_FRAMERATE,                      \
-                MAFW_METADATA_KEY_VIDEO_SOURCE,                         \
-		MAFW_METADATA_KEY_BPP,					\
-                MAFW_METADATA_KEY_EXIF_XML,				\
-                MAFW_METADATA_KEY_ICON_URI,				\
-		MAFW_METADATA_KEY_ICON,                                 \
-                MAFW_METADATA_KEY_CHILDCOUNT_1,                         \
-                MAFW_METADATA_KEY_CHILDCOUNT_2,                         \
-                MAFW_METADATA_KEY_CHILDCOUNT_3,                         \
-                MAFW_METADATA_KEY_CHILDCOUNT_4
+  MAFW_METADATA_KEY_URI,                                          \
+  MAFW_METADATA_KEY_MIME,                                 \
+  MAFW_METADATA_KEY_TITLE,                                \
+  MAFW_METADATA_KEY_DURATION,                             \
+  MAFW_METADATA_KEY_ARTIST,                               \
+  MAFW_METADATA_KEY_ALBUM,                                \
+  MAFW_METADATA_KEY_GENRE,                                \
+  MAFW_METADATA_KEY_TRACK,                                \
+  MAFW_METADATA_KEY_YEAR,                                 \
+  MAFW_METADATA_KEY_BITRATE,                              \
+  MAFW_METADATA_KEY_COUNT,                                \
+  MAFW_METADATA_KEY_PLAY_COUNT,                           \
+  MAFW_METADATA_KEY_LAST_PLAYED,                          \
+  MAFW_METADATA_KEY_DESCRIPTION,                          \
+  MAFW_METADATA_KEY_ENCODING,                             \
+  MAFW_METADATA_KEY_ADDED,                                \
+  MAFW_METADATA_KEY_MODIFIED,                             \
+  MAFW_METADATA_KEY_THUMBNAIL_URI,                        \
+  MAFW_METADATA_KEY_THUMBNAIL_SMALL_URI,                  \
+  MAFW_METADATA_KEY_THUMBNAIL_MEDIUM_URI,                 \
+  MAFW_METADATA_KEY_THUMBNAIL_LARGE_URI,                  \
+  MAFW_METADATA_KEY_PAUSED_THUMBNAIL_URI,                 \
+  MAFW_METADATA_KEY_PAUSED_POSITION,                      \
+  MAFW_METADATA_KEY_THUMBNAIL,                            \
+  MAFW_METADATA_KEY_IS_SEEKABLE,                          \
+  MAFW_METADATA_KEY_RES_X,                                \
+  MAFW_METADATA_KEY_RES_Y,                                \
+  MAFW_METADATA_KEY_COMMENT,                              \
+  MAFW_METADATA_KEY_TAGS,                                 \
+  MAFW_METADATA_KEY_DIDL,                                 \
+  MAFW_METADATA_KEY_ARTIST_INFO_URI,                      \
+  MAFW_METADATA_KEY_ALBUM_INFO_URI,                       \
+  MAFW_METADATA_KEY_LYRICS_URI,                           \
+  MAFW_METADATA_KEY_LYRICS,                               \
+  MAFW_METADATA_KEY_RATING,                               \
+  MAFW_METADATA_KEY_COMPOSER,                             \
+  MAFW_METADATA_KEY_FILENAME,                             \
+  MAFW_METADATA_KEY_FILESIZE,                             \
+  MAFW_METADATA_KEY_COPYRIGHT,                            \
+  MAFW_METADATA_KEY_PROTOCOL_INFO,                        \
+  MAFW_METADATA_KEY_AUDIO_BITRATE,                        \
+  MAFW_METADATA_KEY_AUDIO_CODEC,                          \
+  MAFW_METADATA_KEY_ALBUM_ART_URI,                        \
+  MAFW_METADATA_KEY_ALBUM_ART_SMALL_URI,                  \
+  MAFW_METADATA_KEY_ALBUM_ART_MEDIUM_URI,                 \
+  MAFW_METADATA_KEY_ALBUM_ART_LARGE_URI,                  \
+  MAFW_METADATA_KEY_ALBUM_ART,                            \
+  MAFW_METADATA_KEY_VIDEO_BITRATE,                        \
+  MAFW_METADATA_KEY_VIDEO_CODEC,                          \
+  MAFW_METADATA_KEY_VIDEO_FRAMERATE,                      \
+  MAFW_METADATA_KEY_VIDEO_SOURCE,                         \
+  MAFW_METADATA_KEY_BPP,                                  \
+  MAFW_METADATA_KEY_EXIF_XML,                             \
+  MAFW_METADATA_KEY_ICON_URI,                             \
+  MAFW_METADATA_KEY_ICON,                                 \
+  MAFW_METADATA_KEY_CHILDCOUNT_1,                         \
+  MAFW_METADATA_KEY_CHILDCOUNT_2,                         \
+  MAFW_METADATA_KEY_CHILDCOUNT_3,                         \
+  MAFW_METADATA_KEY_CHILDCOUNT_4
 
 /* Tracker metadata keys */
 #define TRACKER_AKEY_ALBUM            "?o nmm:musicAlbum/nie:title"
@@ -149,17 +149,18 @@
 #define PLAYLISTS_OBJECT_ID  MAFW_TRACKER_SOURCE_UUID "::music/playlists"
 
 /* Private data of MAFW_TRACKER_SOURCE */
-struct _MafwTrackerSourcePrivate {
-        /* A List of pending browse operations */
-        GList *pending_browse_ops;
-        /* Last value of update progress */
-        gint last_progress;
-        /* Number of processed items when updating */
-        gint processed_items;
-        /* Number of remaining items to be processed when updating */
-        gint remaining_items;
-        /* Remaining time (in seconds) to finish the update */
-        gint remaining_time;
+struct _MafwTrackerSourcePrivate
+{
+  /* A List of pending browse operations */
+  GList *pending_browse_ops;
+  /* Last value of update progress */
+  gint last_progress;
+  /* Number of processed items when updating */
+  gint processed_items;
+  /* Number of remaining items to be processed when updating */
+  gint remaining_items;
+  /* Remaining time (in seconds) to finish the update */
+  gint remaining_time;
 };
 
-#endif				/* _MAFW_TRACKER_SOURCE_DEFINITIONS_H_ */
+#endif                          /* _MAFW_TRACKER_SOURCE_DEFINITIONS_H_ */

@@ -25,129 +25,149 @@
 #ifndef __MAFW_TRACKER_IFACE_H__
 #define __MAFW_TRACKER_IFACE_H__
 
-#include <libmafw/mafw.h>
 #include "util.h"
+#include <libmafw/mafw.h>
 
-typedef struct {
-	GList *ids;
-	GList *metadata_values;
+typedef struct
+{
+  GList *ids;
+  GList *metadata_values;
 } MafwResult;
 
 typedef void (*MafwTrackerSongsResultCB)(MafwResult *result,
-					 GError *error,
-					 gpointer user_data);
+                                         GError *error,
+                                         gpointer user_data);
 
 typedef void (*MafwTrackerMetadataResultCB)(GHashTable *result,
-					    GError *error,
-					    gpointer user_data);
+                                            GError *error,
+                                            gpointer user_data);
 
 typedef void (*MafwTrackerMetadatasResultCB)(GList *results,
                                              GError *error,
                                              gpointer user_data);
 
-gboolean ti_init(void);
-void ti_init_watch(GObject *source);
-void ti_deinit(void);
+gboolean
+ti_init(void);
+void
+ti_init_watch(GObject *source);
+void
+ti_deinit(void);
 
-gchar *ti_create_filter(const MafwFilter *filter_str);
+gchar *
+ti_create_filter(const MafwFilter *filter_str);
 
-void ti_get_songs(const gchar *genre,
-                  const gchar *artist,
-                  const gchar *album,
-                  gchar **keys,
-                  const gchar *user_filter,
-                  gchar **sort_fields,
-                  guint offset,
-                  guint count,
-                  MafwTrackerSongsResultCB callback,
-                  gpointer user_data);
+void
+ti_get_songs(const gchar *genre,
+             const gchar *artist,
+             const gchar *album,
+             gchar **keys,
+             const gchar *user_filter,
+             gchar **sort_fields,
+             guint offset,
+             guint count,
+             MafwTrackerSongsResultCB callback,
+             gpointer user_data);
 
-void ti_get_videos(gchar **keys,
-		   const gchar *rdf_filter,
-		   gchar **sort_fields,
-		   guint offset,
-		   guint count,
-		   MafwTrackerSongsResultCB callback,
-		   gpointer user_data);
+void
+ti_get_videos(gchar **keys,
+              const gchar *rdf_filter,
+              gchar **sort_fields,
+              guint offset,
+              guint count,
+              MafwTrackerSongsResultCB callback,
+              gpointer user_data);
 
-void ti_get_albums(const gchar *genre,
-                   const gchar *artist,
-                   gchar **keys,
-                   const gchar *rdf_filter,
-                   gchar **sort_fields,
-                   guint offset,
-                   guint count,
-                   MafwTrackerSongsResultCB callback,
-                   gpointer user_data);
+void
+ti_get_albums(const gchar *genre,
+              const gchar *artist,
+              gchar **keys,
+              const gchar *rdf_filter,
+              gchar **sort_fields,
+              guint offset,
+              guint count,
+              MafwTrackerSongsResultCB callback,
+              gpointer user_data);
 
-void ti_get_artists(const gchar *genre,
-                    gchar **keys,
-		    const gchar *rdf_filter,
-		    gchar **sort_fields,
-		    guint offset,
-		    guint count,
-		    MafwTrackerSongsResultCB callback,
-		    gpointer user_data);
+void
+ti_get_artists(const gchar *genre,
+               gchar **keys,
+               const gchar *rdf_filter,
+               gchar **sort_fields,
+               guint offset,
+               guint count,
+               MafwTrackerSongsResultCB callback,
+               gpointer user_data);
 
-void ti_get_genres(gchar **keys,
-		   const gchar *rdf_filter,
-		   gchar **sort_fields,
-		   guint offset,
-		   guint count,
-		   MafwTrackerSongsResultCB callback,
-		   gpointer user_data);
+void
+ti_get_genres(gchar **keys,
+              const gchar *rdf_filter,
+              gchar **sort_fields,
+              guint offset,
+              guint count,
+              MafwTrackerSongsResultCB callback,
+              gpointer user_data);
 
-void ti_get_playlists(gchar **keys,
-		      const gchar *user_filter,
-		      gchar **sort_fields,
-		      guint offset,
-		      guint count,
-		      MafwTrackerSongsResultCB callback,
-		      gpointer user_data);
+void
+ti_get_playlists(gchar **keys,
+                 const gchar *user_filter,
+                 gchar **sort_fields,
+                 guint offset,
+                 guint count,
+                 MafwTrackerSongsResultCB callback,
+                 gpointer user_data);
 
-void ti_get_metadata_from_videoclip(gchar **uris,
-                                    gchar **keys,
-                                    MafwTrackerMetadatasResultCB callback,
-                                    gpointer user_data);
+void
+ti_get_metadata_from_videoclip(gchar **uris,
+                               gchar **keys,
+                               MafwTrackerMetadatasResultCB callback,
+                               gpointer user_data);
 
-void ti_get_metadata_from_audioclip(gchar **uris,
-                                    gchar **keys,
-                                    MafwTrackerMetadatasResultCB callback,
-                                    gpointer user_data);
+void
+ti_get_metadata_from_audioclip(gchar **uris,
+                               gchar **keys,
+                               MafwTrackerMetadatasResultCB callback,
+                               gpointer user_data);
 
-void ti_get_metadata_from_playlist(gchar **uris,
-				   gchar **keys,
-				   MafwTrackerMetadatasResultCB callback,
-				   gpointer user_data);
+void
+ti_get_metadata_from_playlist(gchar **uris,
+                              gchar **keys,
+                              MafwTrackerMetadatasResultCB callback,
+                              gpointer user_data);
 
-void ti_get_metadata_from_category(const gchar *genre,
-                                   const gchar *artist,
-                                   const gchar *album,
-                                   const gchar *default_count_key,
-                                   const gchar *title,
-                                   gchar **keys,
-                                   MafwTrackerMetadataResultCB callback,
-                                   gpointer user_data);
+void
+ti_get_metadata_from_category(const gchar *genre,
+                              const gchar *artist,
+                              const gchar *album,
+                              const gchar *default_count_key,
+                              const gchar *title,
+                              gchar **keys,
+                              MafwTrackerMetadataResultCB callback,
+                              gpointer user_data);
 
-void ti_get_metadata_from_videos(gchar **keys,
-                                 const gchar *title,
-                                 MafwTrackerMetadataResultCB callback,
-                                 gpointer user_data);
+void
+ti_get_metadata_from_videos(gchar **keys,
+                            const gchar *title,
+                            MafwTrackerMetadataResultCB callback,
+                            gpointer user_data);
 
-void ti_get_metadata_from_music(gchar **keys,
-                                const gchar *title,
-                                MafwTrackerMetadataResultCB callback,
-                                gpointer user_data);
+void
+ti_get_metadata_from_music(gchar **keys,
+                           const gchar *title,
+                           MafwTrackerMetadataResultCB callback,
+                           gpointer user_data);
 
-void ti_get_metadata_from_playlists(gchar **keys,
-                                    const gchar *title,
-                                    MafwTrackerMetadataResultCB callback,
-                                    gpointer user_data);
-void ti_set_playlist_duration(const gchar *uri, guint duration);
+void
+ti_get_metadata_from_playlists(gchar **keys,
+                               const gchar *title,
+                               MafwTrackerMetadataResultCB callback,
+                               gpointer user_data);
+void
+ti_set_playlist_duration(const gchar *uri, guint duration);
 
-gchar **ti_set_metadata(const gchar *uri, 
-			GHashTable *metadata,
-			CategoryType category,
-			gboolean *updated, GError **error);
+gchar **
+ti_set_metadata(const gchar *uri,
+                GHashTable *metadata,
+                CategoryType category,
+                gboolean *updated, GError **error);
 
 #endif
