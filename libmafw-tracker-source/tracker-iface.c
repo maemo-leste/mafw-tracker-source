@@ -1537,6 +1537,9 @@ _do_tracker_get_metadata_from_service(gchar **keys,
     g_idle_add(_run_tracker_metadata_from_container_cb, mc);
 
   g_strfreev(unique_keys);
+  g_free(aggregate_keys[0]);
+  g_free(aggregate_keys[1]);
+  g_free(aggregate_keys[2]);
 }
 
 void
