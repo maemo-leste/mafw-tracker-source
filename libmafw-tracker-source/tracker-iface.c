@@ -415,6 +415,7 @@ _do_tracker_get_unique_values(gchar **keys,
                                         _tracker_sparql_unique_values_cb,
                                         mc);
   g_free(sql);
+  g_free(filter);
 }
 
 static GPtrArray *
@@ -1961,7 +1962,7 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, CategoryType category,
 
       if (object_exists)
       {
-        sparql = util_build_update_sparql(tracker_type, 
+        sparql = util_build_update_sparql(tracker_type,
                                           uri,
                                           keys_array,
                                           values_array,
