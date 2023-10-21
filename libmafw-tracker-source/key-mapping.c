@@ -91,7 +91,7 @@ keymap_get_info_key_table(void)
     tracker_key = g_new0(TrackerKey, 1);
     tracker_key->tracker_key = TRACKER_AKEY_TITLE;
     tracker_key->value_type = G_TYPE_STRING;
-    g_hash_table_insert(table->music_keys, MAFW_METADATA_KEY_TITLE, 
+    g_hash_table_insert(table->music_keys, MAFW_METADATA_KEY_TITLE,
                         tracker_key);
 
     tracker_key = g_new0(TrackerKey, 1);
@@ -468,7 +468,7 @@ keymap_get_info_key_table(void)
     metadata_key->value_type = G_TYPE_STRING;
     metadata_key->key_type = THUMBNAIL_KEY;
     metadata_key->depends_on = MAFW_METADATA_KEY_URI;
-    g_hash_table_insert(table->metadata_keys, 
+    g_hash_table_insert(table->metadata_keys,
                         MAFW_METADATA_KEY_THUMBNAIL_SMALL_URI,
                         metadata_key);
 
@@ -591,8 +591,10 @@ keymap_mafw_sort_keys_to_tracker_keys(gchar **mafw_keys, TrackerObjectType type)
 
     if (tracker_key)
     {
-      tracker_keys[count++] =
-        g_strconcat(keymap_mafw_key_to_tracker_key(key, type), sort_type, NULL);
+      gchar *tkey = keymap_mafw_key_to_tracker_key(key, type);
+
+      tracker_keys[count++] = g_strconcat(tkey, sort_type, NULL);
+      g_free(tkey);
     }
   }
 
@@ -606,7 +608,7 @@ keymap_get_metadata(const gchar *mafw_key)
 
   if (!table)
     table = keymap_get_info_key_table();
-  
+
   return g_hash_table_lookup(table->metadata_keys, mafw_key);
 }
 
