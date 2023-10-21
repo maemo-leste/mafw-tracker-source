@@ -511,8 +511,7 @@ _tracker_sparql_metadata_cb(GObject *object, GAsyncResult *res,
       metadata_list = tracker_cache_build_metadata(
           mc->cache, (const gchar **)mc->path_list);
       mc->mult_callback(metadata_list, NULL, mc->user_data);
-      g_list_foreach(metadata_list, (GFunc)mafw_metadata_release, NULL);
-      g_list_free(metadata_list);
+      g_list_free_full(metadata_list, (GDestroyNotify)mafw_metadata_release);
     }
     else
     {
