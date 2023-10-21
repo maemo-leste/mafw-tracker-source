@@ -3266,80 +3266,33 @@ configure_tests(void)
   /* Create unit tests for test case "Browse" */
   tcase_add_checked_fixture(tc_browse, fx_setup_dummy_tracker_source,
                             fx_teardown_dummy_tracker_source);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_root);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_music);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_music_artists);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_music_artists_artist1);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_music_artists_unknown);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_music_artists_unknown_unknown);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_music_artists_artist1_album3);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_music_albums);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_music_albums_album4);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_music_genres);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_music_genres_genre2);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_music_genres_unknown);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_music_genres_genre2_artist2);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_music_genres_genre2_artist2_album2);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_music_songs);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_music_playlists);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_music_playlists_playlist1);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_videos);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_count);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_offset);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_invalid);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_cancel);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_recursive);
-
-  if (1)
-    tcase_add_test(tc_browse, test_browse_filter);
-
-/*      if (1) tcase_add_test(tc_browse, test_browse_sort); */
+/* *INDENT-OFF* */
+  if (1) tcase_add_test(tc_browse, test_browse_root);
+  if (1) tcase_add_test(tc_browse, test_browse_music);
+  if (1) tcase_add_test(tc_browse, test_browse_music_artists);
+  if (1) tcase_add_test(tc_browse, test_browse_music_artists_artist1);
+  if (1) tcase_add_test(tc_browse, test_browse_music_artists_unknown);
+  if (1) tcase_add_test(tc_browse, test_browse_music_artists_unknown_unknown);
+  if (1) tcase_add_test(tc_browse, test_browse_music_artists_artist1_album3);
+  if (1) tcase_add_test(tc_browse, test_browse_music_albums);
+  if (1) tcase_add_test(tc_browse, test_browse_music_albums_album4);
+  if (1) tcase_add_test(tc_browse, test_browse_music_genres);
+  if (1) tcase_add_test(tc_browse, test_browse_music_genres_genre2);
+  if (1) tcase_add_test(tc_browse, test_browse_music_genres_unknown);
+  if (1) tcase_add_test(tc_browse, test_browse_music_genres_genre2_artist2);
+  if (1) tcase_add_test(tc_browse, test_browse_music_genres_genre2_artist2_album2);
+  if (1) tcase_add_test(tc_browse, test_browse_music_songs);
+  if (1) tcase_add_test(tc_browse, test_browse_music_playlists);
+  if (1) tcase_add_test(tc_browse, test_browse_music_playlists_playlist1);
+  if (1) tcase_add_test(tc_browse, test_browse_videos);
+  if (1) tcase_add_test(tc_browse, test_browse_count);
+  if (1) tcase_add_test(tc_browse, test_browse_offset);
+  if (1) tcase_add_test(tc_browse, test_browse_invalid);
+  if (1) tcase_add_test(tc_browse, test_browse_cancel);
+  if (1) tcase_add_test(tc_browse, test_browse_recursive);
+  if (1) tcase_add_test(tc_browse, test_browse_filter);
+/*if (1) tcase_add_test(tc_browse, test_browse_sort); */
+/* *INDENT-ON* */
 
   suite_add_tcase(s, tc_browse);
 
@@ -3347,38 +3300,19 @@ configure_tests(void)
   tcase_add_checked_fixture(tc_get_metadata, fx_setup_dummy_tracker_source,
                             fx_teardown_dummy_tracker_source);
 
-  if (1)
-    tcase_add_test(tc_get_metadata, test_get_metadata_clip);
-
-  if (1)
-    tcase_add_test(tc_get_metadata, test_get_metadata_video);
-
-  if (1)
-    tcase_add_test(tc_get_metadata, test_get_metadata_playlist);
-
-  if (1)
-    tcase_add_test(tc_get_metadata, test_get_metadata_artist_album_clip);
-
-  if (1)
-    tcase_add_test(tc_get_metadata, test_get_metadata_genre_artist_album_clip);
-
-  if (1)
-    tcase_add_test(tc_get_metadata, test_get_metadata_album_clip);
-
-  if (1)
-    tcase_add_test(tc_get_metadata, test_get_metadata_invalid);
-
-  if (1)
-    tcase_add_test(tc_get_metadata, test_get_metadata_albums);
-
-  if (1)
-    tcase_add_test(tc_get_metadata, test_get_metadata_music);
-
-  if (1)
-    tcase_add_test(tc_get_metadata, test_get_metadata_videos);
-
-  if (1)
-    tcase_add_test(tc_get_metadata, test_get_metadata_root);
+/* *INDENT-OFF* */
+  if (1) tcase_add_test(tc_get_metadata, test_get_metadata_clip);
+  if (1) tcase_add_test(tc_get_metadata, test_get_metadata_video);
+  if (1) tcase_add_test(tc_get_metadata, test_get_metadata_playlist);
+  if (1) tcase_add_test(tc_get_metadata, test_get_metadata_artist_album_clip);
+  if (1) tcase_add_test(tc_get_metadata, test_get_metadata_genre_artist_album_clip);
+  if (1) tcase_add_test(tc_get_metadata, test_get_metadata_album_clip);
+  if (1) tcase_add_test(tc_get_metadata, test_get_metadata_invalid);
+  if (1) tcase_add_test(tc_get_metadata, test_get_metadata_albums);
+  if (1) tcase_add_test(tc_get_metadata, test_get_metadata_music);
+  if (1) tcase_add_test(tc_get_metadata, test_get_metadata_videos);
+  if (1) tcase_add_test(tc_get_metadata, test_get_metadata_root);
+/* *INDENT-ON* */
 
   suite_add_tcase(s, tc_get_metadata);
 
@@ -3386,11 +3320,10 @@ configure_tests(void)
   tcase_add_checked_fixture(tc_get_metadatas, fx_setup_dummy_tracker_source,
                             fx_teardown_dummy_tracker_source);
 
-  if (1)
-    tcase_add_test(tc_get_metadatas, test_get_metadatas_none);
-
-  if (1)
-    tcase_add_test(tc_get_metadatas, test_get_metadatas_several);
+/* *INDENT-OFF* */
+  if (1) tcase_add_test(tc_get_metadatas, test_get_metadatas_none);
+  if (1) tcase_add_test(tc_get_metadatas, test_get_metadatas_several);
+/* *INDENT-ON* */
 
   suite_add_tcase(s, tc_get_metadatas);
 
@@ -3398,14 +3331,11 @@ configure_tests(void)
   tcase_add_checked_fixture(tc_set_metadata, fx_setup_dummy_tracker_source,
                             fx_teardown_dummy_tracker_source);
 
-  if (1)
-    tcase_add_test(tc_set_metadata, test_set_metadata_audio);
-
-  if (1)
-    tcase_add_test(tc_set_metadata, test_set_metadata_video);
-
-  if (1)
-    tcase_add_test(tc_set_metadata, test_set_metadata_invalid);
+/* *INDENT-OFF* */
+  if (1) tcase_add_test(tc_set_metadata, test_set_metadata_audio);
+  if (1) tcase_add_test(tc_set_metadata, test_set_metadata_video);
+  if (1) tcase_add_test(tc_set_metadata, test_set_metadata_invalid);
+/* *INDENT-ON* */
 
   suite_add_tcase(s, tc_set_metadata);
 
@@ -3413,20 +3343,13 @@ configure_tests(void)
   tcase_add_checked_fixture(tc_destroy, fx_setup_dummy_tracker_source,
                             fx_teardown_dummy_tracker_source);
 
-  if (1)
-    tcase_add_test(tc_destroy, test_destroy_item);
-
-  if (1)
-    tcase_add_test(tc_destroy, test_destroy_playlist);
-
-  if (1)
-    tcase_add_test(tc_destroy, test_destroy_container);
-
-  if (1)
-    tcase_add_test(tc_destroy, test_destroy_invalid_category);
-
-  if (1)
-    tcase_add_test(tc_destroy, test_destroy_failed);
+/* *INDENT-OFF* */
+  if (1) tcase_add_test(tc_destroy, test_destroy_item);
+  if (1) tcase_add_test(tc_destroy, test_destroy_playlist);
+  if (1) tcase_add_test(tc_destroy, test_destroy_container);
+  if (1) tcase_add_test(tc_destroy, test_destroy_invalid_category);
+  if (1) tcase_add_test(tc_destroy, test_destroy_failed);
+/* *INDENT-ON* */
 
   suite_add_tcase(s, tc_destroy);
 
