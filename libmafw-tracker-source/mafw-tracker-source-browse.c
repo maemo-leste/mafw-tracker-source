@@ -891,7 +891,7 @@ _browse_albums_branch(const gchar *album,
       /* Browsing /music/albums/<album from artist> */
       escaped_album =
         tracker_sparql_escape_string(album);
-      bc->object_id_prefix = _build_object_id(TRACKER_SOURCE_MUSIC, 
+      bc->object_id_prefix = _build_object_id(TRACKER_SOURCE_MUSIC,
                                               TRACKER_SOURCE_ALBUMS,
                                               escaped_album, NULL);
       g_free(escaped_album);
@@ -1097,13 +1097,13 @@ _browse_root(struct _browse_closure *bc)
     mafw_tracker_source_get_metadata(bc->source,
                                      object_id,
                                      (const gchar *const *)bc->metadata_keys,
-                                     _consolidate_metadata_cb, 
+                                     _consolidate_metadata_cb,
                                      bc);
     g_free(object_id);
 
     /* Get metadata for music */
     object_id = _build_object_id(TRACKER_SOURCE_MUSIC, NULL);
-    mafw_tracker_source_get_metadata(bc->source, 
+    mafw_tracker_source_get_metadata(bc->source,
                                      object_id,
                                      (const gchar *const *)bc->metadata_keys,
                                      _consolidate_metadata_cb,
@@ -1281,7 +1281,7 @@ mafw_tracker_source_browse(MafwSource *self,
     return MAFW_SOURCE_INVALID_BROWSE_ID;
   }
 
-  category = util_extract_category_info(object_id, &genre, &artist, 
+  category = util_extract_category_info(object_id, &genre, &artist,
                                         &album, &clip);
 
   if (category == CATEGORY_ERROR)
@@ -1403,7 +1403,7 @@ out:
   g_free(artist);
   g_free(album);
   g_free(clip);
-  
+
   return browse_id;
 }
 
@@ -1503,7 +1503,7 @@ _get_playlist_duration_cb(MafwSource *self,
                           browse_id,
                           0,
                           0,
-                          g_strdup(duration_bc->object_id),
+                          duration_bc->object_id,
                           duration_metadata,
                           duration_bc->user_data,
                           error);

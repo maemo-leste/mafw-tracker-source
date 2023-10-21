@@ -214,6 +214,8 @@ _get_metadatas_tracker_cb(GList *results,
                           current_obj->data,
                           g_hash_table_ref(current_result->data));
     }
+    else
+      g_free(current_obj->data);
 
     current_obj = current_obj->next;
     current_result = current_result->next;
@@ -298,7 +300,7 @@ _add_playlist_duration_cb(MafwSource *self,
         g_value_set_int(gval, pls_duration);
       else
       {
-        mafw_metadata_add_int(pls_mc->metadata_value, 
+        mafw_metadata_add_int(pls_mc->metadata_value,
                               MAFW_METADATA_KEY_DURATION,
                               pls_duration);
       }
@@ -321,7 +323,7 @@ _get_metadata_tracker_from_playlist_cb(GHashTable *result,
     struct _metadatas_closure *mc = (struct _metadatas_closure *)user_data;
 
     /* Check if we need to calculate the duration exhaustively. */
-    if (_calculate_duration_is_needed(result, 
+    if (_calculate_duration_is_needed(result,
                                       mc->common->metadata_keys,
                                       mc->object_id))
     {
@@ -465,7 +467,7 @@ _get_metadata_tracker_from_root_videos_cb(GHashTable *result,
 
       if (gvalcur && gvalnew)
       {
-        g_value_set_int(gvalcur, 
+        g_value_set_int(gvalcur,
                         g_value_get_int(gvalcur) + g_value_get_int(gvalnew));
       }
 
