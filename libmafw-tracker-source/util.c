@@ -267,7 +267,15 @@ _get_expression(const MafwFilter *filter, TrackerObjectType type,
   if (is_cont)
     expr = g_strdup_printf("CONTAINS(%s,'%s')", var, tracker_value);
   else
-    expr = g_strdup_printf("(%s%s'%s')", var, c, tracker_value);
+  {
+    if (!*tracker_value && *c == '=')
+    {
+      expr = g_strdup_printf("(%s%s'%s' || !bound(%s))",
+                             var, c, tracker_value, var);
+    }
+    else
+      expr = g_strdup_printf("(%s%s'%s')", var, c, tracker_value);
+  }
 
   g_free(tracker_value);
 
@@ -292,7 +300,7 @@ _filter_to_sparql(const MafwFilter *filter,
 
     if (expr)
     {
-      g_string_append_printf(k, " . %s %s", key, var);
+      g_string_append_printf(k, " . OPTIONAL {%s %s}", key, var);
       g_string_append_printf(e, "(%s)", expr);
 
       g_free(expr);
