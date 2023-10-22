@@ -155,10 +155,6 @@ struct _MafwTrackerSourcePrivate
   GList *pending_browse_ops;
   /* Last value of update progress */
   gint last_progress;
-  /* Number of processed items when updating */
-  gint processed_items;
-  /* Number of remaining items to be processed when updating */
-  gint remaining_items;
   /* Remaining time (in seconds) to finish the update */
   gint remaining_time;
 };

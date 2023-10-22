@@ -2,8 +2,8 @@ Source: mafw-tracker-source
 Section: misc
 Priority: optional
 Maintainer: Mika Tapojarvi <mika.tapojarvi@sse.fi>
-Build-Depends: debhelper (>= 4.0.0), libglib2.0-dev, libmafw0-dev (>= 0.1),
-               checkmore, libtracker-sparql-2.0-dev, dbus,
+Build-Depends: debhelper (>= 13.0.0), libglib2.0-dev, libmafw0-dev (>= 0.1),
+               checkmore, libtracker-sparql-2.0-dev, libtracker-control-2.0-dev,
                libhildon-thumbnail-dev (>=3.0.17), libtotem-plparser-dev
 Standards-Version: 3.7.2
 

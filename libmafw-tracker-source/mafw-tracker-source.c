@@ -430,10 +430,10 @@ mafw_tracker_source_get_update_progress(MafwSource *self,
   g_return_val_if_fail(MAFW_IS_TRACKER_SOURCE(self), 100);
 
   if (processed_items)
-    *processed_items = MAFW_TRACKER_SOURCE(self)->priv->processed_items;
+    *processed_items = -1;
 
   if (remaining_items)
-    *remaining_items = MAFW_TRACKER_SOURCE(self)->priv->remaining_items;
+    *remaining_items = -1;
 
   if (remaining_time)
     *remaining_time = MAFW_TRACKER_SOURCE(self)->priv->remaining_time;

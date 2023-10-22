@@ -26,12 +26,12 @@
 #include "config.h"
 #endif
 
-#include <dbus/dbus-glib.h>
 #include <glib.h>
 #include <libmafw/mafw.h>
 #include <stdlib.h>
 #include <string.h>
 #include <totem-pl-parser.h>
+#include <libtracker-control/tracker-control.h>
 
 #include "album-art.h"
 #include "key-mapping.h"
@@ -90,125 +90,14 @@ struct _mafw_metadata_closure
 /* ---------------------------- Globals -------------------------- */
 
 static TrackerSparqlConnection *tc = NULL;
+static TrackerMinerManager *tm = NULL;
+static TrackerNotifier *tn = NULL;
+static gulong miner_progress_id = 0;
+static gulong events_id = 0;
+
 static InfoKeyTable *info_keys = NULL;
 
 /* ------------------------- Private API ------------------------- */
-
-static void
-_stats_changed_handler(DBusGProxy *proxy,
-                       GPtrArray *change_set,
-                       gpointer user_data)
-{
-  gint i;
-  MafwSource *source;
-  const gchar **p;
-  const gchar *service_type = NULL;
-
-  if (change_set == NULL)
-    return;
-
-  source = (MafwSource *)user_data;
-
-  for (i = 0; i < change_set->len; i++)
-  {
-    p = g_ptr_array_index(change_set, i);
-    service_type = p[0];
-
-    if (!service_type)
-      continue;
-
-    if (strcmp(service_type, "Music") == 0)
-      g_signal_emit_by_name(source, "container-changed", MUSIC_OBJECT_ID);
-    else if (strcmp(service_type, "Videos") == 0)
-      g_signal_emit_by_name(source, "container-changed", VIDEOS_OBJECT_ID);
-    else if (strcmp(service_type, "Playlists") == 0)
-      g_signal_emit_by_name(source, "container-changed", PLAYLISTS_OBJECT_ID);
-  }
-}
-
-static void
-_index_state_changed_handler(DBusGProxy *proxy,
-                             const gchar *state,
-                             gboolean initial_index,
-                             gboolean in_merge,
-                             gboolean is_paused_manually,
-                             gboolean is_paused_for_bat,
-                             gboolean is_paused_for_io,
-                             gboolean is_indexing_enabled,
-                             gpointer user_data)
-{
-  MafwTrackerSource *source;
-
-  source = MAFW_TRACKER_SOURCE(user_data);
-
-  if ((source->priv->last_progress != 100) &&
-      (strcmp(state, "Idle") == 0))
-  {
-    /* Indexing has finished */
-    source->priv->last_progress = 100;
-    source->priv->remaining_items = 0;
-    source->priv->remaining_time = 0;
-    g_signal_emit_by_name(source, "updating", 100,
-                          source->priv->processed_items,
-                          source->priv->remaining_items,
-                          source->priv->remaining_time);
-  }
-  else if ((source->priv->last_progress == 100) &&
-           (strcmp(state, "Indexing") == 0))
-  {
-    /* Tracker has began to index */
-    source->priv->last_progress = 0;
-    source->priv->processed_items = 0;
-    source->priv->remaining_items = -1;
-    source->priv->remaining_items = -1;
-    g_signal_emit_by_name(source, "updating", 0,
-                          source->priv->processed_items,
-                          source->priv->remaining_items,
-                          source->priv->remaining_time);
-  }
-}
-
-static void
-_progress_changed_handler (DBusGProxy *proxy,
-                           const gchar *service,
-                           const gchar *uri,
-                           gint items_done,
-                           gint items_remaining,
-                           gint items_total,
-                           gdouble seconds_elapsed,
-                           gpointer user_data)
-{
-  MafwTrackerSource *source;
-  gint progress;
-  gint time_remaining;
-
-  source = MAFW_TRACKER_SOURCE(user_data);
-
-  /* Reserve 100% when index finishes */
-  if (items_total > 0)
-    progress = CLAMP(100*items_done/items_total, 0, 99);
-  else
-    progress = 0;
-
-  if (items_done > 0)
-    time_remaining = items_remaining * (seconds_elapsed / items_done);
-  else
-    time_remaining = -1;
-
-  if ((source->priv->last_progress != progress) ||
-      (source->priv->processed_items != items_done) ||
-      (source->priv->remaining_items != items_remaining) ||
-      (source->priv->remaining_time != time_remaining))
-  {
-    source->priv->last_progress = progress;
-    source->priv->processed_items = items_done;
-    source->priv->remaining_items = items_remaining;
-    source->priv->remaining_time = time_remaining;
-    g_signal_emit_by_name(source, "updating", progress, items_done,
-                          items_remaining, time_remaining);
-  }
-}
-
 static GList *
 _build_objectids_from_pathname(TrackerCache *cache)
 {
@@ -671,90 +560,121 @@ ti_init(void)
   return tc != NULL;
 }
 
+static void
+manager_miner_progress_cb (TrackerMinerManager *manager,
+                           const gchar         *miner_name,
+                           const gchar         *status,
+                           gdouble              progress,
+                           gint                 remaining_time,
+                           gpointer user_data)
+{
+  MafwTrackerSource *source;
+  gint percent = (gint)(100.0 * progress);
+
+  source = MAFW_TRACKER_SOURCE(user_data);
+
+  g_debug("Tracker status %s", status);
+
+  if ((source->priv->last_progress != percent) ||
+      (source->priv->remaining_time != remaining_time))
+  {
+    g_debug("Tracker progress %d", percent);
+
+    source->priv->last_progress = percent;
+    source->priv->remaining_time = remaining_time;
+    g_signal_emit_by_name(source, "updating", percent, -1, -1, remaining_time);
+  }
+}
+
+static void
+connection_notifier_events_cb(TrackerNotifier *self, const GPtrArray *events,
+                              gpointer user_data)
+{
+  MafwTrackerSource *source = MAFW_TRACKER_SOURCE(user_data);
+  int i;
+  gboolean music_changed = FALSE;
+  gboolean video_changed = FALSE;
+  gboolean playlist_changed = FALSE;
+
+  for (i = 0; i < events->len; i++)
+  {
+    TrackerNotifierEvent *event = g_ptr_array_index (events, i);
+
+    switch (tracker_notifier_event_get_event_type(event))
+    {
+      case TRACKER_NOTIFIER_EVENT_CREATE:
+      case TRACKER_NOTIFIER_EVENT_DELETE:
+      {
+        const gchar *type = tracker_notifier_event_get_type(event);
+
+        if (!strcmp(type, TRACKER_PREFIX_NMM "MusicPiece"))
+          music_changed = TRUE;
+        else if (!strcmp(type, TRACKER_PREFIX_NMM "Video"))
+          video_changed = TRUE;
+        else if (!strcmp(type, TRACKER_PREFIX_NMM "Playlist"))
+          playlist_changed = TRUE;
+
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  if (music_changed)
+  {
+    g_debug("Container " MUSIC_OBJECT_ID " changed");
+    g_signal_emit_by_name(source, "container-changed", MUSIC_OBJECT_ID);
+  }
+
+  if (video_changed)
+  {
+    g_debug("Container " VIDEOS_OBJECT_ID " changed");
+    g_signal_emit_by_name(source, "container-changed", VIDEOS_OBJECT_ID);
+  }
+
+  if (playlist_changed)
+  {
+    g_debug("Container " PLAYLISTS_OBJECT_ID " changed");
+    g_signal_emit_by_name(source, "container-changed", PLAYLISTS_OBJECT_ID);
+  }
+}
+
 void
 ti_init_watch (GObject *source)
 {
-  DBusGConnection *connection;
-  DBusGProxy *proxy;
-  GError *error = NULL;
-  GType collection_type;
+  const gchar *classes[] = {
+    "nmm:MusicPiece",
+    "nmm:Video",
+    "nmm:Playlist",
+    NULL
+  };
 
-  connection = dbus_g_bus_get(DBUS_BUS_SESSION, &error);
+  tm = tracker_miner_manager_new();
 
-  if (connection == NULL)
-  {
-    g_warning("Failed to open connection to bus: %s\n", error->message);
-    g_error_free(error);
-    return;
-  }
+  miner_progress_id = g_signal_connect(tm, "miner-progress",
+                                       G_CALLBACK(manager_miner_progress_cb),
+                                       source);
 
-  proxy = dbus_g_proxy_new_for_name(connection,
-                                    "org.freedesktop.Tracker",
-                                    "/org/freedesktop/Tracker",
-                                    "org.freedesktop.Tracker");
-
-  collection_type = dbus_g_type_get_collection("GPtrArray",
-                                               G_TYPE_STRV);
-  dbus_g_object_register_marshaller(
-    mafw_tracker_source_marshal_VOID__STRING_BOOLEAN_BOOLEAN_BOOLEAN_BOOLEAN_BOOLEAN_BOOLEAN,
-    G_TYPE_NONE,
-    G_TYPE_STRING,
-    G_TYPE_BOOLEAN,
-    G_TYPE_BOOLEAN,
-    G_TYPE_BOOLEAN,
-    G_TYPE_BOOLEAN,
-    G_TYPE_BOOLEAN,
-    G_TYPE_BOOLEAN,
-    G_TYPE_INVALID);
-  dbus_g_object_register_marshaller(
-    mafw_tracker_source_marshal_VOID__STRING_STRING_INT_INT_INT_DOUBLE,
-    G_TYPE_NONE,
-    G_TYPE_STRING,
-    G_TYPE_STRING,
-    G_TYPE_INT,
-    G_TYPE_INT,
-    G_TYPE_INT,
-    G_TYPE_DOUBLE,
-    G_TYPE_INVALID);
-
-  dbus_g_proxy_add_signal(proxy,
-                          "ServiceStatisticsUpdated",
-                          collection_type,
-                          G_TYPE_INVALID);
-  dbus_g_proxy_add_signal(proxy,
-                          "IndexStateChange",
-                          G_TYPE_STRING,
-                          G_TYPE_BOOLEAN,
-                          G_TYPE_BOOLEAN,
-                          G_TYPE_BOOLEAN,
-                          G_TYPE_BOOLEAN,
-                          G_TYPE_BOOLEAN,
-                          G_TYPE_BOOLEAN,
-                          G_TYPE_INVALID);
-  dbus_g_proxy_add_signal(proxy,
-                          "IndexProgress",
-                          G_TYPE_STRING,
-                          G_TYPE_STRING,
-                          G_TYPE_INT,
-                          G_TYPE_INT,
-                          G_TYPE_INT,
-                          G_TYPE_DOUBLE,
-                          G_TYPE_INVALID);
-
-  dbus_g_proxy_connect_signal(proxy, "ServiceStatisticsUpdated",
-                              G_CALLBACK(_stats_changed_handler),
-                              source, NULL);
-  dbus_g_proxy_connect_signal(proxy, "IndexStateChange",
-                              G_CALLBACK(_index_state_changed_handler),
-                              source, NULL);
-  dbus_g_proxy_connect_signal(proxy, "IndexProgress",
-                              G_CALLBACK(_progress_changed_handler),
-                              source, NULL);
+  tn = tracker_notifier_new(classes,
+                            TRACKER_NOTIFIER_FLAG_NONE, NULL, NULL);
+  events_id = g_signal_connect (tn,
+                                "events",
+                                G_CALLBACK (connection_notifier_events_cb),
+                                source);
 }
 
 void
 ti_deinit()
 {
+  g_signal_handler_disconnect(tn, events_id);
+  g_object_unref(tn);
+  tn = NULL;
+
+  g_signal_handler_disconnect(tm, miner_progress_id);
+  g_object_unref(tm);
+  tm = NULL;
+
   g_object_unref(tc);
   tc = NULL;
 }

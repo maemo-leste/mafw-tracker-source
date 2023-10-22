@@ -49,6 +49,7 @@ PKG_CHECK_MODULES(DEPS,
 			gobject-2.0 >= 2.0
 			mafw >= 0.1
 			tracker-sparql-2.0
+			tracker-control-2.0
 			hildon-thumbnail >= 3.0
 			totem-plparser
 )
