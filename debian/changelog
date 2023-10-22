@@ -1,3 +1,9 @@
+mafw-tracker-source (0.3.0) unstable; urgency=low
+
+  * Initial maemo-leste release
+
+ -- Ivaylo Dimitrov <ivo.g.dimitrov.75@gmail.com>  Sun, 22 Oct 2023 18:09:22 +0300
+
 mafw-tracker-source (0.2.2010.06-2) unstable; urgency=low
 
   * Bump version number so its not the same as the stock package
