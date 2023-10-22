@@ -11,6 +11,6 @@ Standards-Version: 3.7.2
 Package: mafw-tracker-source
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, tracker-extract, tracker-miner-fs
 Description: MAFW source based on tracker
  Tracker MAFW source.
