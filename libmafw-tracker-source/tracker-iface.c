@@ -902,7 +902,7 @@ ti_get_artists(const gchar *genre,
     escaped_genre = util_get_tracker_value_for_filter(MAFW_METADATA_KEY_GENRE,
                                                       TRACKER_TYPE_MUSIC,
                                                       genre);
-    filters[0] = g_strdup_printf(SPARQL_QUERY_BY_GENRE, escaped_genre);
+    filters[0] = util_create_query_filter(SPARQL_QUERY_BY_GENRE, escaped_genre);
     g_free(escaped_genre);
     filters[1] = g_strdup(rdf_filter);
   }
@@ -1199,7 +1199,7 @@ ti_get_albums(const gchar *genre,
     escaped_genre = util_get_tracker_value_for_filter(MAFW_METADATA_KEY_GENRE,
                                                       TRACKER_TYPE_MUSIC,
                                                       genre);
-    filters[i] = g_strdup_printf(SPARQL_QUERY_BY_GENRE, escaped_genre);
+    filters[i] = util_create_query_filter(SPARQL_QUERY_BY_GENRE, escaped_genre);
     g_free(escaped_genre);
     i++;
   }
@@ -1213,7 +1213,8 @@ ti_get_albums(const gchar *genre,
     escaped_artist = util_get_tracker_value_for_filter(MAFW_METADATA_KEY_ARTIST,
                                                        TRACKER_TYPE_MUSIC,
                                                        artist);
-    filters[i] = g_strdup_printf(SPARQL_QUERY_BY_ARTIST, escaped_artist);
+    filters[i] = util_create_query_filter(SPARQL_QUERY_BY_ARTIST,
+                                          escaped_artist);
     g_free(escaped_artist);
     i++;
   }

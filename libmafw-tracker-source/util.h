@@ -151,4 +151,8 @@ util_build_update_sparql(TrackerObjectType type,
                          gchar **values,
                          gboolean select);
 
+gchar *
+util_create_query_filter(const char *query,
+                         const char *value);
+
 #endif

@@ -139,9 +139,9 @@
 #define TRACKER_FKEY_FILESIZE         "?o nfo:fileSize"
 #define TRACKER_FKEY_PATH             "?o nie:url"
 
-#define SPARQL_QUERY_BY_ARTIST " . ?o nmm:performer / nmm:artistName '%s'"
-#define SPARQL_QUERY_BY_ALBUM " . ?o nmm:musicAlbum / nie:title '%s'"
-#define SPARQL_QUERY_BY_GENRE " . ?o nfo:genre '%s'"
+#define SPARQL_QUERY_BY_ARTIST "?o nmm:performer / nmm:artistName"
+#define SPARQL_QUERY_BY_ALBUM "?o nmm:musicAlbum / nie:title"
+#define SPARQL_QUERY_BY_GENRE "?o nfo:genre"
 
 /* Some object identifiers */
 #define VIDEOS_OBJECT_ID     MAFW_TRACKER_SOURCE_UUID "::videos"

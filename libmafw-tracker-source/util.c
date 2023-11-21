@@ -437,6 +437,24 @@ util_create_sort_keys_array(gint n, gchar *key1, ...)
 }
 
 gchar *
+util_create_query_filter(const char *query, const char *value)
+{
+    gchar *filter;
+
+    if (*value)
+        filter = g_strdup_printf(" . %s '%s'", query, value);
+    else {
+        const gchar *var = var_id();
+
+        filter = g_strdup_printf(
+                    " . OPTIONAL {%s %s} . FILTER(%s='' || !bound(%s))",
+                    query, var, var, var);
+    }
+
+    return filter;
+}
+
+gchar *
 util_create_filter_from_category(const gchar *genre,
                                  const gchar *artist,
                                  const gchar *album,
@@ -467,7 +485,7 @@ util_create_filter_from_category(const gchar *genre,
     escaped_genre = util_get_tracker_value_for_filter(MAFW_METADATA_KEY_GENRE,
                                                       TRACKER_TYPE_MUSIC,
                                                       genre);
-    filters[i] = g_strdup_printf(SPARQL_QUERY_BY_GENRE, escaped_genre);
+    filters[i] = util_create_query_filter(SPARQL_QUERY_BY_GENRE, escaped_genre);
     g_free(escaped_genre);
     i++;
   }
@@ -477,7 +495,8 @@ util_create_filter_from_category(const gchar *genre,
     escaped_artist = util_get_tracker_value_for_filter(MAFW_METADATA_KEY_ARTIST,
                                                        TRACKER_TYPE_MUSIC,
                                                        artist);
-    filters[i] = g_strdup_printf(SPARQL_QUERY_BY_ARTIST, escaped_artist);
+    filters[i] = util_create_query_filter(SPARQL_QUERY_BY_ARTIST,
+                                          escaped_artist);
     g_free(escaped_artist);
     i++;
   }
@@ -487,7 +506,7 @@ util_create_filter_from_category(const gchar *genre,
     escaped_album = util_get_tracker_value_for_filter(MAFW_METADATA_KEY_ALBUM,
                                                       TRACKER_TYPE_MUSIC,
                                                       album);
-    filters[i] = g_strdup_printf(SPARQL_QUERY_BY_ALBUM, escaped_album);
+    filters[i] = util_create_query_filter(SPARQL_QUERY_BY_ALBUM, escaped_album);
     g_free(escaped_album);
     i++;
   }
