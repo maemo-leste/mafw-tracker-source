@@ -649,33 +649,55 @@ ti_init_watch (GObject *source)
     NULL
   };
 
-  tm = tracker_miner_manager_new();
+  if (tm == NULL && (tm = tracker_miner_manager_new()) != NULL)
+  {
+    miner_progress_id = g_signal_connect(tm, "miner-progress",
+                                         G_CALLBACK(manager_miner_progress_cb),
+                                         source);
+  }
 
-  miner_progress_id = g_signal_connect(tm, "miner-progress",
-                                       G_CALLBACK(manager_miner_progress_cb),
-                                       source);
-
-  tn = tracker_notifier_new(classes,
-                            TRACKER_NOTIFIER_FLAG_NONE, NULL, NULL);
-  events_id = g_signal_connect (tn,
-                                "events",
-                                G_CALLBACK (connection_notifier_events_cb),
-                                source);
+  if (tn == NULL && (tn = tracker_notifier_new(classes,
+                                               TRACKER_NOTIFIER_FLAG_NONE, NULL,
+                                               NULL)) != NULL)
+  {
+    events_id = g_signal_connect (tn, "events",
+                                  G_CALLBACK (connection_notifier_events_cb),
+                                  source);
+  }
 }
 
 void
 ti_deinit()
 {
-  g_signal_handler_disconnect(tn, events_id);
-  g_object_unref(tn);
-  tn = NULL;
+  if (events_id)
+  {
+    g_signal_handler_disconnect(tn, events_id);
+    events_id = 0;
+  }
 
-  g_signal_handler_disconnect(tm, miner_progress_id);
-  g_object_unref(tm);
-  tm = NULL;
+  if (tn)
+  {
+    g_object_unref(tn);
+    tn = NULL;
+  }
 
-  g_object_unref(tc);
-  tc = NULL;
+  if (miner_progress_id)
+  {
+    g_signal_handler_disconnect(tm, miner_progress_id);
+    miner_progress_id = 0;
+  }
+
+  if (tm)
+  {
+    g_object_unref(tm);
+    tm = NULL;
+  }
+
+  if (tc)
+  {
+    g_object_unref(tc);
+    tc = NULL;
+  }
 }
 
 void
