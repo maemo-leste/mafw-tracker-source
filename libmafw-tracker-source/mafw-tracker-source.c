@@ -40,8 +40,7 @@
 #define G_LOG_DOMAIN "mafw-tracker-source"
 
 #define MAFW_TRACKER_SOURCE_GET_PRIVATE(object) \
-  (G_TYPE_INSTANCE_GET_PRIVATE((object), MAFW_TYPE_TRACKER_SOURCE, \
-                               MafwTrackerSourcePrivate))
+  ((MafwTrackerSourcePrivate *)mafw_tracker_source_get_instance_private((MafwTrackerSource *)object))
 
 /* Flag to indicate if the plugin has been initialized */
 static gboolean plugin_initialized = FALSE;
@@ -250,7 +249,9 @@ _destroy_object_tracker_cb(MafwResult *clips, GError *error, gpointer user_data)
 
 /*_________________________ Tracker Source GObject ________________________*/
 
-G_DEFINE_TYPE(MafwTrackerSource, mafw_tracker_source, MAFW_TYPE_SOURCE);
+G_DEFINE_TYPE_WITH_PRIVATE(MafwTrackerSource,
+                           mafw_tracker_source,
+                           MAFW_TYPE_SOURCE);
 
 /*
  * Class initialization
@@ -270,8 +271,6 @@ mafw_tracker_source_class_init(MafwTrackerSourceClass *klass)
   source_class->set_metadata = mafw_tracker_source_set_metadata;
 
   klass->browse_id_counter = 0;
-
-  g_type_class_add_private(klass, sizeof(MafwTrackerSourcePrivate));
 }
 
 /*
