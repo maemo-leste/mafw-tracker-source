@@ -384,6 +384,8 @@ _tracker_sparql_metadata_cb(GObject *object, GAsyncResult *res,
       mc->results = _append_sparql_tracker_result(
           cursor, mc->results, keys_len);
 
+      g_object_unref(cursor);
+
       if (mc->results->len)
       {
         row = g_ptr_array_index(mc->results, 0);
@@ -423,9 +425,6 @@ _tracker_sparql_metadata_cb(GObject *object, GAsyncResult *res,
     mc->mult_callback(NULL, error, mc->user_data);
     g_error_free(error);
   }
-
-  if (cursor)
-    g_object_unref(cursor);
 
   tracker_cache_free(mc->cache);
 
