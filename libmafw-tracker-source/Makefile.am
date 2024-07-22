@@ -31,7 +31,9 @@ mafw_tracker_source_la_SOURCES	= mafw-tracker-source-marshal-main.c \
 				  tracker-iface.h \
 				  definitions.h \
 				  util.h \
-				  util.c
+				  util.c \
+				  mafw-tracker-source-sparql-builder.h \
+				  mafw-tracker-source-sparql-builder.c
 
 mafw_tracker_source_la_CFLAGS	=  -DPREFIX=\"$(prefix)\" $(_CFLAGS)
 mafw_tracker_source_la_LDFLAGS	= -avoid-version -module $(_LDFLAGS)

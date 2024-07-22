@@ -96,11 +96,7 @@ gboolean
 util_tracker_value_is_unknown(const gchar *value);
 gchar **
 util_create_sort_keys_array(gint n, gchar *key1, ...);
-gchar *
-util_create_filter_from_category(const gchar *genre,
-                                 const gchar *artist,
-                                 const gchar *album,
-                                 const gchar *user_filter);
+
 gchar *
 util_build_complex_rdf_filter(gchar **filters,
                               const gchar *append_filter);
@@ -126,33 +122,5 @@ gchar **
 util_list_to_strv(GList *list);
 gchar **
 util_add_element_to_strv(gchar **array, const gchar *element);
-
-gchar *
-util_build_sparql(TrackerObjectType type,
-                  gboolean unique,
-                  gchar **fields,
-                  const gchar *condition,
-                  gchar **aggregates,
-                  gchar **aggregate_fields,
-                  guint offset,
-                  guint limit,
-                  gchar **tracker_sort_keys,
-                  gboolean desc);
-
-gchar *
-util_build_meta_sparql(TrackerObjectType type,
-                       gchar **uris,
-                       gchar **fields, int max_fields);
-
-gchar *
-util_build_update_sparql(TrackerObjectType type,
-                         const gchar *uri,
-                         gchar **keys,
-                         gchar **values,
-                         gboolean select);
-
-gchar *
-util_create_query_filter(const char *query,
-                         const char *value);
 
 #endif
