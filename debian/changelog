@@ -1,3 +1,9 @@
+mafw-tracker-source (0.3.3) unstable; urgency=low
+
+  * use prepared sparql statements
+
+ -- Ivaylo Dimitrov <ivo.g.dimitrov.75@gmail.com>  Mon, 22 Jul 2024 15:13:34 +0300
+
 mafw-tracker-source (0.3.2) unstable; urgency=low
 
   * Fix a memory leak
