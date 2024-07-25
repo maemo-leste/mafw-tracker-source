@@ -377,6 +377,20 @@ _append_sparql_tracker_result(TrackerSparqlCursor *cursor,
   }
 }
 
+static gchar **
+_results_row_dup(gchar **row)
+{
+  gchar **row_copy = g_new(gchar *, g_strv_length(row) + 1);
+  gchar **p = row_copy;
+
+  while (*row)
+    *p++ = g_strdup(*row++);
+
+  *p = NULL;
+
+  return row_copy;
+}
+
 static void
 _tracker_sparql_metadata_cb(GObject *object, GAsyncResult *res,
                             gpointer user_data)
@@ -417,41 +431,37 @@ _tracker_sparql_metadata_cb(GObject *object, GAsyncResult *res,
       /* we have all the chunks */
       /* we might have duplicated uris, however, our query returns distinct
          results. Lets account for that */
-      if (mc->uris)
+      if (mc->uris && mc->results && mc->results->len)
       {
-        GHashTableIter iter;
-        gpointer key;
-        gchar **row;
+        GPtrArray *results = g_ptr_array_new();
+        gchar **uri;
+        GHashTable *used =
+            g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, NULL);
 
-        g_hash_table_iter_init (&iter, mc->rows);
-
-        while (g_hash_table_iter_next(&iter, &key,(gpointer *)&row))
+        for (uri = mc->uris; *uri; uri++)
         {
-          gchar **uri;
-          guint count = 0;
+          gchar **row = g_hash_table_lookup(mc->rows, *uri);
 
-          for (uri = mc->uris; *uri; uri++)
-          {
-            if (!g_strcmp0(key, *uri))
-              count++;
-          }
+          if (!row)
+            continue;
 
-          while (--count)
-          {
-            gchar **row_copy = g_new(gchar *, keys_len + 1);
+          if (g_hash_table_contains(used, row))
+            row = _results_row_dup(row);
+          else
+            g_hash_table_add(used, row);
 
-            g_ptr_array_add(mc->results, row_copy);
-
-            while (*row)
-              *row_copy++ = g_strdup(*row++);
-
-            *row_copy = NULL;
-          }
+          g_ptr_array_add(results, row);
         }
+
+        g_assert(g_hash_table_size(used) == mc->results->len);
+
+        g_hash_table_destroy(used);
+
+        g_ptr_array_free(mc->results, TRUE);
+        mc->results = results;
       }
 
-      tracker_cache_values_add_results(mc->cache,
-                                       mc->results);
+      tracker_cache_values_add_results(mc->cache, mc->results);
       mc->results = NULL;
       metadata_list = tracker_cache_build_metadata(
           mc->cache, (const gchar **)mc->path_list);
