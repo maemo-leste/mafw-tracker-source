@@ -302,8 +302,7 @@ _do_tracker_get_unique_values(MafwTrackerSourceSparqlBuilder *builder,
                                            aggregated_keys,
                                            offset,
                                            count,
-                                           NULL,
-                                           FALSE);
+                                           NULL);
 
   tracker_sparql_statement_execute_async(stmt,
                                          NULL,
@@ -830,8 +829,7 @@ ti_get_videos(gchar **keys,
                                            NULL,
                                            offset,
                                            count,
-                                           tracker_sort_keys,
-                                           FALSE);
+                                           tracker_sort_keys);
 
   tracker_sparql_statement_execute_async(stmt,
                                          NULL,
@@ -945,8 +943,7 @@ ti_get_songs(const gchar *genre,
                                            NULL,
                                            offset,
                                            count,
-                                           tracker_sort_keys,
-                                           FALSE);
+                                           tracker_sort_keys);
 
   tracker_sparql_statement_execute_async(stmt,
                                          NULL,
@@ -1254,8 +1251,7 @@ ti_get_playlists(gchar **keys,
                                            NULL,
                                            offset,
                                            count,
-                                           tracker_sort_keys,
-                                           FALSE);
+                                           tracker_sort_keys);
 
   tracker_sparql_statement_execute_async(stmt,
                                          NULL,
@@ -1574,8 +1570,7 @@ _do_tracker_get_metadata_from_service(gchar **keys,
                                              aggregate_keys,
                                              0,
                                              0,
-                                             NULL,
-                                             FALSE);
+                                             NULL);
 
     tracker_sparql_statement_execute_async(
           stmt, NULL, _tracker_sparql_metadata_from_container_cb, mc);
@@ -1840,8 +1835,7 @@ ti_get_metadata_from_category(const gchar *genre,
                                              aggregate_keys,
                                              0,
                                              0,
-                                             NULL,
-                                             FALSE);
+                                             NULL);
 
     tracker_sparql_statement_execute_async(
       stmt, NULL, _tracker_sparql_metadata_from_container_cb, mc);

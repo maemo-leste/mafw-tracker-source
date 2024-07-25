@@ -425,8 +425,7 @@ mafw_tracker_source_sparql_create(MafwTrackerSourceSparqlBuilder *builder,
                                   gchar **aggregate_fields,
                                   guint offset,
                                   guint limit,
-                                  gchar **tracker_sort_keys,
-                                  gboolean desc)
+                                  gchar **tracker_sort_keys)
 {
   TrackerSparqlStatement *stmt;
   GString *sparql_select = g_string_new("SELECT");
@@ -434,6 +433,8 @@ mafw_tracker_source_sparql_create(MafwTrackerSourceSparqlBuilder *builder,
   GString *sparql_group = g_string_new(NULL);
   guint i;
   gchar *sparql;
+  GHashTable *field_vars =
+      g_hash_table_new_full(g_str_hash, g_str_equal, NULL, g_free);
 
   g_string_append(sparql_where, _get_service(type));
 
@@ -441,11 +442,46 @@ mafw_tracker_source_sparql_create(MafwTrackerSourceSparqlBuilder *builder,
   {
     const gchar *var = _next_var_id(builder);
 
+    g_hash_table_insert(field_vars, fields[i], g_strdup(var));
     g_string_append_printf(sparql_select, " %s", var);
     g_string_append_printf(sparql_where, " . OPTIONAL {%s %s}", fields[i], var);
 
     if (unique)
       g_string_append_printf(sparql_group, " GROUP BY %s", var);
+  }
+
+  if (tracker_sort_keys)
+  {
+    const gchar *ob = " ORDER BY";
+
+    for (i = 0; i < g_strv_length(tracker_sort_keys); i++)
+    {
+      const gchar *key = tracker_sort_keys[i];
+      const gchar *var = g_hash_table_lookup(field_vars, key + 1);;
+      const gchar *cond;
+
+      if (*key == '+')
+        cond = "ASC";
+      else if (*key == '-')
+        cond = "DESC";
+      else
+      {
+        key--;
+        cond = "";
+      }
+
+      key++;
+
+      if (!var)
+      {
+        var = _next_var_id(builder);
+        g_string_append_printf(
+              sparql_where, " . OPTIONAL {%s %s}", key, var);
+      }
+
+      g_string_append_printf(sparql_group, "%s %s(%s)", ob, cond, var);
+      ob = "";
+    }
   }
 
   if (aggregates)
@@ -496,6 +532,7 @@ mafw_tracker_source_sparql_create(MafwTrackerSourceSparqlBuilder *builder,
   g_string_free(sparql_select, TRUE);
   g_string_free(sparql_where, TRUE);
   g_string_free(sparql_group, TRUE);
+  g_hash_table_destroy(field_vars);
 
   g_debug("Created sparql '%s'", sparql);
 

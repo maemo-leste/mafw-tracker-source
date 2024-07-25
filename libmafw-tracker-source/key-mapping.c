@@ -576,12 +576,12 @@ keymap_mafw_sort_keys_to_tracker_keys(gchar **mafw_keys, TrackerObjectType type)
     /* Set the sort type */
     if (key[0] == '-')
     {
-      sort_type = " DESC";
+      sort_type = "-";
       key++;
     }
     else
     {
-      sort_type = " ASC";
+      sort_type = "+";
 
       if (key[0] == '+')
         key++;
@@ -593,7 +593,7 @@ keymap_mafw_sort_keys_to_tracker_keys(gchar **mafw_keys, TrackerObjectType type)
     {
       gchar *tkey = keymap_mafw_key_to_tracker_key(key, type);
 
-      tracker_keys[count++] = g_strconcat(tkey, sort_type, NULL);
+      tracker_keys[count++] = g_strconcat(sort_type, tkey, NULL);
       g_free(tkey);
     }
   }

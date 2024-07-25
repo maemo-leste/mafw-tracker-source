@@ -89,8 +89,7 @@ mafw_tracker_source_sparql_create(MafwTrackerSourceSparqlBuilder *builder,
                                   gchar **aggregate_fields,
                                   guint offset,
                                   guint limit,
-                                  gchar **tracker_sort_keys,
-                                  gboolean desc);
+                                  gchar **tracker_sort_keys);
 
 gchar *
 mafw_tracker_source_sparql_create_query_filter(

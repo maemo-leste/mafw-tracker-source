@@ -1420,12 +1420,10 @@ START_TEST(test_browse_filter)
 
 END_TEST
 
-#if 0
 START_TEST(test_browse_sort)
 {
   const gchar *const *metadata = NULL;
   GMainLoop *loop = NULL;
-  GMainContext *context = NULL;
   MafwFilter *filter = NULL;
   gchar *sort_criteria = NULL;
   gchar *first_item_1 = NULL;
@@ -1435,7 +1433,6 @@ START_TEST(test_browse_sort)
   GHashTable *metadata_values = NULL;
 
   loop = g_main_loop_new(NULL, FALSE);
-  context = g_main_loop_get_context(loop);
 
   /* Metadata we are interested in */
   metadata = MAFW_SOURCE_LIST(
@@ -1452,10 +1449,9 @@ START_TEST(test_browse_sort)
                      MAFW_TRACKER_SOURCE_UUID "::music/songs",
                      FALSE, filter, sort_criteria, metadata,
                      0, MAFW_SOURCE_BROWSE_ALL,
-                     browse_result_cb, NULL);
+                     browse_result_cb, loop);
 
-  while (g_main_context_pending(context))
-    g_main_context_iteration(context, TRUE);
+  g_main_loop_run(loop);
 
   ck_assert_msg(g_browse_called != FALSE,
                 "No browse_result signal received");
@@ -1489,10 +1485,9 @@ START_TEST(test_browse_sort)
                      MAFW_TRACKER_SOURCE_UUID "::music/songs",
                      FALSE, filter, sort_criteria, metadata,
                      0, MAFW_SOURCE_BROWSE_ALL,
-                     browse_result_cb, NULL);
+                     browse_result_cb, loop);
 
-  while (g_main_context_pending(context))
-    g_main_context_iteration(context, TRUE);
+  g_main_loop_run(loop);
 
   ck_assert_msg(g_browse_called != FALSE,
                 "No browse_result signal received");
@@ -1537,10 +1532,9 @@ START_TEST(test_browse_sort)
                      MAFW_TRACKER_SOURCE_UUID "::music/songs",
                      FALSE, filter, sort_criteria, metadata,
                      0, MAFW_SOURCE_BROWSE_ALL,
-                     browse_result_cb, NULL);
+                     browse_result_cb, loop);
 
-  while (g_main_context_pending(context))
-    g_main_context_iteration(context, TRUE);
+  g_main_loop_run(loop);
 
   ck_assert_msg(g_browse_called != FALSE,
                 "No browse_result signal received");
@@ -1571,15 +1565,14 @@ START_TEST(test_browse_sort)
   clear_browse_results();
   sort_criteria = g_strdup("-" MAFW_METADATA_KEY_GENRE ",-"
                            MAFW_METADATA_KEY_TITLE);
-  filter = g_strdup("(" MAFW_METADATA_KEY_ALBUM "=Album 3)");
+  filter = mafw_filter_parse("(" MAFW_METADATA_KEY_ALBUM "=Album 3)");
   mafw_source_browse(g_tracker_source,
                      MAFW_TRACKER_SOURCE_UUID "::music/songs",
                      FALSE, filter, sort_criteria, metadata,
                      0, MAFW_SOURCE_BROWSE_ALL,
-                     browse_result_cb, NULL);
+                     browse_result_cb, loop);
 
-  while (g_main_context_pending(context))
-    g_main_context_iteration(context, TRUE);
+  g_main_loop_run(loop);
 
   ck_assert_msg(g_browse_called != FALSE, "No browse_result signal received");
 
@@ -1621,7 +1614,6 @@ START_TEST(test_browse_sort)
   g_main_loop_unref(loop);
 }
 END_TEST
-#endif
 
 static void
 metadata_result_cb(MafwSource *source, const gchar *objectid,
@@ -3291,7 +3283,7 @@ configure_tests(void)
   if (1) tcase_add_test(tc_browse, test_browse_cancel);
   if (1) tcase_add_test(tc_browse, test_browse_recursive);
   if (1) tcase_add_test(tc_browse, test_browse_filter);
-/*if (1) tcase_add_test(tc_browse, test_browse_sort); */
+  if (1) tcase_add_test(tc_browse, test_browse_sort);
 /* *INDENT-ON* */
 
   suite_add_tcase(s, tc_browse);
