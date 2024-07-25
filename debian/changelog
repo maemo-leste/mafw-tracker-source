@@ -1,3 +1,11 @@
+mafw-tracker-source (1.0.0) unstable; urgency=low
+
+  * implement browse results sorting
+  * order metadata results by uris if there are any
+  * use bound variables for filters as well
+
+ -- Ivaylo Dimitrov <ivo.g.dimitrov.75@gmail.com>  Thu, 25 Jul 2024 15:15:51 +0300
+
 mafw-tracker-source (0.3.3) unstable; urgency=low
 
   * use prepared sparql statements
