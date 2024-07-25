@@ -97,6 +97,11 @@ mafw_tracker_source_sparql_create_query_filter(
     const char *query,
     const char *value);
 
+gboolean
+mafw_tracker_source_mafw_filter_to_sparql(
+    MafwTrackerSourceSparqlBuilder *builder,
+    const MafwFilter *filter, GString *p);
+
 G_END_DECLS
 
 #endif /* __MAFW_TRACKER_SOURCE_SPARQL_BUILDER_H__ */

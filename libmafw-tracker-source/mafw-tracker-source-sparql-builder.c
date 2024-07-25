@@ -19,6 +19,8 @@
 
 #include "mafw-tracker-source-sparql-builder.h"
 
+#include "key-mapping.h"
+
 #include <stdio.h>
 
 struct _MafwTrackerSourceSparqlBuilder
@@ -542,4 +544,196 @@ mafw_tracker_source_sparql_create(MafwTrackerSourceSparqlBuilder *builder,
   g_free(sparql);
 
   return stmt;
+}
+
+static gchar *
+_get_expression(MafwTrackerSourceSparqlBuilder *builder,
+                const MafwFilter *filter, TrackerObjectType type,
+                const gchar *tracker_key, const gchar *var)
+{
+  gchar *expr;
+  const char *c;
+  const gchar *id;
+  gchar *tracker_value;
+  gboolean is_cont = FALSE;
+
+  g_assert(MAFW_FILTER_IS_SIMPLE(filter));
+
+  switch (filter->type)
+  {
+    case mafw_f_eq:
+    {
+      c = "=";
+      break;
+    }
+    case mafw_f_lt:
+    {
+      c = "<";
+      break;
+    }
+    case mafw_f_gt:
+    {
+      c = ">";
+      break;
+    }
+    case mafw_f_approx:
+    {
+      is_cont = TRUE;
+      break;
+    }
+    case mafw_f_exists:
+    {
+      g_warning("mafw_f_exists not implemented");
+      return NULL;
+    }
+    default:
+      g_warning("Unknown filter type");
+      return NULL;
+  }
+
+  tracker_value = util_get_tracker_value_for_filter(filter->key, type,
+                                                    filter->value);
+
+  id = _next_val_id(builder);
+  _add_value(builder, id, tracker_value);
+
+  if (is_cont)
+    expr = g_strdup_printf("CONTAINS(%s,~%s)", var, id);
+  else
+  {
+    if (!*tracker_value && *c == '=')
+    {
+      expr = g_strdup_printf("(%s%s~%s || !bound(%s))",
+                             var, c, id, var);
+    }
+    else
+      expr = g_strdup_printf("(%s%s~%s)", var, c, id);
+  }
+
+  g_free(tracker_value);
+
+  return expr;
+}
+
+static gboolean
+_filter_to_sparql(MafwTrackerSourceSparqlBuilder *builder,
+                  const MafwFilter *filter, GString *k, GString *e)
+{
+  gboolean ret = TRUE;
+  gchar *key;
+
+  if (MAFW_FILTER_IS_SIMPLE(filter))
+  {
+    gchar *expr;
+    const gchar *var = _next_var_id(builder);
+
+    key = keymap_mafw_key_to_tracker_key(
+        filter->key, TRACKER_TYPE_MUSIC);
+    expr = _get_expression(builder, filter, TRACKER_TYPE_MUSIC, key, var);
+
+    if (expr)
+    {
+      g_string_append_printf(k, " . OPTIONAL {%s %s}", key, var);
+      g_string_append_printf(e, "(%s)", expr);
+
+      g_free(expr);
+    }
+    else
+      ret = FALSE;
+
+    g_free(key);
+  }
+  else
+  {
+    MafwFilter **parts;
+
+    for (parts = filter->parts; *parts;)
+    {
+      if ((filter->type == mafw_f_and) || (filter->type == mafw_f_or))
+      {
+        while (*parts != NULL)
+        {
+          GString *_k = g_string_new("");
+          GString *_e = g_string_new("");
+
+          ret = _filter_to_sparql(builder, *parts, _k, _e);
+
+          if (ret)
+          {
+            const char *op;
+
+            if (filter->type == mafw_f_and)
+              op = " && ";
+            else
+              op = " || ";
+
+            g_string_append(k, _k->str);
+
+            if (e->len)
+              g_string_append(e, op);
+
+            g_string_append(e, _e->str);
+          }
+
+          g_string_free(_k, TRUE);
+          g_string_free(_e, TRUE);
+
+          if (!ret)
+            break;
+
+          parts++;
+        }
+      }
+      else if (filter->type == mafw_f_not)
+      {
+        GString *_k = g_string_new("");
+        GString *_e = g_string_new("");
+
+        ret = _filter_to_sparql(builder, *parts, _k, _e);
+
+        if (ret)
+        {
+          g_string_append(k, _k->str);
+          g_string_append(e, "!");
+          g_string_append(e, _e->str);
+        }
+
+        g_string_free(_k, TRUE);
+        g_string_free(_e, TRUE);
+
+        if (!ret)
+          break;
+
+        parts++;
+      }
+      else
+      {
+        g_warning("Filter type not implemented");
+        ret = FALSE;
+        break;
+      }
+    }
+  }
+
+  return ret;
+}
+
+gboolean
+mafw_tracker_source_mafw_filter_to_sparql(
+    MafwTrackerSourceSparqlBuilder *builder,
+    const MafwFilter *filter, GString *p)
+{
+  gboolean ret;
+  GString *k = g_string_new("");
+  GString *e = g_string_new("");
+
+  ret = _filter_to_sparql(builder, filter, k, e);
+
+  if (ret)
+    g_string_append_printf(p, "%s . FILTER(%s)", k->str, e->str);
+
+  g_string_free(k, TRUE);
+  g_string_free(e, TRUE);
+
+  return ret;
 }

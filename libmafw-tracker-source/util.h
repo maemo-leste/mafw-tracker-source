@@ -85,9 +85,7 @@ gchar *
 util_epoch_to_iso8601(glong epoch);
 glong
 util_iso8601_to_epoch(const gchar *iso_date);
-gboolean
-util_mafw_filter_to_sparql(const MafwFilter *filter,
-                           GString *p);
+
 gchar *
 util_get_tracker_value_for_filter(const gchar *mafw_key,
                                   TrackerObjectType type,

@@ -40,7 +40,6 @@
 #include "tracker-cache.h"
 #include "tracker-iface.h"
 #include "util.h"
-#include "mafw-tracker-source-sparql-builder.h"
 
 /* ------------------------ Internal types ----------------------- */
 
@@ -598,7 +597,8 @@ _do_tracker_get_metadata(gchar **uris,
 /* ------------------------- Public API ------------------------- */
 
 gchar *
-ti_create_filter(const MafwFilter *filter)
+ti_create_filter(MafwTrackerSourceSparqlBuilder *builder,
+                 const MafwFilter *filter)
 {
   GString *clause = NULL;
   gchar *ret_str = NULL;
@@ -609,7 +609,7 @@ ti_create_filter(const MafwFilter *filter)
   /* Convert the filter to RDF */
   clause = g_string_new("");
 
-  if (util_mafw_filter_to_sparql(filter, clause))
+  if (mafw_tracker_source_mafw_filter_to_sparql(builder, filter, clause))
     ret_str = g_string_free(clause, FALSE);
   else
   {
@@ -782,7 +782,8 @@ ti_deinit()
 }
 
 void
-ti_get_videos(gchar **keys,
+ti_get_videos(MafwTrackerSourceSparqlBuilder *builder,
+              gchar **keys,
               const gchar *rdf_filter,
               gchar **sort_fields,
               guint offset,
@@ -790,7 +791,6 @@ ti_get_videos(gchar **keys,
               MafwTrackerSongsResultCB callback,
               gpointer user_data)
 {
-  MafwTrackerSourceSparqlBuilder *builder;
   TrackerSparqlStatement *stmt;
   gchar **tracker_keys;
   gchar **tracker_sort_keys;
@@ -828,7 +828,6 @@ ti_get_videos(gchar **keys,
   }
 
   /* Query tracker */
-  builder = mafw_tracker_source_sparql_builder_new();
   stmt = mafw_tracker_source_sparql_create(builder,
                                            tc,
                                            TRACKER_TYPE_VIDEO,
@@ -846,14 +845,14 @@ ti_get_videos(gchar **keys,
                                          _tracker_sparql_query_cb,
                                          mc);
   g_object_unref(stmt);
-  g_object_unref(builder);
 
   g_strfreev(tracker_keys);
   g_strfreev(tracker_sort_keys);
 }
 
 void
-ti_get_songs(const gchar *genre,
+ti_get_songs(MafwTrackerSourceSparqlBuilder *builder,
+             const gchar *genre,
              const gchar *artist,
              const gchar *album,
              gchar **keys,
@@ -870,7 +869,6 @@ ti_get_songs(const gchar *genre,
   gchar **use_sort_fields;
   struct _mafw_query_closure *mc;
   gchar **keys_to_query = NULL;
-  MafwTrackerSourceSparqlBuilder *builder;
   TrackerSparqlStatement *stmt;
 
   /* Select default sort fields */
@@ -939,7 +937,6 @@ ti_get_songs(const gchar *genre,
   tracker_sort_keys =
     keymap_mafw_sort_keys_to_tracker_keys(use_sort_fields, TRACKER_TYPE_MUSIC);
 
-  builder = mafw_tracker_source_sparql_builder_new();
   sparql_filter = mafw_tracker_source_sparql_create_filter_from_category(
       builder, genre, artist, album, user_filter);
 
@@ -960,7 +957,6 @@ ti_get_songs(const gchar *genre,
                                          _tracker_sparql_query_cb,
                                          mc);
   g_object_unref(stmt);
-  g_object_unref(builder);
 
   if (sparql_filter)
     g_free(sparql_filter);
@@ -973,7 +969,8 @@ ti_get_songs(const gchar *genre,
 }
 
 void
-ti_get_artists(const gchar *genre,
+ti_get_artists(MafwTrackerSourceSparqlBuilder *builder,
+               const gchar *genre,
                gchar **keys,
                const gchar *rdf_filter,
                gchar **sort_fields,
@@ -992,9 +989,6 @@ ti_get_artists(const gchar *genre,
   gchar *aggregate_types[5] = { 0 };
   gint i;
   MetadataKey *metadata_key;
-  MafwTrackerSourceSparqlBuilder *builder;
-
-  builder = mafw_tracker_source_sparql_builder_new();
 
   /* Prepare mafw closure struct */
   mc = g_new0(struct _mafw_query_closure, 1);
@@ -1091,11 +1085,11 @@ ti_get_artists(const gchar *genre,
 
   g_strfreev(filters);
   g_strfreev(aggregate_keys);
-  g_object_unref(builder);
 }
 
 void
-ti_get_genres(gchar **keys,
+ti_get_genres(MafwTrackerSourceSparqlBuilder *builder,
+              gchar **keys,
               const gchar *rdf_filter,
               gchar **sort_fields,
               guint offset,
@@ -1112,7 +1106,6 @@ ti_get_genres(gchar **keys,
   gchar *aggregate_types[6] = { 0 };
   gint i;
   MetadataKey *metadata_key;
-  MafwTrackerSourceSparqlBuilder *builder;
 
   /* Prepare mafw closure struct */
   mc = g_new0(struct _mafw_query_closure, 1);
@@ -1182,8 +1175,6 @@ ti_get_genres(gchar **keys,
 
   tracker_cache_keys_free_tracker(mc->cache, tracker_keys);
 
-  builder = mafw_tracker_source_sparql_builder_new();
-
   /* Query tracker */
   _do_tracker_get_unique_values(builder,
                                 tracker_unique_keys,
@@ -1194,13 +1185,13 @@ ti_get_genres(gchar **keys,
                                 count,
                                 mc);
 
-  g_object_unref(builder);
   g_strfreev(filters);
   g_strfreev(aggregate_keys);
 }
 
 void
-ti_get_playlists(gchar **keys,
+ti_get_playlists(MafwTrackerSourceSparqlBuilder *builder,
+                 gchar **keys,
                  const gchar *user_filter,
                  gchar **sort_fields,
                  guint offset,
@@ -1208,7 +1199,6 @@ ti_get_playlists(gchar **keys,
                  MafwTrackerSongsResultCB callback,
                  gpointer user_data)
 {
-  MafwTrackerSourceSparqlBuilder *builder;
   TrackerSparqlStatement *stmt;
   struct _mafw_query_closure *mc;
   gchar *sparql_filter = NULL;
@@ -1250,7 +1240,6 @@ ti_get_playlists(gchar **keys,
   sparql_filter = util_build_complex_rdf_filter(NULL, user_filter);
 
   /* Execute query */
-  builder = mafw_tracker_source_sparql_builder_new();
   stmt = mafw_tracker_source_sparql_create(builder,
                                            tc,
                                            TRACKER_TYPE_PLAYLIST,
@@ -1268,7 +1257,6 @@ ti_get_playlists(gchar **keys,
                                          _tracker_sparql_query_cb,
                                          mc);
   g_object_unref(stmt);
-  g_object_unref(builder);
 
   if (use_sort_fields != sort_fields)
     g_free(use_sort_fields);
@@ -1279,7 +1267,8 @@ ti_get_playlists(gchar **keys,
 }
 
 void
-ti_get_albums(const gchar *genre,
+ti_get_albums(MafwTrackerSourceSparqlBuilder *builder,
+              const gchar *genre,
               const gchar *artist,
               gchar **keys,
               const gchar *rdf_filter,
@@ -1300,7 +1289,6 @@ ti_get_albums(const gchar *genre,
   gint i;
   MetadataKey *metadata_key;
   struct _mafw_query_closure *mc;
-  MafwTrackerSourceSparqlBuilder *builder;
 
   builder = mafw_tracker_source_sparql_builder_new();
 
@@ -1418,7 +1406,6 @@ ti_get_albums(const gchar *genre,
 
   g_strfreev(filters);
   g_strfreev(aggregate_keys);
-  g_object_unref(builder);
 }
 
 static void

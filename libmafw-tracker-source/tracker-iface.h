@@ -26,6 +26,8 @@
 #define __MAFW_TRACKER_IFACE_H__
 
 #include "util.h"
+#include "mafw-tracker-source-sparql-builder.h"
+
 #include <libmafw/mafw.h>
 
 typedef struct
@@ -54,10 +56,12 @@ void
 ti_deinit(void);
 
 gchar *
-ti_create_filter(const MafwFilter *filter_str);
+ti_create_filter(MafwTrackerSourceSparqlBuilder *builder,
+                 const MafwFilter *filter);
 
 void
-ti_get_songs(const gchar *genre,
+ti_get_songs(MafwTrackerSourceSparqlBuilder *builder,
+             const gchar *genre,
              const gchar *artist,
              const gchar *album,
              gchar **keys,
@@ -65,56 +69,55 @@ ti_get_songs(const gchar *genre,
              gchar **sort_fields,
              guint offset,
              guint count,
-             MafwTrackerSongsResultCB callback,
-             gpointer user_data);
+             MafwTrackerSongsResultCB callback, gpointer user_data);
 
 void
-ti_get_videos(gchar **keys,
+ti_get_videos(MafwTrackerSourceSparqlBuilder *builder,
+              gchar **keys,
               const gchar *rdf_filter,
               gchar **sort_fields,
               guint offset,
               guint count,
-              MafwTrackerSongsResultCB callback,
-              gpointer user_data);
+              MafwTrackerSongsResultCB callback, gpointer user_data);
 
 void
-ti_get_albums(const gchar *genre,
+ti_get_albums(MafwTrackerSourceSparqlBuilder *builder,
+              const gchar *genre,
               const gchar *artist,
               gchar **keys,
               const gchar *rdf_filter,
               gchar **sort_fields,
               guint offset,
               guint count,
-              MafwTrackerSongsResultCB callback,
-              gpointer user_data);
+              MafwTrackerSongsResultCB callback, gpointer user_data);
 
 void
-ti_get_artists(const gchar *genre,
+ti_get_artists(MafwTrackerSourceSparqlBuilder *builder,
+               const gchar *genre,
                gchar **keys,
                const gchar *rdf_filter,
                gchar **sort_fields,
                guint offset,
                guint count,
-               MafwTrackerSongsResultCB callback,
-               gpointer user_data);
+               MafwTrackerSongsResultCB callback, gpointer user_data);
 
 void
-ti_get_genres(gchar **keys,
+ti_get_genres(MafwTrackerSourceSparqlBuilder *builder,
+              gchar **keys,
               const gchar *rdf_filter,
               gchar **sort_fields,
               guint offset,
               guint count,
-              MafwTrackerSongsResultCB callback,
-              gpointer user_data);
+              MafwTrackerSongsResultCB callback, gpointer user_data);
 
 void
-ti_get_playlists(gchar **keys,
+ti_get_playlists(MafwTrackerSourceSparqlBuilder *builder,
+                 gchar **keys,
                  const gchar *user_filter,
                  gchar **sort_fields,
                  guint offset,
                  guint count,
-                 MafwTrackerSongsResultCB callback,
-                 gpointer user_data);
+                 MafwTrackerSongsResultCB callback, gpointer user_data);
 
 void
 ti_get_metadata_from_videoclip(gchar **uris,

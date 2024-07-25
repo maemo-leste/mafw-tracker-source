@@ -66,6 +66,8 @@ struct _destroy_object_closure
   guint remaining_count;
   /* We may have to allocate memory for URI resolution */
   gchar **metadata_keys;
+
+  MafwTrackerSourceSparqlBuilder *builder;
 };
 
 /*________________________ Plugin init  ________________________*/
@@ -141,6 +143,8 @@ _destroy_object_closure_free(gpointer data)
   /* Free callback error */
   if (dc->error)
     g_error_free(dc->error);
+
+  g_object_unref(dc->builder);
 
   g_free(dc);
 }
@@ -357,6 +361,7 @@ mafw_tracker_source_destroy_object(MafwSource *self,
   dc->current_index = 0;
   dc->remaining_count = 1;
   dc->metadata_keys = NULL;
+  dc->builder = mafw_tracker_source_sparql_builder_new();
 
   category = util_extract_category_info(
         object_id, &genre, &artist, &album, &clip);
@@ -389,7 +394,7 @@ mafw_tracker_source_destroy_object(MafwSource *self,
     dc->metadata_keys =
       g_strdupv((gchar **)MAFW_SOURCE_LIST(MAFW_METADATA_KEY_URI));
 
-    ti_get_songs(genre, artist, album, dc->metadata_keys, NULL,
+    ti_get_songs(dc->builder, genre, artist, album, dc->metadata_keys, NULL,
                  NULL, 0, 0, _destroy_object_tracker_cb, dc);
   }
   else

@@ -86,6 +86,8 @@ struct _browse_closure
   GList *current_metadata_value;
   guint current_index;
   guint remaining_count;
+
+  MafwTrackerSourceSparqlBuilder *builder;
 };
 
 struct _browse_error_closure
@@ -225,6 +227,8 @@ _browse_closure_free(gpointer data)
 
   /* Remove browse closure from pending browse operations */
   _remove_pending_browse_operation(MAFW_TRACKER_SOURCE(bc->source), bc);
+
+  g_object_unref(bc->builder);
 
   /* Free browse closure structure */
   g_free(bc);
@@ -549,7 +553,8 @@ _browse_enqueue_videos_cb(MafwResult *clips,
   bc->object_id_prefix = _build_object_id(TRACKER_SOURCE_VIDEOS,
                                           NULL);
 
-  ti_get_videos(bc->metadata_keys,
+  ti_get_videos(bc->builder,
+                bc->metadata_keys,
                 bc->filter_criteria,
                 bc->sort_fields,
                 bc->offset,
@@ -864,7 +869,8 @@ _browse_songs_branch(const gchar *genre,
   bc->object_id_prefix = _build_object_id(TRACKER_SOURCE_MUSIC,
                                           TRACKER_SOURCE_SONGS,
                                           NULL);
-  ti_get_songs(genre, artist, album,
+  ti_get_songs(bc->builder,
+               genre, artist, album,
                bc->metadata_keys,
                bc->filter_criteria,
                bc->sort_fields,
@@ -895,7 +901,8 @@ _browse_albums_branch(const gchar *album,
                                               TRACKER_SOURCE_ALBUMS,
                                               escaped_album, NULL);
       g_free(escaped_album);
-      ti_get_songs(NULL, NULL, album,
+      ti_get_songs(bc->builder,
+                   NULL, NULL, album,
                    bc->metadata_keys,
                    bc->filter_criteria,
                    bc->sort_fields,
@@ -911,7 +918,8 @@ _browse_albums_branch(const gchar *album,
         _build_object_id(TRACKER_SOURCE_MUSIC,
                          TRACKER_SOURCE_ALBUMS,
                          NULL);
-      ti_get_albums(NULL, NULL,
+      ti_get_albums(bc->builder,
+                    NULL, NULL,
                     bc->metadata_keys,
                     bc->filter_criteria,
                     bc->sort_fields,
@@ -941,7 +949,8 @@ _browse_artists_branch(const gchar *artist,
         _build_object_id(TRACKER_SOURCE_MUSIC,
                          TRACKER_SOURCE_ARTISTS,
                          artist, album, NULL);
-      ti_get_songs(NULL, artist, album,
+      ti_get_songs(bc->builder,
+                   NULL, artist, album,
                    bc->metadata_keys,
                    bc->filter_criteria,
                    bc->sort_fields,
@@ -957,7 +966,8 @@ _browse_artists_branch(const gchar *artist,
         _build_object_id(TRACKER_SOURCE_MUSIC,
                          TRACKER_SOURCE_ARTISTS,
                          artist, NULL);
-      ti_get_albums(NULL, artist,
+      ti_get_albums(bc->builder,
+                    NULL, artist,
                     bc->metadata_keys,
                     bc->filter_criteria,
                     bc->sort_fields,
@@ -973,7 +983,8 @@ _browse_artists_branch(const gchar *artist,
         _build_object_id(TRACKER_SOURCE_MUSIC,
                          TRACKER_SOURCE_ARTISTS,
                          NULL);
-      ti_get_artists(NULL,
+      ti_get_artists(bc->builder,
+                     NULL,
                      bc->metadata_keys,
                      bc->filter_criteria,
                      bc->sort_fields,
@@ -1004,7 +1015,8 @@ _browse_genres_branch(const gchar *genre,
         _build_object_id(TRACKER_SOURCE_MUSIC,
                          TRACKER_SOURCE_GENRES,
                          genre, artist, album, NULL);
-      ti_get_songs(genre, artist, album,
+      ti_get_songs(bc->builder,
+                   genre, artist, album,
                    bc->metadata_keys,
                    bc->filter_criteria,
                    bc->sort_fields,
@@ -1020,7 +1032,8 @@ _browse_genres_branch(const gchar *genre,
         _build_object_id(TRACKER_SOURCE_MUSIC,
                          TRACKER_SOURCE_GENRES,
                          genre, artist, NULL);
-      ti_get_albums(genre, artist,
+      ti_get_albums(bc->builder,
+                    genre, artist,
                     bc->metadata_keys,
                     bc->filter_criteria,
                     bc->sort_fields,
@@ -1036,7 +1049,8 @@ _browse_genres_branch(const gchar *genre,
         _build_object_id(TRACKER_SOURCE_MUSIC,
                          TRACKER_SOURCE_GENRES,
                          genre, NULL);
-      ti_get_artists(genre,
+      ti_get_artists(bc->builder,
+                     genre,
                      bc->metadata_keys,
                      bc->filter_criteria,
                      bc->sort_fields,
@@ -1052,7 +1066,8 @@ _browse_genres_branch(const gchar *genre,
         _build_object_id(TRACKER_SOURCE_MUSIC,
                          TRACKER_SOURCE_GENRES,
                          NULL);
-      ti_get_genres(bc->metadata_keys,
+      ti_get_genres(bc->builder,
+                    bc->metadata_keys,
                     bc->filter_criteria,
                     bc->sort_fields,
                     bc->offset,
@@ -1073,7 +1088,8 @@ _browse_root(struct _browse_closure *bc)
     bc->object_id_prefix = _build_object_id(TRACKER_SOURCE_MUSIC,
                                             TRACKER_SOURCE_SONGS,
                                             NULL);
-    ti_get_songs(NULL, NULL, NULL,
+    ti_get_songs(bc->builder,
+                 NULL, NULL, NULL,
                  bc->metadata_keys,
                  bc->filter_criteria,
                  bc->sort_fields,
@@ -1118,7 +1134,8 @@ _browse_videos_branch(struct _browse_closure *bc)
   /* Browsing /videos */
   bc->object_id_prefix = _build_object_id(TRACKER_SOURCE_VIDEOS,
                                           NULL);
-  ti_get_videos(bc->metadata_keys,
+  ti_get_videos(bc->builder,
+                bc->metadata_keys,
                 bc->filter_criteria,
                 bc->sort_fields,
                 bc->offset,
@@ -1237,7 +1254,8 @@ _browse_playlists_branch(const gchar *playlist,
                        TRACKER_SOURCE_PLAYLISTS,
                        NULL);
 
-    ti_get_playlists(bc->metadata_keys,
+    ti_get_playlists(bc->builder,
+                     bc->metadata_keys,
                      bc->filter_criteria,
                      bc->sort_fields,
                      bc->offset,
@@ -1322,7 +1340,8 @@ mafw_tracker_source_browse(MafwSource *self,
   bc->object_id = g_strdup(object_id);
   bc->metadata_keys = g_strdupv((gchar **)meta_keys);
   bc->sort_fields = sort_criteria ? g_strsplit(sort_criteria, ",", 0) : NULL;
-  bc->filter_criteria = ti_create_filter(filter);
+  bc->builder = mafw_tracker_source_sparql_builder_new();
+  bc->filter_criteria = ti_create_filter(bc->builder, filter);
   bc->offset = skip_count;
   bc->count = item_count;
   bc->recursive = recursive;
