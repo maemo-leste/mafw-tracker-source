@@ -214,8 +214,6 @@ fx_setup_dummy_tracker_source(void)
 {
   GError *error = NULL;
 
-  g_type_init();
-
   /* Check if we have registered the plugin, otherwise
      do it and get a pointer to the Tracker source instance */
   MafwRegistry *registry = MAFW_REGISTRY(mafw_registry_get_instance());
@@ -2801,7 +2799,7 @@ START_TEST(test_set_metadata_video)
   metadata = mafw_metadata_new();
   mafw_metadata_add_str(metadata,
                         MAFW_METADATA_KEY_PAUSED_THUMBNAIL_URI,
-                        "/home/user/thumbnail.png");
+                        "file:///home/user/thumbnail.png");
   mafw_metadata_add_int(metadata,
                         MAFW_METADATA_KEY_PAUSED_POSITION,
                         10);
@@ -3388,7 +3386,7 @@ gchar *DB[DB_SIZE][7] =
            "Genre 2", "audio/x-wma", "21" },
   /*06*/ { "/home/user/MyDocs/clip6.wma", "Title 6", "Artist 1", "Album 3",
            "Genre 1", "audio/x-wma", "90" },
-  /*07*/ { "/home/user/MyDocs/clip7.mp3", "", "", "", "", "audio/x-mp3", "70" },
+  /*07*/ { "/home/user/MyDocs/clip 7.mp3", "", "", "", "", "audio/x-mp3", "70" },
   /*08*/ { "/home/user/MyDocs/clip8.mp3", "Title V2", "Artist V2", "Album V2",
            "", "audio/x-mp3", "64" },
   /*09*/ { "/home/user/MyDocs/unknown-album.mp3", "Title 7", "Artist 4", "",
@@ -3412,7 +3410,7 @@ gchar *DB[DB_SIZE][7] =
            "video/x-msvideo", "23" }
 };
 
-#define ESCAPE(s) s ? g_uri_escape_string(s, NULL, TRUE) : NULL;
+#define ESCAPE(s) s ? g_uri_escape_string(s, G_URI_RESERVED_CHARS_ALLOWED_IN_PATH, TRUE) : NULL;
 
 static void
 _add_playlist(TrackerSparqlConnection *connection,
@@ -3425,15 +3423,16 @@ _add_playlist(TrackerSparqlConnection *connection,
   gchar *sql;
   GError *error = NULL;
   gchar *entry;
+  gchar *urn = tracker_sparql_get_uuid_urn();
 
   g_string_printf(query,
-                  "INSERT DATA { "
+                  "INSERT DATA { GRAPH tracker:Audio {\n"
                   "<%s> a nfo:FileDataObject, nmm:Playlist ; "
-                  "nie:url 'file://%s' ; "
+                  "nie:isStoredAs <file://%s> ; "
                   "nie:mimeType '%s' ; "
                   "nfo:entryCounter %d ; ",
-                  id, file, mime, nitems);
-  g_free(id);
+                  urn, id, mime, nitems);
+  g_free(urn);
 
   /* Add some local items */
   for (i = 0; i < (nitems - 1); i++)
@@ -3442,10 +3441,10 @@ _add_playlist(TrackerSparqlConnection *connection,
     const char *filename = DB[p][DB_FILENAME];
     entry = ESCAPE(filename);
     g_string_append_printf(query,
-                           "nfo:hasMediaFileListEntry <%s%d> ; ",
+                           "nfo:hasMediaFileListEntry <urn:bnode:%s%d> ; ",
                            entry, i);
     g_string_append_printf(entries,
-                           "<%s%d> a nfo:MediaFileListEntry ; "
+                           "<urn:bnode:%s%d> a nfo:MediaFileListEntry ; "
                            "nfo:entryUrl 'file://%s' ; "
                            "nfo:listPosition %d . ",
                            entry, i, filename, i);
@@ -3457,24 +3456,27 @@ _add_playlist(TrackerSparqlConnection *connection,
 
   entry = ESCAPE(remote);
   g_string_append_printf(query,
-                         "nfo:hasMediaFileListEntry <%s%d> ; ",
+                         "nfo:hasMediaFileListEntry <urn:bnode:%s%d> ; ",
                          entry, nitems);
   g_string_append_printf(entries,
-                         "<%s%d> a nfo:MediaFileListEntry ; "
+                         "<urn:bnode:%s%d> a nfo:MediaFileListEntry ; "
                          "nfo:entryUrl '%s' ; "
                          "nfo:listPosition %d . ",
                          entry, nitems, remote, nitems);
   g_free(entry);
-  g_string_append(query, " . ");
+  g_string_append_printf(query,
+                         ". <file://%s> a nie:DataObject ; "
+                         "nie:url 'file://%s' . ", id, id);
 
   sql = g_strconcat(query->str, " ",
-                    entries->str, " }",
+                    entries->str,
+                    " }}",
                     NULL);
 
   g_string_free(query, TRUE);
   g_string_free(entries, TRUE);
 
-  tracker_sparql_connection_update(connection, sql, 0, NULL, &error);
+  tracker_sparql_connection_update(connection, sql, NULL, &error);
 
   if (error)
   {
@@ -3482,6 +3484,7 @@ _add_playlist(TrackerSparqlConnection *connection,
     g_error_free(error);
   }
 
+  g_free(id);
   g_free(sql);
 }
 
@@ -3500,14 +3503,17 @@ _add_music_piece(TrackerSparqlConnection *connection, int idx)
   gchar *album_escaped = ESCAPE(album);
   GString *query = g_string_new(NULL);
   GError *error = NULL;
+  gchar *urn = tracker_sparql_get_uuid_urn();
 
   g_string_printf(query,
-                  "INSERT DATA {"
+                  "INSERT DATA { GRAPH tracker:Audio { "
                   "<%s> a nfo:FileDataObject, nmm:MusicPiece ; "
                   "nie:mimeType '%s' ; "
-                  "nie:url 'file://%s' ; "
+                  "nie:isStoredAs <file://%s> ; "
                   "nfo:duration %d ; ",
-                  id, mime, file, duration);
+                  urn, mime, id, duration);
+
+  g_free(urn);
 
   if (title)
   {
@@ -3526,23 +3532,27 @@ _add_music_piece(TrackerSparqlConnection *connection, int idx)
   if (artist_escaped)
   {
     g_string_append_printf(query,
-                           "nmm:performer <%s> ; ",
+                           "nmm:artist <urn:artist:%s> ; ",
                            artist_escaped);
   }
 
   if (album_escaped)
   {
     g_string_append_printf(query,
-                           "nmm:musicAlbum <%s> ; ",
+                           "nmm:musicAlbum <urn:album:%s> ; ",
                            album_escaped);
   }
 
-  g_string_append(query, " . ");
+  g_string_append_printf(query,
+                         " . <file://%s> a nie:DataObject ; "
+                         "nie:url 'file://%s' . ",
+                         id, id
+                  );
 
   if (artist_escaped)
   {
     g_string_append_printf(query,
-                           "<%s> a nmm:Artist ; "
+                           "<urn:artist:%s> a nmm:Artist ; "
                            "nmm:artistName '%s' . ",
                            artist_escaped, artist);
   }
@@ -3550,24 +3560,23 @@ _add_music_piece(TrackerSparqlConnection *connection, int idx)
   if (album_escaped)
   {
     g_string_append_printf(query,
-                           "<%s> a nmm:MusicAlbum ; "
+                           "<urn:album:%s> a nmm:MusicAlbum ; "
                            "nie:title '%s' ; ",
                            album_escaped, album);
 
     if (artist_escaped)
     {
       g_string_append_printf(query,
-                             "nmm:albumArtist <%s> . ",
+                             "nmm:albumArtist <urn:album:%s> .",
                              artist_escaped);
     }
     else
       g_string_append(query, " . ");
   }
 
-  g_string_append(query, "}");
+  g_string_append(query, "} }");
 
-  tracker_sparql_connection_update(
-    connection, query->str, 0, NULL, &error);
+  tracker_sparql_connection_update(connection, query->str, NULL, &error);
 
   if (error)
     g_error("SPARQL update failed, %s", error->message);
@@ -3588,14 +3597,16 @@ _add_video(TrackerSparqlConnection *connection, int idx)
   gchar *id = ESCAPE(file);
   GString *query = g_string_new(NULL);
   GError *error = NULL;
+  gchar *urn = tracker_sparql_get_uuid_urn();
 
   g_string_printf(query,
-                  "INSERT DATA {"
-                  "<%s> a nfo:FileDataObject, nmm:Video ; "
+                  "INSERT DATA { GRAPH tracker:Video {"
+                  "<file://%s> a nfo:FileDataObject, nmm:Video ; "
                   "nie:mimeType '%s' ; "
-                  "nie:url 'file://%s' ; "
+                  "nie:isStoredAs <file://%s> ; "
                   "nfo:duration %d ; ",
-                  id, mime, file, duration);
+                  urn, mime, id, duration);
+  g_free(urn);
 
   if (title)
   {
@@ -3603,11 +3614,11 @@ _add_video(TrackerSparqlConnection *connection, int idx)
                            "nie:title '%s' ; ",
                            title);
   }
+  g_string_append_printf(query, ". <file://%s> a nie:DataObject ; "
+                                "nie:url 'file://%s' . ", id, id);
+  g_string_append(query, "} }");
 
-  g_string_append(query, "}");
-
-  tracker_sparql_connection_update(
-    connection, query->str, 0, NULL, &error);
+  tracker_sparql_connection_update(connection, query->str, NULL, &error);
 
   if (error)
     g_error("SPARQL update failed, %s", error->message);
@@ -3621,56 +3632,11 @@ create_tracker_database()
 {
   GError *error = NULL;
   TrackerSparqlConnection *connection =
-    tracker_sparql_connection_get(NULL, &error);
+    tracker_sparql_connection_bus_new(NULL, NULL, NULL, &error);
 
   if (connection)
   {
     int i;
-    tracker_sparql_connection_update(connection,
-                                     "DELETE WHERE {?id a nmm:MusicPiece}",
-                                     0,
-                                     NULL,
-                                     NULL);
-    tracker_sparql_connection_update(connection,
-                                     "DELETE WHERE {?id a nmm:MusicAlbum}",
-                                     0,
-                                     NULL,
-                                     NULL);
-    tracker_sparql_connection_update(connection,
-                                     "DELETE WHERE {?id a nmm:Artist}",
-                                     0,
-                                     NULL,
-                                     NULL);
-    tracker_sparql_connection_update(connection,
-                                     "DELETE WHERE {?id a nmm:Playlist}",
-                                     0,
-                                     NULL,
-                                     NULL);
-    tracker_sparql_connection_update(connection,
-                                     "DELETE WHERE {?id a nmm:Video}",
-                                     0,
-                                     NULL,
-                                     NULL);
-    tracker_sparql_connection_update(connection,
-                                     "DELETE WHERE {?id a nmm:Image}",
-                                     0,
-                                     NULL,
-                                     NULL);
-    tracker_sparql_connection_update(connection,
-                                     "DELETE WHERE {?id a nie:DataObject}",
-                                     0,
-                                     NULL,
-                                     NULL);
-    tracker_sparql_connection_update(connection,
-                                     "DELETE WHERE {?id a nfo:MediaFileListEntry}",
-                                     0,
-                                     NULL,
-                                     NULL);
-    tracker_sparql_connection_update(connection,
-                                     "DELETE WHERE {?id a nfo:MediaList}",
-                                     0,
-                                     NULL,
-                                     NULL);
 
     for (i = 0; i < 14; i++)
       _add_music_piece(connection, i);
@@ -3719,18 +3685,28 @@ create_temporal_playlist (gchar *path, gint nitems)
 }
 
 TrackerSparqlConnection *
-tracker_sparql_connection_get(GCancellable *cancellable, GError **error)
+tracker_sparql_connection_bus_new (const gchar* service_name,
+                                   const gchar* object_path,
+                                   GDBusConnection* dbus_connection,
+                                   GError** error)
 {
-  /* FIXME - tracker 3 supports in-memory databases */
   // GFile *store = g_file_new_for_path("/home/user/.cache/tracker");
-  GFile *store = g_file_new_for_path("db");
-  TrackerSparqlConnection *connection;
+  GFile *store = NULL;
+  GFile *ontology = tracker_sparql_get_ontology_nepomuk();
+  static TrackerSparqlConnection *connection = NULL;
 
-  connection = tracker_sparql_connection_local_new(
-    TRACKER_SPARQL_CONNECTION_FLAGS_NONE, store, NULL,
-    NULL, NULL, error);
+  if (!connection)
+  {
+    connection = tracker_sparql_connection_new(
+          TRACKER_SPARQL_CONNECTION_FLAGS_NONE, store, ontology, NULL, error);
+  }
+  else
+    g_object_ref(connection);
 
-  g_object_unref(store);
+  if (store)
+    g_object_unref(store);
+
+  g_object_unref(ontology);
 
   return connection;
 }

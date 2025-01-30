@@ -180,6 +180,20 @@ _get_service(TrackerObjectType type)
   }
 }
 
+static const char *
+_get_graph(TrackerObjectType type)
+{
+  switch (type)
+  {
+    case TRACKER_TYPE_VIDEO:
+    {
+      return "tracker:Video";
+    }
+    default:
+      return "tracker:Audio";
+  }
+}
+
 static void
 _bind_values(MafwTrackerSourceSparqlBuilder *builder,
              TrackerSparqlStatement *stmt)
@@ -218,7 +232,7 @@ mafw_tracker_source_sparql_meta(MafwTrackerSourceSparqlBuilder *builder,
   {
     uri_var = g_strdup(_next_var_id(builder));
     g_string_append_printf(sparql_select, " %s", uri_var);
-    g_string_append_printf(sparql_where, " . ?o nie:url %s", uri_var);
+    g_string_append_printf(sparql_where, " . ?o nie:isStoredAs/nie:url %s", uri_var);
   }
 
   for (i = 0; i < g_strv_length((gchar **)fields) && i < max_fields; i++)
@@ -282,7 +296,7 @@ mafw_tracker_source_sparql_select(MafwTrackerSourceSparqlBuilder *builder,
 
 
   _add_value(builder, id, uri);
-  sparql = g_strdup_printf("SELECT * WHERE {%s ; nie:url ~%s}", st, id);
+  sparql = g_strdup_printf("SELECT * WHERE {%s ; nie:isStoredAs/nie:url ~%s}", st, id);
 
   g_debug("Created select URI sparql '%s'", sparql);
 
@@ -318,9 +332,9 @@ mafw_tracker_source_sparql_update(MafwTrackerSourceSparqlBuilder *builder,
   }
 
   sql = g_strdup_printf(
-        "DELETE {%s} INSERT {%s} WHERE {%s . ?o nie:url '%s'%s}",
-        sparql_delete->str, sparql_insert->str, _get_service(type), escaped_uri,
-        sparql_where->str);
+        "WITH %s DELETE {%s} INSERT {%s} WHERE {%s . ?o nie:isStoredAs '%s'%s}",
+        _get_graph(type), sparql_delete->str, sparql_insert->str,
+        _get_service(type), escaped_uri, sparql_where->str);
 
   g_string_free(sparql_delete, TRUE);
   g_string_free(sparql_insert, TRUE);

@@ -31,7 +31,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <totem-pl-parser.h>
-#include <libtracker-control/tracker-control.h>
 
 #include "album-art.h"
 #include "key-mapping.h"
@@ -41,6 +40,8 @@
 #include "tracker-iface.h"
 #include "util.h"
 
+#include "org.freedesktop.Tracker3.Miner.h"
+
 /* ------------------------ Internal types ----------------------- */
 
 /* How many properties to ask for at once - sqlite has a limit of nested
@@ -49,6 +50,8 @@
 #ifndef MAX_SPARQL_OPTIONALS
 #define MAX_SPARQL_OPTIONALS 10
 #endif
+
+#define TRACKER_SERVICE "org.freedesktop.Tracker3.Miner.Files"
 
 /* Stores information needed to invoke MAFW's callback after getting
    results from tracker */
@@ -92,7 +95,7 @@ struct _mafw_metadata_closure
 /* ---------------------------- Globals -------------------------- */
 
 static TrackerSparqlConnection *tc = NULL;
-static TrackerMinerManager *tm = NULL;
+static MafwTracker3Miner *tm = NULL;
 static TrackerNotifier *tn = NULL;
 static gulong miner_progress_id = 0;
 static gulong events_id = 0;
@@ -114,9 +117,18 @@ _build_objectids_from_pathname(TrackerCache *cache)
 
   for (i = 0; i < results->len; i++)
   {
+    GError *error = NULL;
+
     value = tracker_cache_value_get(cache, MAFW_METADATA_KEY_URI, i);
     uri = g_value_get_string(value);
-    pathname = g_filename_from_uri(uri, NULL, NULL);
+    pathname = g_filename_from_uri(uri, NULL, &error);
+
+    if (error)
+    {
+      g_warning("%s", error->message);
+      g_error_free(error);
+    }
+
     objectid_list = g_list_prepend(objectid_list, pathname);
     util_gvalue_free(value);
   }
@@ -628,7 +640,7 @@ ti_init(void)
   if (info_keys == NULL)
     info_keys = keymap_get_info_key_table();
 
-  tc = tracker_sparql_connection_get(NULL, &error);
+  tc = tracker_sparql_connection_bus_new(TRACKER_SERVICE, NULL, NULL, &error);
 
   if (tc == NULL)
   {
@@ -641,12 +653,11 @@ ti_init(void)
 }
 
 static void
-manager_miner_progress_cb (TrackerMinerManager *manager,
-                           const gchar         *miner_name,
-                           const gchar         *status,
-                           gdouble              progress,
-                           gint                 remaining_time,
-                           gpointer user_data)
+manager_miner_progress_cb (MafwTracker3Miner *proxy,
+                           const gchar       *status,
+                           gdouble            progress,
+                           gint               remaining_time,
+                           gpointer           user_data)
 {
   MafwTrackerSource *source;
   gint percent = (gint)(100.0 * progress);
@@ -667,14 +678,18 @@ manager_miner_progress_cb (TrackerMinerManager *manager,
 }
 
 static void
-connection_notifier_events_cb(TrackerNotifier *self, const GPtrArray *events,
+connection_notifier_events_cb(TrackerNotifier* self,
+                              gchar* service,
+                              gchar* graph,
+                              GPtrArray *events,
                               gpointer user_data)
 {
   MafwTrackerSource *source = MAFW_TRACKER_SOURCE(user_data);
-  int i;
   gboolean music_changed = FALSE;
   gboolean video_changed = FALSE;
   gboolean playlist_changed = FALSE;
+#if 0
+  int i;
 
   for (i = 0; i < events->len; i++)
   {
@@ -684,10 +699,11 @@ connection_notifier_events_cb(TrackerNotifier *self, const GPtrArray *events,
     {
       case TRACKER_NOTIFIER_EVENT_CREATE:
       case TRACKER_NOTIFIER_EVENT_DELETE:
+      case TRACKER_NOTIFIER_EVENT_UPDATE:
       {
-        const gchar *type = tracker_notifier_event_get_type(event);
+        const gchar *type = tracker_notifier_event_get_urn(event);
 
-        if (!strcmp(type, TRACKER_PREFIX_NMM "MusicPiece"))
+        if (!strcmp(type, TRACKER_PREFIX_NMM "Audio"))
           music_changed = TRUE;
         else if (!strcmp(type, TRACKER_PREFIX_NMM "Video"))
           video_changed = TRUE;
@@ -700,7 +716,15 @@ connection_notifier_events_cb(TrackerNotifier *self, const GPtrArray *events,
         break;
     }
   }
-
+#else
+  if (!strcmp(graph, TRACKER_PREFIX_TRACKER "Audio"))
+  {
+    playlist_changed = TRUE;
+    music_changed = TRUE;
+  }
+  else if (!strcmp(graph, TRACKER_PREFIX_TRACKER "Video"))
+    video_changed = TRUE;
+#endif
   if (music_changed)
   {
     g_debug("Container " MUSIC_OBJECT_ID " changed");
@@ -723,23 +747,29 @@ connection_notifier_events_cb(TrackerNotifier *self, const GPtrArray *events,
 void
 ti_init_watch (GObject *source)
 {
-  const gchar *classes[] = {
-    "nmm:MusicPiece",
-    "nmm:Video",
-    "nmm:Playlist",
-    NULL
-  };
-
-  if (tm == NULL && (tm = tracker_miner_manager_new()) != NULL)
+  if (!tm)
   {
-    miner_progress_id = g_signal_connect(tm, "miner-progress",
+    GError *error = NULL;
+
+    tm = mafw_tracker3_miner_proxy_new_for_bus_sync(
+          G_BUS_TYPE_SESSION, G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
+          TRACKER_SERVICE, "/org/freedesktop/Tracker3/Miner/Files", NULL,
+          &error);
+    if (error)
+    {
+      g_error("Unable to connect to " TRACKER_SERVICE ": %s", error->message);
+      g_error_free(error);
+    }
+  }
+
+  if (tm)
+  {
+    miner_progress_id = g_signal_connect(tm, "progress",
                                          G_CALLBACK(manager_miner_progress_cb),
                                          source);
   }
 
-  if (tn == NULL && (tn = tracker_notifier_new(classes,
-                                               TRACKER_NOTIFIER_FLAG_NONE, NULL,
-                                               NULL)) != NULL)
+  if (!tn && (tn = tracker_sparql_connection_create_notifier(tc)))
   {
     events_id = g_signal_connect (tn, "events",
                                   G_CALLBACK (connection_notifier_events_cb),
@@ -2018,7 +2048,7 @@ ti_set_metadata(const gchar *uri, GHashTable *metadata, CategoryType category,
         sparql = mafw_tracker_source_sparql_update(builder, tracker_type,
                                                    uri, keys_array,
                                                    values_array);
-        tracker_sparql_connection_update(tc, sparql, 0, NULL, error);
+        tracker_sparql_connection_update(tc, sparql, NULL, error);
         g_free(sparql);
         g_object_unref(builder);
       }
@@ -2083,13 +2113,14 @@ ti_set_playlist_duration(const gchar *uri, guint duration)
 
   /* Store in Tracker the new value for the playlist duration */
   g_string_append_printf(sql,
+                         "WITH tracker:Audio "
                          "DELETE {?o nfo:listDuration ?d} "
                          "INSERT {?o nfo:listDuration %d} "
-                         "WHERE {?o a nmm:Playlist.?o nie:url '%s'. "
+                         "WHERE {?o a nmm:Playlist.?o nie:isStoredAs/nie:url '%s'. "
                          "OPTIONAL{?o nfo:listDuration ?d}}",
                          duration, uri);
 
-  tracker_sparql_connection_update_async(tc, sql->str, G_PRIORITY_DEFAULT, NULL,
+  tracker_sparql_connection_update_async(tc, sql->str, NULL,
                                          _set_playlist_duration_cb, NULL);
 
   g_string_free(sql, TRUE);

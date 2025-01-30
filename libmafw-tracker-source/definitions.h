@@ -107,7 +107,7 @@
 
 /* Tracker metadata keys */
 #define TRACKER_AKEY_ALBUM            "?o nmm:musicAlbum/nie:title"
-#define TRACKER_AKEY_ARTIST           "?o nmm:performer/nmm:artistName"
+#define TRACKER_AKEY_ARTIST           "?o nmm:artist/nmm:artistName"
 #define TRACKER_AKEY_TITLE            "?o nie:title"
 #define TRACKER_AKEY_GENRE            "?o nfo:genre"
 #define TRACKER_AKEY_DURATION         "?o nfo:duration"
@@ -124,22 +124,22 @@
 #define TRACKER_VKEY_PAUSED_POSITION  "?o nfo:lastPlayedPosition"
 #define TRACKER_VKEY_RES_X            "?o nfo:width"
 #define TRACKER_VKEY_RES_Y            "?o nfo:height"
-#define TRACKER_VKEY_SOURCE           "?o nfo:equipment/nfo:model"
+#define TRACKER_VKEY_SOURCE           "?o nfo:equipment []; nfo:model"
 #define TRACKER_VKEY_PAUSED_THUMBNAIL "?o nfo:depiction"
 
 #define TRACKER_PKEY_COUNT            "?o nfo:entryCounter"
 #define TRACKER_PKEY_DURATION         "?o nfo:listDuration"
 
-#define TRACKER_FKEY_FULLNAME         "?o nie:url"
+#define TRACKER_FKEY_FULLNAME         "?o nie:isStoredAs/nie:url"
 #define TRACKER_FKEY_MIME             "?o nie:mimeType"
-#define TRACKER_FKEY_ADDED            "?o tracker:added"
-#define TRACKER_FKEY_MODIFIED         "?o nfo:fileLastModified"
+#define TRACKER_FKEY_ADDED            "?o nrl:added"
+#define TRACKER_FKEY_MODIFIED         "?o nie:isStoredAs []; nfo:fileLastModified"
 #define TRACKER_FKEY_COPYRIGHT        "?o nie:copyright"
-#define TRACKER_FKEY_FILENAME         "?o nfo:fileName"
-#define TRACKER_FKEY_FILESIZE         "?o nfo:fileSize"
-#define TRACKER_FKEY_PATH             "?o nie:url"
+#define TRACKER_FKEY_FILENAME         "?o nie:isStoredAs []; nfo:fileName"
+#define TRACKER_FKEY_FILESIZE         "?o nie:isStoredAs []; nfo:fileSize"
+#define TRACKER_FKEY_PATH             "?o nie:isStoredAs/nie:url"
 
-#define SPARQL_QUERY_BY_ARTIST "?o nmm:performer / nmm:artistName"
+#define SPARQL_QUERY_BY_ARTIST "?o nmm:artist / nmm:artistName"
 #define SPARQL_QUERY_BY_ALBUM "?o nmm:musicAlbum / nie:title"
 #define SPARQL_QUERY_BY_GENRE "?o nfo:genre"
 
