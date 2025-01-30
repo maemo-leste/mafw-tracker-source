@@ -1,3 +1,9 @@
+mafw-tracker-source (2.0.0) unstable; urgency=low
+
+  * port to tracker3
+
+ -- Ivaylo Dimitrov <ivo.g.dimitrov.75@gmail.com>  Thu, 30 Jan 2025 17:15:44 +0200
+
 mafw-tracker-source (1.0.0) unstable; urgency=low
 
   * implement browse results sorting
