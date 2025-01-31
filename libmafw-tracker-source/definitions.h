@@ -115,7 +115,7 @@
 #define TRACKER_AKEY_BITRATE          "?o nfo:averageBitrate"
 #define TRACKER_AKEY_LAST_PLAYED      "?o nie:contentAccessed"
 #define TRACKER_AKEY_PLAY_COUNT       "?o nie:usageCounter"
-#define TRACKER_AKEY_YEAR             "?o nie:contentCreated"
+#define TRACKER_AKEY_YEAR             "?o nie:informationElementDate"
 
 #define TRACKER_VKEY_TITLE            "?o nie:title"
 #define TRACKER_VKEY_DURATION         "?o nfo:duration"

@@ -363,7 +363,7 @@ keymap_get_info_key_table(void)
                         metadata_key);
 
     metadata_key = g_new0(MetadataKey, 1);
-    metadata_key->value_type = G_TYPE_INT;
+    metadata_key->value_type = G_TYPE_DATE;
     g_hash_table_insert(table->metadata_keys, MAFW_METADATA_KEY_YEAR,
                         metadata_key);
 
@@ -391,12 +391,12 @@ keymap_get_info_key_table(void)
                         metadata_key);
 
     metadata_key = g_new0(MetadataKey, 1);
-    metadata_key->value_type = G_TYPE_LONG;
+    metadata_key->value_type = G_TYPE_DATE;
     g_hash_table_insert(table->metadata_keys, MAFW_METADATA_KEY_ADDED,
                         metadata_key);
 
     metadata_key = g_new0(MetadataKey, 1);
-    metadata_key->value_type = G_TYPE_LONG;
+    metadata_key->value_type = G_TYPE_DATE;
     g_hash_table_insert(table->metadata_keys, MAFW_METADATA_KEY_MODIFIED,
                         metadata_key);
 

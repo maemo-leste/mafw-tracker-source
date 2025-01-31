@@ -85,6 +85,8 @@ gchar *
 util_epoch_to_iso8601(glong epoch);
 glong
 util_iso8601_to_epoch(const gchar *iso_date);
+gint
+util_iso8601_to_year(const gchar *iso_date);
 
 gchar *
 util_get_tracker_value_for_filter(const gchar *mafw_key,

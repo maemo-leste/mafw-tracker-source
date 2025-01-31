@@ -203,6 +203,17 @@ util_iso8601_to_epoch(const gchar *iso_date)
   return timeval.tv_sec;
 }
 
+gint
+util_iso8601_to_year(const gchar *iso_date)
+{
+  g_autoptr(GDateTime) dt = g_date_time_new_from_iso8601(iso_date, NULL);
+
+  if (dt)
+    return g_date_time_get_year(dt);
+
+  return 0;
+}
+
 gboolean
 util_tracker_value_is_unknown(const gchar *value)
 {

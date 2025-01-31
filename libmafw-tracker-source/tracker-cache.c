@@ -983,7 +983,6 @@ tracker_cache_value_get(TrackerCache *cache,
                          atol(queried_result[cached_value->tracker_index]));
         break;
       }
-
       case G_TYPE_FLOAT:
       {
         g_value_init(return_value, G_TYPE_FLOAT);
@@ -1006,6 +1005,24 @@ tracker_cache_value_get(TrackerCache *cache,
 
       default:
       {
+        if (metadata_key->value_type == G_TYPE_DATE)
+        {
+          const gchar *iso_date = queried_result[cached_value->tracker_index];
+
+          if (!strcmp(key, MAFW_METADATA_KEY_YEAR))
+          {
+            g_value_init(return_value, G_TYPE_INT);
+            g_value_set_int(return_value, util_iso8601_to_year(iso_date));
+          }
+          else
+          {
+            g_value_init(return_value, G_TYPE_LONG);
+            g_value_set_long(return_value, util_iso8601_to_epoch(iso_date));
+          }
+
+          break;
+        }
+
         g_value_init(return_value, G_TYPE_STRING);
         /* Special case: convert pathname to URI */
         g_value_set_string(return_value,
