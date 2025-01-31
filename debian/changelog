@@ -1,3 +1,9 @@
+mafw-tracker-source (2.0.1) unstable; urgency=low
+
+  * fix DATE metadata pprocessing
+
+ -- Ivaylo Dimitrov <ivo.g.dimitrov.75@gmail.com>  Fri, 31 Jan 2025 07:54:37 +0200
+
 mafw-tracker-source (2.0.0) unstable; urgency=low
 
   * port to tracker3
