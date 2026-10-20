@@ -2110,6 +2110,7 @@ void
 ti_set_playlist_duration(const gchar *uri, guint duration)
 {
   GString *sql = g_string_new("");
+  gchar *escaped_uri = tracker_sparql_escape_string(uri);
 
   /* Store in Tracker the new value for the playlist duration */
   g_string_append_printf(sql,
@@ -2118,10 +2119,11 @@ ti_set_playlist_duration(const gchar *uri, guint duration)
                          "INSERT {?o nfo:listDuration %d} "
                          "WHERE {?o a nmm:Playlist.?o nie:isStoredAs/nie:url '%s'. "
                          "OPTIONAL{?o nfo:listDuration ?d}}",
-                         duration, uri);
+                         duration, escaped_uri);
 
   tracker_sparql_connection_update_async(tc, sql->str, NULL,
                                          _set_playlist_duration_cb, NULL);
 
   g_string_free(sql, TRUE);
+  g_free(escaped_uri);
 }
