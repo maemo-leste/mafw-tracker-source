@@ -268,6 +268,16 @@ mafw_tracker_source_sparql_meta(MafwTrackerSourceSparqlBuilder *builder,
     g_free(uri_var);
   }
 
+  /* The default graph is the union of every ontology database, which makes
+   * SQLite union a copy of the class table from each of them for every
+   * OPTIONAL in the query.  Name the graphs that actually hold the data:
+   * the media graph for the piece itself, FileSystem for the URL and file
+   * properties.  Measured on a droid4, this takes a metadata query from
+   * 7.5 s to 165 ms with identical results.
+   */
+  g_string_append_printf(sparql_select, " FROM %s FROM tracker:FileSystem",
+                         _get_graph(type));
+
   sparql = g_strconcat(sparql_select->str,
                        " WHERE ", sparql_where->str, " }", NULL);
   g_string_free(sparql_select, TRUE);
@@ -296,7 +306,9 @@ mafw_tracker_source_sparql_select(MafwTrackerSourceSparqlBuilder *builder,
 
 
   _add_value(builder, id, uri);
-  sparql = g_strdup_printf("SELECT * WHERE {%s ; nie:isStoredAs/nie:url ~%s}", st, id);
+  sparql = g_strdup_printf("SELECT * FROM %s FROM tracker:FileSystem "
+                         "WHERE {%s ; nie:isStoredAs/nie:url ~%s}",
+                         _get_graph(type), st, id);
 
   g_debug("Created select URI sparql '%s'", sparql);
 
@@ -540,6 +552,13 @@ mafw_tracker_source_sparql_create(MafwTrackerSourceSparqlBuilder *builder,
 
   if (condition)
     g_string_append_printf(sparql_where, "%s", condition);
+
+  /* Restrict to the graphs that hold this content; see the note in
+   * mafw_tracker_source_sparql_meta.  The browse query asks for many
+   * fields, and each one otherwise joins a UNION over every ontology
+   * database. */
+  g_string_append_printf(sparql_select, " FROM %s FROM tracker:FileSystem",
+                         _get_graph(type));
 
   sparql = g_strconcat(sparql_select->str, " ",
                        sparql_where->str, " }",
