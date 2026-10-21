@@ -293,6 +293,52 @@ mafw_tracker_source_sparql_meta(MafwTrackerSourceSparqlBuilder *builder,
   return stmt;
 }
 
+/* Resolve a resource announced by Tracker into the file URL the source
+ * addresses it by. Tracker announces resources by URN
+ * (urn:fileid:<volume>:<inode>) while object ids here are pathnames, and
+ * two shapes occur: a media item hangs its URL off the file it is stored
+ * as, while a file or a thumbnail carries one directly.
+ *
+ * The query is restricted to the graph the change came from plus
+ * FileSystem, which is where nie:url lives, and the URN is a bound
+ * parameter so repeated announcements reuse one query plan.
+ */
+TrackerSparqlStatement *
+mafw_tracker_source_sparql_resolve_urn(MafwTrackerSourceSparqlBuilder *builder,
+                                      TrackerSparqlConnection *tc,
+                                      const gchar *graph,
+                                      const gchar *urn)
+{
+  const gchar *id = _next_val_id(builder);
+  const gchar *hash = strchr(graph, '#');
+  gchar *base, *fs_graph, *sparql;
+  TrackerSparqlStatement *stmt;
+
+  if (!hash)
+    return NULL;
+
+  base = g_strndup(graph, (gssize)(hash - graph) + 1);
+  fs_graph = g_strconcat(base, "FileSystem", NULL);
+  g_free(base);
+
+  _add_value(builder, id, urn);
+
+  sparql = g_strdup_printf("SELECT ?u FROM <%s> FROM <%s> "
+                           "WHERE { ?o (nie:url|nie:isStoredAs/nie:url) ?u "
+                           "FILTER(STR(?o) = ~%s) }",
+                           graph, fs_graph, id);
+
+  g_debug("Created resolve sparql '%s'", sparql);
+
+  stmt = tracker_sparql_connection_query_statement(tc, sparql, NULL, NULL);
+  _bind_values(builder, stmt);
+
+  g_free(sparql);
+  g_free(fs_graph);
+
+  return stmt;
+}
+
 TrackerSparqlStatement *
 mafw_tracker_source_sparql_select(MafwTrackerSourceSparqlBuilder *builder,
                                   TrackerSparqlConnection *tc,

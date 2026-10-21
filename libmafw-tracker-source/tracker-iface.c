@@ -35,6 +35,7 @@
 #include "album-art.h"
 #include "key-mapping.h"
 #include "mafw-tracker-source-marshal.h"
+#include "mafw-tracker-source-sparql-builder.h"
 #include "mafw-tracker-source.h"
 #include "tracker-cache.h"
 #include "tracker-iface.h"
@@ -677,6 +678,172 @@ manager_miner_progress_cb (MafwTracker3Miner *proxy,
   }
 }
 
+/* Containers affected by a change in the given graph. A change we cannot
+ * name has to be answered by reloading these, because it may add or
+ * remove members of them. */
+static void
+ti_emit_container_changed(MafwTrackerSource *source, const gchar *graph)
+{
+  if (!strcmp(graph, TRACKER_PREFIX_TRACKER "Audio"))
+  {
+    g_debug("Container " MUSIC_OBJECT_ID " changed");
+    g_signal_emit_by_name(source, "container-changed", MUSIC_OBJECT_ID);
+    g_debug("Container " PLAYLISTS_OBJECT_ID " changed");
+    g_signal_emit_by_name(source, "container-changed", PLAYLISTS_OBJECT_ID);
+  }
+  else if (!strcmp(graph, TRACKER_PREFIX_TRACKER "Video"))
+  {
+    g_debug("Container " VIDEOS_OBJECT_ID " changed");
+    g_signal_emit_by_name(source, "container-changed", VIDEOS_OBJECT_ID);
+  }
+}
+
+/* Object ids in this source are filesystem pathnames, while Tracker
+ * announces resources by URN (urn:fileid:<volume>:<inode>), so an
+ * announcement has to be resolved before it can be passed on.
+ *
+ * The lookup is a prepared statement with the URN bound as a parameter,
+ * one per graph, so repeated announcements reuse a query plan instead of
+ * paying for a fresh one on every write. The batch walks itself one event
+ * at a time, which also means a statement is never executing twice.
+ */
+typedef struct
+{
+  MafwTrackerSource *source;
+  gchar *graph;
+  GPtrArray *urns;    /* owned gchar *, the batch being resolved */
+  GPtrArray *paths;   /* owned gchar *, resolved so far */
+  guint index;
+  gboolean failed;
+} TiUpdateData;
+
+static void ti_resolve_next(TiUpdateData *data);
+
+static void
+ti_update_data_free(TiUpdateData *data)
+{
+  g_free(data->graph);
+  g_ptr_array_free(data->urns, TRUE);
+  g_ptr_array_free(data->paths, TRUE);
+  g_free(data);
+}
+
+static void
+ti_update_finish(TiUpdateData *data)
+{
+  guint i;
+
+  /* Anything we could not name -- a folder, a resource with no file
+   * behind it, a track the application has never browsed -- may change
+   * the container rather than one item in it, so it is answered the
+   * conservative way.
+   */
+  if (data->failed || data->paths->len == 0 ||
+      data->paths->len < data->urns->len)
+    ti_emit_container_changed(data->source, data->graph);
+  else
+    for (i = 0; i < data->paths->len; i++)
+      g_signal_emit_by_name(MAFW_SOURCE(data->source), "metadata-changed",
+                            g_ptr_array_index(data->paths, i));
+
+  ti_update_data_free(data);
+}
+
+static void
+ti_resource_resolved_cb(GObject *object, GAsyncResult *res, gpointer user_data)
+{
+  TiUpdateData *data = user_data;
+  TrackerSparqlCursor *cursor;
+  GError *error = NULL;
+
+  cursor = tracker_sparql_statement_execute_finish(
+             TRACKER_SPARQL_STATEMENT(object), res, &error);
+
+  if (error)
+  {
+    g_warning("Could not resolve Tracker update: %s", error->message);
+    g_error_free(error);
+    data->failed = TRUE;
+    ti_update_finish(data);
+    return;
+  }
+
+  while (tracker_sparql_cursor_next(cursor, NULL, NULL))
+  {
+    const gchar *url = tracker_sparql_cursor_get_string(cursor, 0, NULL);
+    gchar *pathname = url ? g_filename_from_uri(url, NULL, NULL) : NULL;
+
+    if (pathname)
+      g_ptr_array_add(data->paths, pathname);
+  }
+
+  g_object_unref(cursor);
+  ti_resolve_next(data);
+}
+
+static void
+ti_resolve_next(TiUpdateData *data)
+{
+  MafwTrackerSourceSparqlBuilder *builder;
+  TrackerSparqlStatement *stmt;
+
+  if (data->index >= data->urns->len)
+  {
+    ti_update_finish(data);
+    return;
+  }
+
+  builder = mafw_tracker_source_sparql_builder_new();
+  stmt = mafw_tracker_source_sparql_resolve_urn(
+           builder, tc, data->graph,
+           g_ptr_array_index(data->urns, data->index));
+  g_object_unref(builder);
+
+  if (!stmt)
+  {
+    data->failed = TRUE;
+    ti_update_finish(data);
+    return;
+  }
+
+  data->index++;
+
+  tracker_sparql_statement_execute_async(stmt, NULL,
+                                         ti_resource_resolved_cb, data);
+  g_object_unref(stmt);
+}
+
+static void
+ti_resolve_updated_resources(MafwTrackerSource *source, const gchar *graph,
+                             GPtrArray *events, guint n_events)
+{
+  TiUpdateData *data;
+  int i;
+
+  data = g_new0(TiUpdateData, 1);
+  data->source = source;
+  data->graph = g_strdup(graph);
+  data->urns = g_ptr_array_new_with_free_func(g_free);
+  data->paths = g_ptr_array_new_with_free_func(g_free);
+
+  for (i = 0; i < n_events; i++)
+  {
+    TrackerNotifierEvent *event = g_ptr_array_index(events, i);
+    const gchar *urn = tracker_notifier_event_get_urn(event);
+
+    if (!urn)
+    {
+      ti_update_data_free(data);
+      ti_emit_container_changed(source, graph);
+      return;
+    }
+
+    g_ptr_array_add(data->urns, g_strdup(urn));
+  }
+
+  ti_resolve_next(data);
+}
+
 static void
 connection_notifier_events_cb(TrackerNotifier* self,
                               gchar* service,
@@ -685,63 +852,28 @@ connection_notifier_events_cb(TrackerNotifier* self,
                               gpointer user_data)
 {
   MafwTrackerSource *source = MAFW_TRACKER_SOURCE(user_data);
-  gboolean music_changed = FALSE;
-  gboolean video_changed = FALSE;
-  gboolean playlist_changed = FALSE;
-#if 0
   int i;
 
+  if (!events || events->len == 0)
+    return;
+
+  /* Only updates of an existing resource can be attributed to a single
+   * item. A creation or a deletion changes which items the container
+   * holds, which is worth a reload and is what the application can act
+   * on. */
   for (i = 0; i < events->len; i++)
   {
-    TrackerNotifierEvent *event = g_ptr_array_index (events, i);
+    TrackerNotifierEvent *event = g_ptr_array_index(events, i);
 
-    switch (tracker_notifier_event_get_event_type(event))
+    if (tracker_notifier_event_get_event_type(event) !=
+        TRACKER_NOTIFIER_EVENT_UPDATE)
     {
-      case TRACKER_NOTIFIER_EVENT_CREATE:
-      case TRACKER_NOTIFIER_EVENT_DELETE:
-      case TRACKER_NOTIFIER_EVENT_UPDATE:
-      {
-        const gchar *type = tracker_notifier_event_get_urn(event);
-
-        if (!strcmp(type, TRACKER_PREFIX_NMM "Audio"))
-          music_changed = TRUE;
-        else if (!strcmp(type, TRACKER_PREFIX_NMM "Video"))
-          video_changed = TRUE;
-        else if (!strcmp(type, TRACKER_PREFIX_NMM "Playlist"))
-          playlist_changed = TRUE;
-
-        break;
-      }
-      default:
-        break;
+      ti_emit_container_changed(source, graph);
+      return;
     }
   }
-#else
-  if (!strcmp(graph, TRACKER_PREFIX_TRACKER "Audio"))
-  {
-    playlist_changed = TRUE;
-    music_changed = TRUE;
-  }
-  else if (!strcmp(graph, TRACKER_PREFIX_TRACKER "Video"))
-    video_changed = TRUE;
-#endif
-  if (music_changed)
-  {
-    g_debug("Container " MUSIC_OBJECT_ID " changed");
-    g_signal_emit_by_name(source, "container-changed", MUSIC_OBJECT_ID);
-  }
 
-  if (video_changed)
-  {
-    g_debug("Container " VIDEOS_OBJECT_ID " changed");
-    g_signal_emit_by_name(source, "container-changed", VIDEOS_OBJECT_ID);
-  }
-
-  if (playlist_changed)
-  {
-    g_debug("Container " PLAYLISTS_OBJECT_ID " changed");
-    g_signal_emit_by_name(source, "container-changed", PLAYLISTS_OBJECT_ID);
-  }
+  ti_resolve_updated_resources(source, graph, events, events->len);
 }
 
 void

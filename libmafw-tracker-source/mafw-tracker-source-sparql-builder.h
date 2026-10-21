@@ -58,6 +58,12 @@ mafw_tracker_source_sparql_meta(MafwTrackerSourceSparqlBuilder *builder,
                                 int max_fields);
 
 TrackerSparqlStatement *
+mafw_tracker_source_sparql_resolve_urn(MafwTrackerSourceSparqlBuilder *builder,
+                                      TrackerSparqlConnection *tc,
+                                      const gchar *graph,
+                                      const gchar *urn);
+
+TrackerSparqlStatement *
 mafw_tracker_source_sparql_select(MafwTrackerSourceSparqlBuilder *builder,
                                   TrackerSparqlConnection *tc,
                                   TrackerObjectType type,
